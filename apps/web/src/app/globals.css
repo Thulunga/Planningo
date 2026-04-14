@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── Dark theme (default) ── */
+  :root {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --card: 224 71% 6%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 71% 5%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 216 34% 17%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar: 224 71% 3%;
+    --sidebar-foreground: 213 31% 85%;
+    --sidebar-border: 216 34% 14%;
+    --sidebar-accent: 216 34% 10%;
+    --sidebar-accent-foreground: 210 40% 98%;
+
+    /* Chart colors */
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    /* Font */
+    --font-sans: 'Inter', system-ui, sans-serif;
+  }
+
+  /* ── Light theme override ── */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+/* React Big Calendar dark theme overrides */
+.rbc-calendar {
+  @apply bg-transparent text-foreground;
+}
+
+.rbc-toolbar {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-2;
+}
+
+.rbc-toolbar button {
+  @apply rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent;
+}
+
+.rbc-toolbar button.rbc-active {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+.rbc-header {
+  @apply border-border py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider;
+}
+
+.rbc-month-view {
+  @apply border-border;
+}
+
+.rbc-day-bg {
+  @apply border-border;
+}
+
+.rbc-day-bg.rbc-today {
+  @apply bg-primary/5;
+}
+
+.rbc-off-range-bg {
+  @apply bg-muted/30;
+}
+
+.rbc-event {
+  @apply rounded border-none px-1 py-0.5 text-xs font-medium;
+}
+
+.rbc-show-more {
+  @apply text-xs text-primary;
+}
+
+.rbc-time-view {
+  @apply border-border;
+}
+
+.rbc-time-header-content {
+  @apply border-border;
+}
+
+.rbc-timeslot-group {
+  @apply border-border;
+}
+
+.rbc-time-slot {
+  @apply text-xs text-muted-foreground;
+}
+
+.rbc-current-time-indicator {
+  @apply bg-primary;
+}

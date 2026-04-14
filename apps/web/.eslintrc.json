@@ -1,0 +1,3 @@
+{
+  "extends": ["@planningo/config/eslint/next"]
+}

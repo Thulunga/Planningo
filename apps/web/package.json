@@ -1,0 +1,50 @@
+{
+  "name": "@planningo/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@planningo/ui": "workspace:*",
+    "@planningo/database": "workspace:*",
+    "@supabase/supabase-js": "^2.44.2",
+    "@supabase/ssr": "^0.4.0",
+    "@tanstack/react-query": "^5.45.1",
+    "@tanstack/react-query-devtools": "^5.45.1",
+    "react-big-calendar": "^1.12.2",
+    "date-fns": "^3.6.0",
+    "zustand": "^4.5.2",
+    "react-hook-form": "^7.51.5",
+    "@hookform/resolvers": "^3.6.0",
+    "zod": "^3.23.8",
+    "sonner": "^1.5.0",
+    "lucide-react": "^0.395.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.3.0",
+    "web-push": "^3.6.7",
+    "next-themes": "^0.3.0"
+  },
+  "devDependencies": {
+    "@planningo/config": "workspace:*",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-big-calendar": "^1.8.9",
+    "@types/web-push": "^3.6.3",
+    "typescript": "^5.4.5",
+    "tailwindcss": "^3.4.4",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5"
+  }
+}
