@@ -155,17 +155,17 @@ export function GroupExpensesClient({
         </Button>
       </div>
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
           <p className="text-sm text-muted-foreground capitalize">{group.category} · {group.currency}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)}>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="flex-1 sm:flex-none">
             <UserPlus className="mr-2 h-4 w-4" />
             Add Member
           </Button>
-          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)}>
+          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
             Add Expense
           </Button>
@@ -221,7 +221,7 @@ export function GroupExpensesClient({
                     <AvatarImage src={m.profiles?.avatar_url ?? undefined} />
                     <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? '?'}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
                   </div>
                   <p className={`text-sm font-semibold ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -254,7 +254,7 @@ export function GroupExpensesClient({
 
               return (
                 <Card key={exp.id}>
-                  <CardContent className="flex items-center gap-3 py-3">
+                  <CardContent className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <DollarSign className="h-4 w-4 text-primary" />
                     </div>
@@ -264,7 +264,7 @@ export function GroupExpensesClient({
                         Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date), 'MMM d')}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="w-full text-left sm:w-auto sm:text-right">
                       <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
                       {yourSplit && (
                         <p className="text-xs text-muted-foreground">
@@ -306,7 +306,7 @@ export function GroupExpensesClient({
                 onChange={(e) => setNewExpense((p) => ({ ...p, amount: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Date</Label>
                 <Input

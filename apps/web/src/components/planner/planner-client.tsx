@@ -112,14 +112,14 @@ export function PlannerClient({ initialEntries, initialDate }: PlannerClientProp
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Day Planner</h1>
           <p className="text-sm text-muted-foreground">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => navigateDate('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -133,7 +133,7 @@ export function PlannerClient({ initialEntries, initialDate }: PlannerClientProp
           <Button variant="outline" size="icon" onClick={() => navigateDate('next')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)} className="ml-2 gap-2">
+          <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:ml-2 sm:w-auto">
             <Plus className="h-4 w-4" />
             Add Block
           </Button>
@@ -238,7 +238,7 @@ export function PlannerClient({ initialEntries, initialDate }: PlannerClientProp
                 autoFocus
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Start Time</Label>
                 <Input

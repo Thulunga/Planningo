@@ -106,35 +106,37 @@ export function CalendarClient({ initialEvents }: CalendarClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           New Event
         </Button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4" style={{ height: 640 }}>
-        <Calendar
-          localizer={localizer}
-          events={rbcEvents}
-          view={view}
-          date={date}
-          onView={setView}
-          onNavigate={setDate}
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={handleSelectEvent}
-          selectable
-          popup
-          eventPropGetter={(event: RBCEvent) => ({
-            style: {
-              backgroundColor: event.color ?? '#3B82F6',
-              borderColor: 'transparent',
-              color: '#fff',
-            },
-          })}
-          style={{ height: '100%' }}
-        />
+      <div className="overflow-x-auto rounded-xl border border-border bg-card p-3 sm:p-4">
+        <div className="min-w-[720px]" style={{ height: 640 }}>
+          <Calendar
+            localizer={localizer}
+            events={rbcEvents}
+            view={view}
+            date={date}
+            onView={setView}
+            onNavigate={setDate}
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            selectable
+            popup
+            eventPropGetter={(event: RBCEvent) => ({
+              style: {
+                backgroundColor: event.color ?? '#3B82F6',
+                borderColor: 'transparent',
+                color: '#fff',
+              },
+            })}
+            style={{ height: '100%' }}
+          />
+        </div>
       </div>
 
       {/* Create Event Dialog */}

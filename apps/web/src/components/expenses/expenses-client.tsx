@@ -76,12 +76,12 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
           <p className="text-sm text-muted-foreground">{groups.length} group(s)</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           New Group
         </Button>
@@ -153,7 +153,7 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
                 onChange={(e) => setNewGroup((p) => ({ ...p, description: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Currency</Label>
                 <Select
