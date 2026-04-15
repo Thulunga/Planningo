@@ -124,6 +124,24 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/30;
   }
+
+  /* Prevent media from overflowing their containers */
+  img,
+  video,
+  svg {
+    max-width: 100%;
+  }
+}
+
+/* ── Mobile: prevent iOS Safari from auto-zooming on input focus ────────────
+   iOS zooms in whenever a focused input/textarea/select has font-size < 16px.
+   Force 16px on small screens; desktop keeps the designed text-sm (14px).    */
+@media screen and (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
 /* React Big Calendar dark theme overrides */
