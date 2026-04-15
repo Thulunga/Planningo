@@ -60,7 +60,7 @@ export function DashboardOverview({
   return (
     <div className="space-y-6">
       {/* Greeting hero — analog clock + gradient banner with date */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 py-5">
+      <div className="flex flex-col sm:flex-row items-center gap-6 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:px-6">
         {/* Analog clock */}
         <div className="shrink-0">
           <AnalogClock
@@ -84,7 +84,7 @@ export function DashboardOverview({
         </div>
       </div>
 
-      <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {/* Today's Todos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
