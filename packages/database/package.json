@@ -15,11 +15,12 @@
     "db:generate-types": "supabase gen types typescript --local > src/types.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.44.2",
-    "@supabase/ssr": "^0.4.0"
+    "@supabase/ssr": "^0.4.0",
+    "@supabase/supabase-js": "^2.44.2"
   },
   "devDependencies": {
     "@planningo/config": "workspace:*",
+    "@types/node": "^20.19.39",
     "supabase": "^1.178.0",
     "typescript": "^5.4.5"
   }
