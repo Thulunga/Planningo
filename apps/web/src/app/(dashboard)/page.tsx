@@ -44,7 +44,8 @@ export default async function DashboardPage() {
         .select('*')
         .eq('user_id', profile.id)
         .eq('plan_date', today)
-        .order('start_time', { ascending: true }),
+        .order('start_time', { ascending: true })
+        .limit(20),
     ])
 
   return (

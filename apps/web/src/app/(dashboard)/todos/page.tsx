@@ -21,6 +21,7 @@ export default async function TodosPage({
     .order('priority', { ascending: false })
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
+    .limit(200)
 
   if (searchParams.status) query = query.eq('status', searchParams.status)
   if (searchParams.priority) query = query.eq('priority', searchParams.priority)

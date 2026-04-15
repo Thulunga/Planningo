@@ -9,7 +9,7 @@ Deno.serve(async (_req) => {
   try {
     const now = new Date().toISOString()
 
-    // Find all pending reminders that are due
+    // 1. Fetch all pending reminders that are due (single query)
     const { data: dueReminders, error } = await supabase
       .from('reminders')
       .select('*, profiles(id, full_name, email), calendar_events(title), todos(title)')
@@ -22,57 +22,72 @@ Deno.serve(async (_req) => {
       return new Response(JSON.stringify({ processed: 0 }), { status: 200 })
     }
 
-    let processed = 0
+    const reminderIds = dueReminders.map((r) => r.id)
 
-    for (const reminder of dueReminders) {
+    // 2. Batch-insert all in-app notifications in a single round-trip
+    const notifications = dueReminders.map((reminder) => {
       const title = reminder.calendar_events?.title ?? reminder.todos?.title ?? 'Reminder'
       const body = reminder.message ?? `Your reminder: ${title}`
-
-      // Queue in-app notification
-      await supabase.from('notification_queue').insert({
+      return {
         user_id: reminder.user_id,
         type: 'reminder_in_app',
         title: `Reminder: ${title}`,
         body,
         payload: { reminder_id: reminder.id, title, body },
         scheduled_at: now,
-      })
+      }
+    })
 
-      // Queue push notification if channel includes push
-      if (reminder.channel === 'push' || reminder.channel === 'both') {
-        // Get user's push subscriptions
-        const { data: subscriptions } = await supabase
-          .from('push_subscriptions')
-          .select('*')
-          .eq('user_id', reminder.user_id)
+    await supabase.from('notification_queue').insert(notifications)
 
-        if (subscriptions && subscriptions.length > 0) {
-          // Call send-push edge function for each subscription
-          for (const sub of subscriptions) {
-            await supabase.functions.invoke('send-push', {
+    // 3. Fetch push subscriptions for all users who need push in a single query
+    const pushUserIds = dueReminders
+      .filter((r) => r.channel === 'push' || r.channel === 'both')
+      .map((r) => r.user_id)
+
+    if (pushUserIds.length > 0) {
+      const { data: subscriptions } = await supabase
+        .from('push_subscriptions')
+        .select('*')
+        .in('user_id', pushUserIds)
+
+      if (subscriptions && subscriptions.length > 0) {
+        // Build a map of userId → title/body for quick lookup
+        const reminderByUser = new Map(
+          dueReminders.map((r) => {
+            const title = r.calendar_events?.title ?? r.todos?.title ?? 'Reminder'
+            const body = r.message ?? `Your reminder: ${title}`
+            return [r.user_id, { title, body }]
+          })
+        )
+
+        // 4. Fire all send-push calls in parallel — no sequential waiting
+        await Promise.all(
+          subscriptions.map((sub) => {
+            const info = reminderByUser.get(sub.user_id)
+            if (!info) return Promise.resolve()
+            return supabase.functions.invoke('send-push', {
               body: {
                 endpoint: sub.endpoint,
                 p256dh: sub.p256dh,
                 auth: sub.auth,
-                title: `Planningo: ${title}`,
-                body,
+                title: `Planningo: ${info.title}`,
+                body: info.body,
                 url: '/',
               },
             })
-          }
-        }
+          })
+        )
       }
-
-      // Mark reminder as sent
-      await supabase
-        .from('reminders')
-        .update({ status: 'sent', sent_at: now })
-        .eq('id', reminder.id)
-
-      processed++
     }
 
-    return new Response(JSON.stringify({ processed }), {
+    // 5. Batch-update all reminder statuses in a single round-trip
+    await supabase
+      .from('reminders')
+      .update({ status: 'sent', sent_at: now })
+      .in('id', reminderIds)
+
+    return new Response(JSON.stringify({ processed: dueReminders.length }), {
       headers: { 'Content-Type': 'application/json' },
       status: 200,
     })
