@@ -23,6 +23,7 @@ import {
   Separator,
 } from '@planningo/ui'
 import type { Tables } from '@planningo/database'
+import { AnalogClock } from '@/components/clock/analog-clock'
 
 interface DashboardOverviewProps {
   profile: Tables<'profiles'>
@@ -58,14 +59,29 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-6">
-      {/* Greeting — gradient banner */}
-      <div className="rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {greeting}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
-        </p>
+      {/* Greeting hero — analog clock + gradient banner with date */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 py-5">
+        {/* Analog clock */}
+        <div className="shrink-0">
+          <AnalogClock
+            timezone={profile.timezone ?? undefined}
+            size={130}
+          />
+        </div>
+
+        {/* Divider — vertical on desktop, horizontal on mobile */}
+        <div className="hidden sm:block w-px self-stretch bg-border/50" />
+        <div className="block sm:hidden h-px w-full bg-border/50" />
+
+        {/* Greeting text + date */}
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {format(new Date(), 'EEEE, MMMM d')} · Here&apos;s what&apos;s on your plate today.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">

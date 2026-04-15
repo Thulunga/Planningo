@@ -1,22 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
 
 interface RealTimeClockProps {
   timezone?: string
   className?: string
 }
 
-export function RealTimeClock({ timezone = 'UTC', className }: RealTimeClockProps) {
+/**
+ * Resolves the effective timezone to use for display:
+ * - If the profile has an explicitly set non-UTC timezone, use it.
+ * - Otherwise fall back to the browser's local timezone via Intl.
+ * This covers the common case where users haven't visited Settings yet
+ * and the profile still carries the default 'UTC' sentinel.
+ */
+function resolveTimezone(profileTimezone?: string): string {
+  if (profileTimezone && profileTimezone !== 'UTC') return profileTimezone
+  if (typeof Intl !== 'undefined') {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  }
+  return 'UTC'
+}
+
+export function RealTimeClock({ timezone, className }: RealTimeClockProps) {
   const [now, setNow] = useState<Date | null>(null)
+  // Resolve once on mount (browser-only) and keep stable across ticks
+  const [effectiveTimezone, setEffectiveTimezone] = useState<string>('UTC')
 
   useEffect(() => {
-    // Set initial time only on client to avoid hydration mismatch
+    setEffectiveTimezone(resolveTimezone(timezone))
     setNow(new Date())
     const interval = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [timezone])
 
   if (!now) {
     return (
@@ -27,9 +43,8 @@ export function RealTimeClock({ timezone = 'UTC', className }: RealTimeClockProp
     )
   }
 
-  // Format in user's timezone
   const timeStr = now.toLocaleTimeString('en-US', {
-    timeZone: timezone,
+    timeZone: effectiveTimezone,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -37,7 +52,7 @@ export function RealTimeClock({ timezone = 'UTC', className }: RealTimeClockProp
   })
 
   const dateStr = now.toLocaleDateString('en-US', {
-    timeZone: timezone,
+    timeZone: effectiveTimezone,
     weekday: 'short',
     month: 'short',
     day: 'numeric',
