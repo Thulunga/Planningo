@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
 import { Providers } from '@/components/providers'
+import { ThemedToaster } from '@/components/themed-toaster'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
 import './globals.css'
 
@@ -22,11 +22,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Inline script: reads persisted theme from localStorage before first paint to prevent flash.
+            Key 'planningo-ui' must match the name in ui-store.ts persist config. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem('planningo-ui')||'{}');var theme=t.state&&t.state.theme||'dark';document.documentElement.classList.add(theme);}catch(e){document.documentElement.classList.add('dark');}})()`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans`}>
         <Providers>
           {children}
-          <Toaster richColors position="top-right" theme="dark" />
+          <ThemedToaster />
           <ServiceWorkerRegistration />
         </Providers>
       </body>

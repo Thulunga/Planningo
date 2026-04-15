@@ -41,7 +41,7 @@ export function Sidebar({ profile }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'relative flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+        'relative hidden md:flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
         sidebarCollapsed ? 'w-16' : 'w-60'
       )}
     >
@@ -71,7 +71,7 @@ export function Sidebar({ profile }: SidebarProps) {
                       <Link
                         href={item.href}
                         className={cn(
-                          'flex h-9 w-full items-center justify-center rounded-md transition-colors',
+                          'flex h-11 w-full items-center justify-center rounded-md transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -92,7 +92,7 @@ export function Sidebar({ profile }: SidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex h-9 items-center gap-3 rounded-md px-3 text-sm transition-colors',
+                    'flex h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors',
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -115,7 +115,7 @@ export function Sidebar({ profile }: SidebarProps) {
               <Link
                 href="/settings"
                 className={cn(
-                  'flex h-9 w-full items-center justify-center rounded-md transition-colors',
+                  'flex h-11 w-full items-center justify-center rounded-md transition-colors',
                   pathname.startsWith('/settings')
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
@@ -130,7 +130,7 @@ export function Sidebar({ profile }: SidebarProps) {
           <Link
             href="/settings"
             className={cn(
-              'flex h-9 items-center gap-3 rounded-md px-3 text-sm transition-colors',
+              'flex h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors',
               pathname.startsWith('/settings')
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent/50'

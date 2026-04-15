@@ -7,6 +7,7 @@ interface UIState {
   setSidebarCollapsed: (collapsed: boolean) => void
   theme: 'dark' | 'light'
   toggleTheme: () => void
+  setTheme: (theme: 'dark' | 'light') => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -19,12 +20,19 @@ export const useUIStore = create<UIState>()(
       toggleTheme: () =>
         set((state) => {
           const newTheme = state.theme === 'dark' ? 'light' : 'dark'
-          // Apply theme class to html element
           if (typeof document !== 'undefined') {
             document.documentElement.classList.remove('dark', 'light')
             document.documentElement.classList.add(newTheme)
           }
           return { theme: newTheme }
+        }),
+      setTheme: (theme) =>
+        set(() => {
+          if (typeof document !== 'undefined') {
+            document.documentElement.classList.remove('dark', 'light')
+            document.documentElement.classList.add(theme)
+          }
+          return { theme }
         }),
     }),
     {
