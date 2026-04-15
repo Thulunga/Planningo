@@ -136,11 +136,13 @@
 /* ── Mobile: prevent iOS Safari from auto-zooming on input focus ────────────
    iOS zooms in whenever a focused input/textarea/select has font-size < 16px.
    Force 16px on small screens; desktop keeps the designed text-sm (14px).    */
+/* Force 16px on mobile — !important needed to beat Tailwind's text-sm class
+   selector (0,1,0) which would otherwise win over bare element selectors. */
 @media screen and (max-width: 767px) {
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: 16px !important;
   }
 }
 
