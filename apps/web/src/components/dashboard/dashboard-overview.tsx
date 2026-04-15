@@ -79,7 +79,7 @@ export function DashboardOverview({
             {greeting}, {firstName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
+            {format(new Date(), 'EEEE, MMMM d')} · Here&apos;s what&apos;s on your plate today.
           </p>
         </div>
       {/* Greeting — gradient banner */}
