@@ -12,38 +12,40 @@ export default async function DashboardPage() {
 
   if (!profile) return null
 
-  // Fetch today's todos
   const today = new Date().toISOString().split('T')[0]
-  const { data: todaysTodos } = await supabase
-    .from('todos')
-    .select('*')
-    .eq('user_id', profile.id)
-    .neq('status', 'done')
-    .neq('status', 'cancelled')
-    .is('deleted_at', null)
-    .order('priority', { ascending: false })
-    .limit(5)
-
-  // Fetch upcoming calendar events (next 7 days)
   const now = new Date().toISOString()
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: upcomingEvents } = await supabase
-    .from('calendar_events')
-    .select('*')
-    .eq('user_id', profile.id)
-    .gte('start_time', now)
-    .lte('start_time', nextWeek)
-    .is('deleted_at', null)
-    .order('start_time', { ascending: true })
-    .limit(5)
 
-  // Fetch today's planner entries
-  const { data: todaysPlanner } = await supabase
-    .from('planner_entries')
-    .select('*')
-    .eq('user_id', profile.id)
-    .eq('plan_date', today)
-    .order('start_time', { ascending: true })
+  // Run all three queries in parallel — cuts fetch time by ~2/3
+  const [{ data: todaysTodos }, { data: upcomingEvents }, { data: todaysPlanner }] =
+    await Promise.all([
+      supabase
+        .from('todos')
+        .select('*')
+        .eq('user_id', profile.id)
+        .neq('status', 'done')
+        .neq('status', 'cancelled')
+        .is('deleted_at', null)
+        .order('priority', { ascending: false })
+        .limit(5),
+
+      supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', profile.id)
+        .gte('start_time', now)
+        .lte('start_time', nextWeek)
+        .is('deleted_at', null)
+        .order('start_time', { ascending: true })
+        .limit(5),
+
+      supabase
+        .from('planner_entries')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('plan_date', today)
+        .order('start_time', { ascending: true }),
+    ])
 
   return (
     <DashboardOverview
