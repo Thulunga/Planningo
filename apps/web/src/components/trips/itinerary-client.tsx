@@ -103,12 +103,12 @@ export function ItineraryClient({ trip, items: initialItems }: ItineraryClientPr
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Itinerary</h1>
           <p className="text-sm text-muted-foreground">{trip.title} · {duration} days</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           Add Item
         </Button>
@@ -145,7 +145,7 @@ export function ItineraryClient({ trip, items: initialItems }: ItineraryClientPr
 
                     return (
                       <Card key={item.id}>
-                        <CardContent className="flex items-start gap-3 py-3">
+                        <CardContent className="flex flex-wrap items-start gap-3 py-3 sm:flex-nowrap">
                           <span className={`shrink-0 rounded border px-1.5 py-0.5 text-xs ${catCfg.color}`}>
                             {catCfg.label}
                           </span>
@@ -193,7 +193,7 @@ export function ItineraryClient({ trip, items: initialItems }: ItineraryClientPr
                           </div>
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            className="ml-auto shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -215,7 +215,7 @@ export function ItineraryClient({ trip, items: initialItems }: ItineraryClientPr
             <DialogTitle>Add Itinerary Item</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Day *</Label>
                 <Select
@@ -266,7 +266,7 @@ export function ItineraryClient({ trip, items: initialItems }: ItineraryClientPr
                 onChange={(e) => setNewItem((p) => ({ ...p, location: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Time</Label>
                 <Input

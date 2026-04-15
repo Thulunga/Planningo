@@ -35,7 +35,7 @@ export default async function TripDetailPage({ params }: { params: { id: string 
         </Button>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{trip.title}</h1>
           {trip.destination && (
@@ -85,7 +85,7 @@ export default async function TripDetailPage({ params }: { params: { id: string 
       )}
 
       <div className="flex gap-2">
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href={`/trips/${trip.id}/itinerary`}>
             <Map className="mr-2 h-4 w-4" />
             View Itinerary

@@ -83,12 +83,12 @@ export function TripsClient({ trips }: TripsClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Trips</h1>
           <p className="text-sm text-muted-foreground">{trips.length} trip(s)</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           New Trip
         </Button>
@@ -138,7 +138,7 @@ export function TripsClient({ trips }: TripsClientProps) {
                       Budget: {trip.currency} {trip.budget.toLocaleString()}
                     </div>
                   )}
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button variant="ghost" size="sm" asChild className="h-7 gap-1 text-xs">
                       <Link href={`/trips/${trip.id}`}>
                         Details <ArrowRight className="h-3 w-3" />
@@ -181,7 +181,7 @@ export function TripsClient({ trips }: TripsClientProps) {
                 onChange={(e) => setNewTrip((p) => ({ ...p, destination: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Start Date *</Label>
                 <Input
@@ -199,8 +199,8 @@ export function TripsClient({ trips }: TripsClientProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1.5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Budget (optional)</Label>
                 <Input
                   type="number"
