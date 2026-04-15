@@ -15,6 +15,7 @@ export default async function TripsPage() {
     .eq('user_id', profile.id)
     .is('deleted_at', null)
     .order('start_date', { ascending: true })
+    .limit(50)
 
   return <TripsClient trips={trips ?? []} />
 }
