@@ -82,14 +82,6 @@ export function DashboardOverview({
             {format(new Date(), 'EEEE, MMMM d')} · Here&apos;s what&apos;s on your plate today.
           </p>
         </div>
-      {/* Greeting — gradient banner */}
-      <div className="rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {greeting}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
-        </p>
       </div>
 
       <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
