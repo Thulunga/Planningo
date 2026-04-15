@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 import { createSupabaseServerClient } from '@planningo/database'
 
 /**
@@ -26,9 +27,11 @@ export async function getUser() {
 
 /**
  * Get the user profile including app-specific fields.
+ * Wrapped with React cache() so multiple calls within the same server render
+ * (e.g. layout.tsx + page.tsx) share one Supabase round-trip.
  * Returns null if not authenticated or profile not found.
  */
-export async function getUserProfile() {
+export const getUserProfile = cache(async () => {
   const supabase = createClient()
   const {
     data: { user },
@@ -43,4 +46,4 @@ export async function getUserProfile() {
     .single()
 
   return profile
-}
+})
