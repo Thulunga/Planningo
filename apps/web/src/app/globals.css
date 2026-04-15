@@ -3,47 +3,48 @@
 @tailwind utilities;
 
 @layer base {
-  /* ── Dark theme (default) ── */
+  /* ── Dark theme (default) — softened contrast, desaturated bg ── */
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --background: 224 13% 7%;
+    --foreground: 213 15% 83%;
 
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
+    --card: 224 13% 10%;
+    --card-foreground: 213 15% 83%;
 
-    --popover: 224 71% 5%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 224 13% 9%;
+    --popover-foreground: 213 15% 83%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
+    /* Real blue accent (was near-white) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 224 13% 7%;
 
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 222 13% 16%;
+    --secondary-foreground: 213 15% 83%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
+    --muted: 223 13% 13%;
+    --muted-foreground: 215 12% 52%;
 
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 216 14% 18%;
+    --accent-foreground: 213 15% 83%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 42%;
+    --destructive-foreground: 213 15% 83%;
 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 216 34% 17%;
+    --border: 216 13% 20%;
+    --input: 216 13% 20%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar: 224 71% 3%;
-    --sidebar-foreground: 213 31% 85%;
-    --sidebar-border: 216 34% 14%;
-    --sidebar-accent: 216 34% 10%;
-    --sidebar-accent-foreground: 210 40% 98%;
+    /* Sidebar — slightly darker than bg */
+    --sidebar: 224 13% 5%;
+    --sidebar-foreground: 213 15% 75%;
+    --sidebar-border: 216 13% 16%;
+    --sidebar-accent: 216 14% 14%;
+    --sidebar-accent-foreground: 213 15% 83%;
 
     /* Chart colors */
-    --chart-1: 220 70% 50%;
+    --chart-1: 217 91% 60%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
@@ -51,43 +52,48 @@
 
     /* Font */
     --font-sans: 'Inter', system-ui, sans-serif;
+
+    /* Theme-aware card shadow */
+    --shadow-card: 0 1px 3px hsl(224 13% 3% / 0.5), 0 4px 12px hsl(224 13% 3% / 0.3);
   }
 
-  /* ── Light theme override ── */
+  /* ── Light theme — warm off-white, real blue accent ── */
   .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --background: 40 20% 97%;
+    --foreground: 224 25% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 224 25% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 224 25% 14%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 214 20% 93%;
+    --secondary-foreground: 224 25% 14%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 214 20% 93%;
+    --muted-foreground: 215 15% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 214 80% 95%;
+    --accent-foreground: 217 91% 35%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 56%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 217 91% 48%;
 
-    --sidebar: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar: 214 20% 95%;
+    --sidebar-foreground: 224 25% 28%;
+    --sidebar-border: 214 20% 88%;
+    --sidebar-accent: 214 80% 92%;
+    --sidebar-accent-foreground: 217 91% 35%;
+
+    --shadow-card: 0 1px 3px hsl(224 13% 60% / 0.12), 0 4px 12px hsl(224 13% 60% / 0.08);
   }
 }
 

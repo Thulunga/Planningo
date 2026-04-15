@@ -10,6 +10,8 @@ import {
   Circle,
   CheckCircle2,
   AlertCircle,
+  Plane,
+  DollarSign,
 } from 'lucide-react'
 import {
   Badge,
@@ -56,17 +58,17 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-6">
-      {/* Greeting */}
-      <div>
+      {/* Greeting — gradient banner */}
+      <div className="rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5">
         <h1 className="text-2xl font-bold tracking-tight">
           {greeting}, {firstName}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Here&apos;s what&apos;s on your plate today.
+          {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {/* Today's Todos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -203,31 +205,33 @@ export function DashboardOverview({
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="secondary" size="sm" asChild>
             <Link href="/todos">
               <CheckSquare className="mr-2 h-3.5 w-3.5" />
               Add Todo
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="secondary" size="sm" asChild>
             <Link href="/calendar">
               <Calendar className="mr-2 h-3.5 w-3.5" />
               New Event
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="secondary" size="sm" asChild>
             <Link href="/planner">
               <Clock3 className="mr-2 h-3.5 w-3.5" />
               Plan Today
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="secondary" size="sm" asChild>
             <Link href="/trips">
+              <Plane className="mr-2 h-3.5 w-3.5" />
               Plan a Trip
             </Link>
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="secondary" size="sm" asChild>
             <Link href="/expenses">
+              <DollarSign className="mr-2 h-3.5 w-3.5" />
               Track Expense
             </Link>
           </Button>
