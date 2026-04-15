@@ -40,6 +40,7 @@ export type Database = {
           locale?: string
           updated_at?: string
         }
+        Relationships: []
       }
       todos: {
         Row: {
@@ -84,6 +85,7 @@ export type Database = {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       calendar_events: {
         Row: {
@@ -130,6 +132,7 @@ export type Database = {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       reminders: {
         Row: {
@@ -166,6 +169,7 @@ export type Database = {
           sent_at?: string | null
           retry_count?: number
         }
+        Relationships: []
       }
       planner_entries: {
         Row: {
@@ -207,6 +211,7 @@ export type Database = {
           event_id?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       trips: {
         Row: {
@@ -257,6 +262,7 @@ export type Database = {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       trip_members: {
         Row: {
@@ -274,6 +280,7 @@ export type Database = {
         Update: {
           role?: string
         }
+        Relationships: []
       }
       itinerary_items: {
         Row: {
@@ -332,6 +339,7 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
+        Relationships: []
       }
       expense_groups: {
         Row: {
@@ -370,6 +378,7 @@ export type Database = {
           is_archived?: boolean
           updated_at?: string
         }
+        Relationships: []
       }
       group_members: {
         Row: {
@@ -387,6 +396,7 @@ export type Database = {
         Update: {
           role?: string
         }
+        Relationships: []
       }
       expenses: {
         Row: {
@@ -433,6 +443,7 @@ export type Database = {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       expense_splits: {
         Row: {
@@ -462,6 +473,7 @@ export type Database = {
           is_settled?: boolean
           settled_at?: string | null
         }
+        Relationships: []
       }
       settlements: {
         Row: {
@@ -489,12 +501,15 @@ export type Database = {
         Update: {
           notes?: string | null
         }
+        Relationships: []
       }
       notification_queue: {
         Row: {
           id: string
           user_id: string
           type: string
+          title: string | null
+          body: string | null
           payload: Json
           status: 'queued' | 'processing' | 'sent' | 'failed'
           scheduled_at: string
@@ -507,6 +522,8 @@ export type Database = {
           id?: string
           user_id: string
           type: string
+          title?: string | null
+          body?: string | null
           payload?: Json
           status?: 'queued' | 'processing' | 'sent' | 'failed'
           scheduled_at?: string
@@ -521,6 +538,7 @@ export type Database = {
           error?: string | null
           retry_count?: number
         }
+        Relationships: []
       }
       push_subscriptions: {
         Row: {
@@ -546,10 +564,15 @@ export type Database = {
           auth?: string
           user_agent?: string | null
         }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
     Enums: {
       todo_status: 'todo' | 'in_progress' | 'done' | 'cancelled'
       todo_priority: 'low' | 'medium' | 'high' | 'urgent'
@@ -560,6 +583,9 @@ export type Database = {
       split_type: 'equal' | 'exact' | 'percentage' | 'shares'
       notification_type: string
       notification_status: 'queued' | 'processing' | 'sent' | 'failed'
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
