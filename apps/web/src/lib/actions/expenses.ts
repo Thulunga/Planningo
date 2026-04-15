@@ -16,23 +16,29 @@ export async function createExpenseGroup(data: z.infer<typeof expenseGroupSchema
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: group, error } = await supabase
+  // Generate the group ID here so we can skip RETURNING on the INSERT.
+  // PostgreSQL 15 evaluates the SELECT policy on RETURNING rows before the
+  // creator has been added to group_members, which triggers an RLS violation.
+  // By supplying the ID we avoid RETURNING entirely.
+  const groupId = crypto.randomUUID()
+
+  const { error } = await supabase
     .from('expense_groups')
-    .insert({ created_by: user.id, ...data })
-    .select()
-    .single()
+    .insert({ id: groupId, created_by: user.id, ...data })
 
   if (error) return { error: error.message }
 
-  // Auto-add creator as admin
-  await supabase.from('group_members').insert({
-    group_id: group.id,
+  // Auto-add creator as admin member
+  const { error: memberError } = await supabase.from('group_members').insert({
+    group_id: groupId,
     user_id: user.id,
     role: 'admin',
   })
 
+  if (memberError) return { error: memberError.message }
+
   revalidatePath('/expenses')
-  return { success: true, group }
+  return { success: true, group: { id: groupId } }
 }
 
 export async function addGroupMember(groupId: string, userEmail: string) {
