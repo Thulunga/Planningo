@@ -57,8 +57,8 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-6">
-      {/* Greeting hero — analog clock + greeting text side by side */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border border-border bg-card px-6 py-5">
+      {/* Greeting hero — analog clock + gradient banner with date */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-6 py-5">
         {/* Analog clock */}
         <div className="shrink-0">
           <AnalogClock
@@ -68,16 +68,16 @@ export function DashboardOverview({
         </div>
 
         {/* Divider — vertical on desktop, horizontal on mobile */}
-        <div className="hidden sm:block w-px self-stretch bg-border" />
-        <div className="block sm:hidden h-px w-full bg-border" />
+        <div className="hidden sm:block w-px self-stretch bg-border/50" />
+        <div className="block sm:hidden h-px w-full bg-border/50" />
 
-        {/* Greeting text */}
+        {/* Greeting text + date */}
         <div className="text-center sm:text-left">
           <h1 className="text-2xl font-bold tracking-tight">
             {greeting}, {firstName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Here&apos;s what&apos;s on your plate today.
+            {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
           </p>
         </div>
       </div>
