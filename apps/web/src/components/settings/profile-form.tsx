@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, User } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -17,17 +17,44 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
 } from '@planningo/ui'
-import { createClient } from '@/lib/supabase/server'
 import { useRouter } from 'next/navigation'
 import type { Tables } from '@planningo/database'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
 const TIMEZONES = [
-  'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-  'America/Toronto', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome',
-  'Asia/Kolkata', 'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Singapore', 'Australia/Sydney',
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Sao_Paulo',
+  'America/Buenos_Aires',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Rome',
+  'Europe/Madrid',
+  'Europe/Amsterdam',
+  'Europe/Stockholm',
+  'Europe/Moscow',
+  'Africa/Cairo',
+  'Africa/Johannesburg',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Colombo',
+  'Asia/Dhaka',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Hong_Kong',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Australia/Perth',
+  'Australia/Sydney',
+  'Pacific/Auckland',
 ]
 
 interface ProfileFormProps {
@@ -43,12 +70,25 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     locale: profile.locale ?? 'en',
   })
 
-  const initials = profile.full_name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) ?? '?'
+  // Auto-detect browser timezone on first load if profile still has the
+  // default 'UTC' sentinel — saves the user from a trip to settings.
+  useEffect(() => {
+    if (data.timezone === 'UTC' && typeof Intl !== 'undefined') {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+      if (detected && detected !== 'UTC') {
+        setData((prev) => ({ ...prev, timezone: detected }))
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const initials =
+    profile.full_name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) ?? '?'
 
   async function handleSave() {
     setSaving(true)
@@ -73,6 +113,11 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       router.refresh()
     }
   }
+
+  // Merge detected timezone into the list if it's not already there
+  const timezoneOptions = TIMEZONES.includes(data.timezone)
+    ? TIMEZONES
+    : [data.timezone, ...TIMEZONES]
 
   return (
     <div className="space-y-6">
@@ -118,8 +163,10 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TIMEZONES.map((tz) => (
-                <SelectItem key={tz} value={tz}>{tz.replace(/_/g, ' ')}</SelectItem>
+              {timezoneOptions.map((tz) => (
+                <SelectItem key={tz} value={tz}>
+                  {tz.replace(/_/g, ' ')}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -136,3 +183,4 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     </div>
   )
 }
+

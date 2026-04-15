@@ -21,6 +21,7 @@ import {
   Separator,
 } from '@planningo/ui'
 import type { Tables } from '@planningo/database'
+import { AnalogClock } from '@/components/clock/analog-clock'
 
 interface DashboardOverviewProps {
   profile: Tables<'profiles'>
@@ -56,14 +57,29 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-6">
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {greeting}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Here&apos;s what&apos;s on your plate today.
-        </p>
+      {/* Greeting hero — analog clock + greeting text side by side */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-xl border border-border bg-card px-6 py-5">
+        {/* Analog clock */}
+        <div className="shrink-0">
+          <AnalogClock
+            timezone={profile.timezone ?? undefined}
+            size={130}
+          />
+        </div>
+
+        {/* Divider — vertical on desktop, horizontal on mobile */}
+        <div className="hidden sm:block w-px self-stretch bg-border" />
+        <div className="block sm:hidden h-px w-full bg-border" />
+
+        {/* Greeting text */}
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Here&apos;s what&apos;s on your plate today.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
