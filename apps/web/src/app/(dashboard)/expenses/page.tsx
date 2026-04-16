@@ -5,7 +5,7 @@ import { ExpensesClient } from '@/components/expenses/expenses-client'
 export const metadata: Metadata = { title: 'Expenses' }
 
 export default async function ExpensesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 

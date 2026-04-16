@@ -5,7 +5,7 @@ import { TripsClient } from '@/components/trips/trips-client'
 export const metadata: Metadata = { title: 'Trips' }
 
 export default async function TripsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 

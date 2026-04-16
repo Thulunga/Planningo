@@ -5,10 +5,11 @@ export const metadata: Metadata = {
   title: 'Sign In',
 }
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; redirectTo?: string }
+  searchParams: Promise<{ error?: string; redirectTo?: string }>
 }) {
-  return <LoginForm error={searchParams.error} redirectTo={searchParams.redirectTo} />
+  const { error, redirectTo } = await searchParams
+  return <LoginForm error={error} redirectTo={redirectTo} />
 }

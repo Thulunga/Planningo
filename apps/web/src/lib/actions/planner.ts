@@ -16,7 +16,7 @@ const plannerEntrySchema = z.object({
 })
 
 export async function createPlannerEntry(data: z.infer<typeof plannerEntrySchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -35,7 +35,7 @@ export async function createPlannerEntry(data: z.infer<typeof plannerEntrySchema
 }
 
 export async function updatePlannerEntry(id: string, data: Partial<z.infer<typeof plannerEntrySchema>>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -52,7 +52,7 @@ export async function updatePlannerEntry(id: string, data: Partial<z.infer<typeo
 }
 
 export async function deletePlannerEntry(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 

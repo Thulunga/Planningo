@@ -5,10 +5,11 @@ export const metadata: Metadata = {
   title: 'Verify',
 }
 
-export default function VerifyPage({
+export default async function VerifyPage({
   searchParams,
 }: {
-  searchParams: { email?: string; mode?: string }
+  searchParams: Promise<{ email?: string; mode?: string }>
 }) {
-  return <OtpForm email={searchParams.email ?? ''} mode={searchParams.mode ?? 'otp'} />
+  const { email, mode } = await searchParams
+  return <OtpForm email={email ?? ''} mode={mode ?? 'otp'} />
 }

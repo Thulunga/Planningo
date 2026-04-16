@@ -12,7 +12,7 @@ const expenseGroupSchema = z.object({
 })
 
 export async function createExpenseGroup(data: z.infer<typeof expenseGroupSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -42,7 +42,7 @@ export async function createExpenseGroup(data: z.infer<typeof expenseGroupSchema
 }
 
 export async function addGroupMember(groupId: string, userEmail: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -90,7 +90,7 @@ const expenseSchema = z.object({
 })
 
 export async function createExpense(data: z.infer<typeof expenseSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -120,7 +120,7 @@ export async function createExpense(data: z.infer<typeof expenseSchema>) {
 }
 
 export async function deleteExpense(id: string, groupId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -143,7 +143,7 @@ export async function createSettlement(data: {
   currency: string
   notes?: string
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 

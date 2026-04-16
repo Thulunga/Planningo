@@ -18,6 +18,13 @@
     "db:reset": "supabase db reset",
     "db:start": "supabase start"
   },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "lucide-react>react": "^19.0.0"
+      }
+    }
+  },
   "devDependencies": {
     "turbo": "^2.0.0",
     "prettier": "^3.2.5",

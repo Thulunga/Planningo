@@ -14,7 +14,7 @@ const todoSchema = z.object({
 })
 
 export async function createTodo(data: z.infer<typeof todoSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -34,7 +34,7 @@ export async function createTodo(data: z.infer<typeof todoSchema>) {
 }
 
 export async function updateTodo(id: string, data: Partial<z.infer<typeof todoSchema>>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -52,7 +52,7 @@ export async function updateTodo(id: string, data: Partial<z.infer<typeof todoSc
 }
 
 export async function deleteTodo(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
