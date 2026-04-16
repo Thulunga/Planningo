@@ -10,9 +10,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "14.2.5",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "@planningo/ui": "workspace:*",
     "@planningo/database": "workspace:*",
     "@supabase/supabase-js": "^2.44.2",
@@ -31,20 +31,21 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.3.0",
     "web-push": "^3.6.7",
-    "next-themes": "^0.3.0"
+    "next-themes": "^0.4.4"
   },
   "devDependencies": {
     "@planningo/config": "workspace:*",
     "@types/node": "^20.14.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/react-big-calendar": "^1.8.9",
     "@types/web-push": "^3.6.3",
     "typescript": "^5.4.5",
     "tailwindcss": "^3.4.4",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.5"
+    "@eslint/eslintrc": "^3.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0"
   }
 }

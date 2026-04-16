@@ -9,9 +9,10 @@ export const metadata: Metadata = { title: 'Todos' }
 async function TodosList({
   searchParams,
 }: {
-  searchParams: { status?: string; priority?: string; tag?: string }
+  searchParams: Promise<{ status?: string; priority?: string; tag?: string }>
 }) {
-  const supabase = createClient()
+  const { status, priority, tag } = await searchParams
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 
@@ -25,9 +26,9 @@ async function TodosList({
     .order('created_at', { ascending: false })
     .limit(200)
 
-  if (searchParams.status) query = query.eq('status', searchParams.status)
-  if (searchParams.priority) query = query.eq('priority', searchParams.priority)
-  if (searchParams.tag) query = query.contains('tags', [searchParams.tag])
+  if (status) query = query.eq('status', status)
+  if (priority) query = query.eq('priority', priority)
+  if (tag) query = query.contains('tags', [tag])
 
   const { data: todos } = await query
 
@@ -37,7 +38,7 @@ async function TodosList({
 export default function TodosPage({
   searchParams,
 }: {
-  searchParams: { status?: string; priority?: string; tag?: string }
+  searchParams: Promise<{ status?: string; priority?: string; tag?: string }>
 }) {
   return (
     <Suspense fallback={<TodosLoading />}>

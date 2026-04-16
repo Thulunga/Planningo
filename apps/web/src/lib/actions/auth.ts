@@ -9,8 +9,8 @@ export async function signUpWithPassword(formData: {
   password: string
   fullName: string
 }) {
-  const supabase = createClient()
-  const origin = headers().get('origin')
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin')
 
   const { error } = await supabase.auth.signUp({
     email: formData.email,
@@ -31,7 +31,7 @@ export async function signUpWithPassword(formData: {
 }
 
 export async function signInWithPassword(formData: { email: string; password: string }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.signInWithPassword({
     email: formData.email,
@@ -46,8 +46,8 @@ export async function signInWithPassword(formData: { email: string; password: st
 }
 
 export async function signInWithOtp(email: string) {
-  const supabase = createClient()
-  const origin = headers().get('origin')
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin')
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -65,7 +65,7 @@ export async function signInWithOtp(email: string) {
 }
 
 export async function verifyOtp(formData: { email: string; token: string }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.verifyOtp({
     email: formData.email,
@@ -81,8 +81,8 @@ export async function verifyOtp(formData: { email: string; token: string }) {
 }
 
 export async function signInWithGoogle() {
-  const supabase = createClient()
-  const origin = headers().get('origin')
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin')
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -105,14 +105,14 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
 }
 
 export async function resetPassword(email: string) {
-  const supabase = createClient()
-  const origin = headers().get('origin')
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin')
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/callback?next=/settings/profile`,

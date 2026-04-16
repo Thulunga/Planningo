@@ -7,13 +7,14 @@ export const metadata: Metadata = { title: 'Day Planner' }
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: { date?: string }
+  searchParams: Promise<{ date?: string }>
 }) {
-  const supabase = createClient()
+  const { date } = await searchParams
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 
-  const targetDate = searchParams.date ?? new Date().toISOString().split('T')[0]
+  const targetDate = date ?? new Date().toISOString().split('T')[0]
 
   const { data: entries } = await supabase
     .from('planner_entries')

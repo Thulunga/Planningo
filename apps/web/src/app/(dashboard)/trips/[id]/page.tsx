@@ -8,15 +8,16 @@ import { MapPin, Calendar, DollarSign, ArrowLeft, Map } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Trip Details' }
 
-export default async function TripDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 
   const { data: trip } = await supabase
     .from('trips')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .is('deleted_at', null)
     .single()
 
@@ -86,7 +87,7 @@ export default async function TripDetailPage({ params }: { params: { id: string 
 
       <div className="flex gap-2">
         <Button asChild className="w-full sm:w-auto">
-          <Link href={`/trips/${trip.id}/itinerary`}>
+          <Link href={`/trips/${id}/itinerary`}>
             <Map className="mr-2 h-4 w-4" />
             View Itinerary
           </Link>

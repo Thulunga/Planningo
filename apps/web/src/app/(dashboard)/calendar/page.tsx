@@ -5,7 +5,7 @@ import { CalendarClient } from '@/components/calendar/calendar-client'
 export const metadata: Metadata = { title: 'Calendar' }
 
 export default async function CalendarPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 

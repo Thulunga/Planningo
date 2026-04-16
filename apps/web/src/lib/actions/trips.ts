@@ -17,7 +17,7 @@ const tripSchema = z.object({
 })
 
 export async function createTrip(data: z.infer<typeof tripSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -44,7 +44,7 @@ export async function createTrip(data: z.infer<typeof tripSchema>) {
 }
 
 export async function updateTrip(id: string, data: Partial<z.infer<typeof tripSchema>>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -61,7 +61,7 @@ export async function updateTrip(id: string, data: Partial<z.infer<typeof tripSc
 }
 
 export async function deleteTrip(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -95,7 +95,7 @@ const itineraryItemSchema = z.object({
 })
 
 export async function createItineraryItem(data: z.infer<typeof itineraryItemSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -111,7 +111,7 @@ export async function createItineraryItem(data: z.infer<typeof itineraryItemSche
 }
 
 export async function updateItineraryItem(id: string, tripId: string, data: Partial<z.infer<typeof itineraryItemSchema>>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -128,7 +128,7 @@ export async function updateItineraryItem(id: string, tripId: string, data: Part
 }
 
 export async function deleteItineraryItem(id: string, tripId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 

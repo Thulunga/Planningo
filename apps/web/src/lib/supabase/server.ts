@@ -8,8 +8,8 @@ import { createSupabaseServerClient } from '@planningo/database'
  * - Route Handlers
  * - Server Actions
  */
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
   return createSupabaseServerClient(cookieStore)
 }
 
@@ -18,7 +18,7 @@ export function createClient() {
  * Returns null if not authenticated.
  */
 export async function getUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -32,7 +32,7 @@ export async function getUser() {
  * Returns null if not authenticated or profile not found.
  */
 export const getUserProfile = cache(async () => {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -8,6 +8,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   transpilePackages: ['@planningo/ui', '@planningo/database'],
+  serverActions: {
+    allowedOrigins: ['localhost:3000'],
+  },
   images: {
     remotePatterns: [
       {
@@ -19,11 +22,6 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com',
       },
     ],
-  },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000'],
-    },
   },
 }
 

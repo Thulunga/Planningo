@@ -5,7 +5,7 @@ import { RemindersClient } from '@/components/reminders/reminders-client'
 export const metadata: Metadata = { title: 'Reminders' }
 
 export default async function RemindersPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
 

@@ -15,7 +15,7 @@ const calendarEventSchema = z.object({
 })
 
 export async function createCalendarEvent(data: z.infer<typeof calendarEventSchema>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -36,7 +36,7 @@ export async function createCalendarEvent(data: z.infer<typeof calendarEventSche
 }
 
 export async function updateCalendarEvent(id: string, data: Partial<z.infer<typeof calendarEventSchema>>) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -53,7 +53,7 @@ export async function updateCalendarEvent(id: string, data: Partial<z.infer<type
 }
 
 export async function deleteCalendarEvent(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
