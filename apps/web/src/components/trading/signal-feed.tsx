@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, TrendingDown, Zap, RefreshCw, Wifi } from 'lucide-react'
+import { TrendingUp, TrendingDown, Zap, RefreshCw, Wifi, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@planningo/ui'
 import { cn } from '@planningo/ui'
 import { toast } from 'sonner'
@@ -20,8 +20,15 @@ interface TradingSignal {
     ema9?: number
     ema21?: number
     supertrend?: string
+    supertrendLine?: number
     macd?: number
+    macdSignal?: number
+    macdHistogram?: number
+    bbUpper?: number
+    bbMiddle?: number
+    bbLower?: number
     atr?: number
+    vwap?: number
   }
   candle_time: string
   created_at: string
@@ -58,7 +65,7 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
           setSignals((prev) => [newSignal, ...prev].slice(0, 50))
           const icon = newSignal.signal_type === 'BUY' ? '🟢' : '🔴'
           toast(`${icon} ${newSignal.signal_type} ${newSignal.symbol}`, {
-            description: `₹${newSignal.price} · ${newSignal.strength} · Score ${newSignal.confluence_score}/5`,
+            description: `₹${newSignal.price} · ${newSignal.strength} · Score ${newSignal.confluence_score}/6`,
           })
         }
       )
@@ -160,6 +167,7 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
 }
 
 function SignalRow({ signal }: { signal: TradingSignal }) {
+  const [expanded, setExpanded] = useState(false)
   const isBuy = signal.signal_type === 'BUY'
   const strengthColor =
     signal.strength === 'VERY_STRONG'
@@ -168,51 +176,144 @@ function SignalRow({ signal }: { signal: TradingSignal }) {
         ? 'text-primary'
         : 'text-muted-foreground'
 
+  const ind = signal.indicators
+
+  // Build quick indicator pills
+  const pills: Array<{ label: string; value: string; bullish: boolean | null }> = [
+    ind.rsi != null
+      ? { label: 'RSI', value: ind.rsi.toFixed(0), bullish: ind.rsi < 65 }
+      : null,
+    ind.ema9 != null && ind.ema21 != null
+      ? { label: 'EMA', value: ind.ema9 > ind.ema21 ? '↑' : '↓', bullish: ind.ema9 > ind.ema21 }
+      : null,
+    ind.macd != null && ind.macdSignal != null
+      ? { label: 'MACD', value: ind.macd > ind.macdSignal ? '↑' : '↓', bullish: ind.macd > ind.macdSignal }
+      : null,
+    ind.supertrend != null
+      ? { label: 'ST', value: ind.supertrend === 'BUY' ? '🟢' : '🔴', bullish: ind.supertrend === 'BUY' }
+      : null,
+    ind.vwap != null
+      ? { label: 'VWAP', value: signal.price > ind.vwap ? '↑' : '↓', bullish: signal.price > ind.vwap }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string; bullish: boolean | null }>
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-      {/* Signal badge */}
+    <div className="border-b border-border/50 last:border-0">
+      {/* ── Compact row ─────────────────────────────────────────────────────── */}
       <div
-        className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white text-xs font-bold',
-          isBuy ? 'bg-emerald-500' : 'bg-red-500'
-        )}
+        className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
       >
-        {isBuy ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-      </div>
-
-      {/* Main info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm truncate">
-            {signal.symbol.replace('.NS', '').replace('.BO', '')}
-          </span>
-          <span
-            className={cn(
-              'text-xs font-medium px-1.5 py-0.5 rounded',
-              isBuy ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'
-            )}
-          >
-            {signal.signal_type}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-muted-foreground">₹{signal.price.toLocaleString('en-IN')}</span>
-          {signal.indicators.rsi != null && (
-            <span className="text-xs text-muted-foreground">RSI:{signal.indicators.rsi.toFixed(0)}</span>
+        {/* Signal badge */}
+        <div
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white text-xs font-bold',
+            isBuy ? 'bg-emerald-500' : 'bg-red-500'
           )}
-          <span className={cn('text-xs font-medium', strengthColor)}>
-            {signal.strength === 'VERY_STRONG' ? '⚡ V.STRONG' : signal.strength}
+        >
+          {isBuy ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        </div>
+
+        {/* Main info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm">
+              {signal.symbol.replace('.NS', '').replace('.BO', '')}
+            </span>
+            <span
+              className={cn(
+                'text-xs font-medium px-1.5 py-0.5 rounded',
+                isBuy
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-red-500/15 text-red-600 dark:text-red-400'
+              )}
+            >
+              {signal.signal_type}
+            </span>
+            <span className={cn('text-xs font-medium', strengthColor)}>
+              {signal.strength === 'VERY_STRONG' ? '⚡ V.STRONG' : signal.strength}
+            </span>
+          </div>
+          {/* Indicator pills */}
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-xs text-muted-foreground mr-1">
+              ₹{signal.price.toLocaleString('en-IN')}
+            </span>
+            {pills.map((p) => (
+              <span
+                key={p.label}
+                className={cn(
+                  'text-[10px] font-mono px-1.5 py-px rounded border',
+                  p.bullish === true
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : p.bullish === false
+                      ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                      : 'bg-muted text-muted-foreground border-border'
+                )}
+              >
+                {p.label}:{p.value}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Score + time + expand */}
+        <div className="text-right shrink-0 flex flex-col items-end gap-1">
+          <div className="text-sm font-bold font-mono">{signal.confluence_score}/6</div>
+          <div className="text-xs text-muted-foreground/60">
+            {new Date(signal.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <span className="text-muted-foreground/40">
+            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </span>
         </div>
       </div>
 
-      {/* Score + time */}
-      <div className="text-right shrink-0">
-        <div className="text-sm font-bold text-muted-foreground">{signal.confluence_score}/5</div>
-        <div className="text-xs text-muted-foreground/60">
-          {new Date(signal.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+      {/* ── Expanded details ──────────────────────────────────────────────── */}
+      {expanded && (
+        <div className="px-4 pb-3 bg-muted/20 border-t border-border/40 text-xs space-y-1.5">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 pt-2">
+            {ind.rsi     != null && <DetailRow label="RSI (14)"     value={ind.rsi.toFixed(2)} />}
+            {ind.macd    != null && <DetailRow label="MACD"         value={ind.macd.toFixed(4)} />}
+            {ind.macdSignal != null && <DetailRow label="MACD Signal" value={ind.macdSignal.toFixed(4)} />}
+            {ind.macdHistogram != null && <DetailRow label="Histogram" value={ind.macdHistogram.toFixed(4)} />}
+            {ind.ema9    != null && <DetailRow label="EMA 9"        value={`₹${ind.ema9.toFixed(2)}`} />}
+            {ind.ema21   != null && <DetailRow label="EMA 21"       value={`₹${ind.ema21.toFixed(2)}`} />}
+            {ind.bbUpper != null && <DetailRow label="BB Upper"     value={`₹${ind.bbUpper.toFixed(2)}`} />}
+            {ind.bbMiddle!= null && <DetailRow label="BB Middle"    value={`₹${ind.bbMiddle.toFixed(2)}`} />}
+            {ind.bbLower != null && <DetailRow label="BB Lower"     value={`₹${ind.bbLower.toFixed(2)}`} />}
+            {ind.supertrend != null && (
+              <DetailRow
+                label="Supertrend"
+                value={ind.supertrend}
+                colored={ind.supertrend === 'BUY' ? 'buy' : 'sell'}
+              />
+            )}
+            {ind.supertrendLine != null && <DetailRow label="ST Line" value={`₹${ind.supertrendLine.toFixed(2)}`} />}
+            {ind.vwap != null && <DetailRow label="VWAP" value={`₹${ind.vwap.toFixed(2)}`} />}
+            {ind.atr  != null && <DetailRow label="ATR" value={ind.atr.toFixed(4)} />}
+          </div>
+          <div className="text-muted-foreground/50 pt-1">
+            Candle: {new Date(signal.candle_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
-      </div>
+      )}
+    </div>
+  )
+}
+
+function DetailRow({ label, value, colored }: { label: string; value: string; colored?: 'buy' | 'sell' }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <span className="text-muted-foreground/70">{label}</span>
+      <span className={cn(
+        'font-mono font-medium',
+        colored === 'buy'  ? 'text-emerald-500'
+        : colored === 'sell' ? 'text-red-500'
+        : ''
+      )}>
+        {value}
+      </span>
     </div>
   )
 }

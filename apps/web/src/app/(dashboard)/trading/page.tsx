@@ -39,7 +39,7 @@ export default async function TradingPage() {
       <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Trading Bot</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          NSE intraday · 5-min signals · Paper trading · ₹1,00,000 virtual capital
+          NSE intraday · 5-min signals · 6-indicator confluence · Paper trading · ₹1,00,000 virtual capital
         </p>
       </div>
 
