@@ -566,6 +566,141 @@ export type Database = {
         }
         Relationships: []
       }
+      trading_watchlist: {
+        Row: {
+          id: string
+          user_id: string
+          symbol: string
+          display_name: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          symbol: string
+          display_name: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          symbol?: string
+          display_name?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      trading_signals: {
+        Row: {
+          id: string
+          user_id: string
+          symbol: string
+          signal_type: 'BUY' | 'SELL' | 'HOLD'
+          strength: 'WEAK' | 'STRONG' | 'VERY_STRONG'
+          price: number
+          indicators: Json
+          confluence_score: number
+          candle_time: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          symbol: string
+          signal_type: 'BUY' | 'SELL' | 'HOLD'
+          strength: 'WEAK' | 'STRONG' | 'VERY_STRONG'
+          price: number
+          indicators: Json
+          confluence_score: number
+          candle_time: string
+          created_at?: string
+        }
+        Update: {
+          signal_type?: 'BUY' | 'SELL' | 'HOLD'
+          strength?: 'WEAK' | 'STRONG' | 'VERY_STRONG'
+          price?: number
+          indicators?: Json
+          confluence_score?: number
+        }
+        Relationships: []
+      }
+      paper_trades: {
+        Row: {
+          id: string
+          user_id: string
+          signal_id: string | null
+          symbol: string
+          trade_type: 'BUY' | 'SELL'
+          quantity: number
+          entry_price: number
+          exit_price: number | null
+          entry_time: string
+          exit_time: string | null
+          pnl: number | null
+          status: 'OPEN' | 'CLOSED' | 'STOPPED_OUT'
+          stop_loss: number | null
+          target: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          signal_id?: string | null
+          symbol: string
+          trade_type: 'BUY' | 'SELL'
+          quantity: number
+          entry_price: number
+          exit_price?: number | null
+          entry_time?: string
+          exit_time?: string | null
+          pnl?: number | null
+          status?: 'OPEN' | 'CLOSED' | 'STOPPED_OUT'
+          stop_loss?: number | null
+          target?: number | null
+          created_at?: string
+        }
+        Update: {
+          exit_price?: number | null
+          exit_time?: string | null
+          pnl?: number | null
+          status?: 'OPEN' | 'CLOSED' | 'STOPPED_OUT'
+        }
+        Relationships: []
+      }
+      paper_portfolio: {
+        Row: {
+          id: string
+          user_id: string
+          virtual_capital: number
+          available_cash: number
+          total_pnl: number
+          total_trades: number
+          winning_trades: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          virtual_capital?: number
+          available_cash?: number
+          total_pnl?: number
+          total_trades?: number
+          winning_trades?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          virtual_capital?: number
+          available_cash?: number
+          total_pnl?: number
+          total_trades?: number
+          winning_trades?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

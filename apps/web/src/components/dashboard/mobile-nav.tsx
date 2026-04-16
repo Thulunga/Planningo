@@ -12,6 +12,7 @@ import {
   Plane,
   DollarSign,
   Settings,
+  TrendingUp,
 } from 'lucide-react'
 import { cn, SheetClose } from '@planningo/ui'
 import { UserMenu } from './user-menu'
@@ -27,7 +28,7 @@ const navItems = [
   { href: '/expenses', icon: DollarSign, label: 'Expenses' },
 ]
 
-export function MobileNav({ profile }: { profile: Tables<'profiles'> | null }) {
+export function MobileNav({ profile, isAdmin = false }: { profile: Tables<'profiles'> | null; isAdmin?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -43,7 +44,10 @@ export function MobileNav({ profile }: { profile: Tables<'profiles'> | null }) {
       {/* Nav links */}
       <nav className="flex-1 overflow-y-auto py-3">
         <ul className="space-y-0.5 px-2">
-          {navItems.map(({ href, icon: Icon, label }) => {
+          {[
+            ...navItems,
+            ...(isAdmin ? [{ href: '/trading', icon: TrendingUp, label: 'Trading Bot' }] : []),
+          ].map(({ href, icon: Icon, label }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
               <li key={href}>

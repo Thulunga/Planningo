@@ -59,6 +59,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Admin-only routes: /trading and /api/trading
+  const isAdminRoute =
+    pathname.startsWith('/trading') || pathname.startsWith('/api/trading')
+
+  if (isAdminRoute && user) {
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (!adminEmail || user.email !== adminEmail) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }
 

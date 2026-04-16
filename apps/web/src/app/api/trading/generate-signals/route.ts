@@ -1,0 +1,136 @@
+/**
+ * POST /api/trading/generate-signals
+ * Fetches 5-min candles for all active watchlist symbols,
+ * runs indicator calculations, scores confluence, and persists
+ * any actionable signals (BUY/SELL with score ≥ 3) to Supabase.
+ * Supabase Realtime then broadcasts the insert to the UI.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { fetchCandles } from '@/lib/trading/market-data'
+import { calculateIndicators } from '@/lib/trading/indicators'
+import { generateSignal, isActionableSignal } from '@/lib/trading/signal-engine'
+import { executePaperTrade, initializePortfolio } from '@/lib/trading/paper-trader'
+import { isMarketOpen } from '@/lib/trading/market-hours'
+
+export async function POST(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Allow force-run outside market hours (for testing)
+  const body = await request.json().catch(() => ({}))
+  const forceRun = body?.force === true
+
+  if (!isMarketOpen() && !forceRun) {
+    return NextResponse.json({ message: 'Market is closed', signals: [] })
+  }
+
+  // Ensure portfolio exists
+  await initializePortfolio(user.id)
+
+  // Fetch active watchlist
+  const { data: watchlist, error: wErr } = await supabase
+    .from('trading_watchlist')
+    .select('symbol, display_name')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+
+  if (wErr || !watchlist || watchlist.length === 0) {
+    return NextResponse.json({ message: 'No active watchlist symbols', signals: [] })
+  }
+
+  const results: Array<{
+    symbol: string
+    signal: string
+    strength: string
+    score: number
+    price: number
+    tradeResult?: string
+  }> = []
+
+  // Process each symbol in parallel
+  await Promise.all(
+    watchlist.map(async ({ symbol }) => {
+      try {
+        const candles = await fetchCandles(symbol, 100)
+        if (candles.length < 35) {
+          console.warn(`[signals] Insufficient candles for ${symbol}: ${candles.length}`)
+          return
+        }
+
+        const indicators = calculateIndicators(candles)
+        const signal = generateSignal(indicators, candles)
+
+        // Only persist actionable signals (not HOLD)
+        if (signal.type === 'HOLD') return
+
+        // Persist signal to DB (Realtime broadcasts to clients)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const signalResult: { data: { id: string } | null; error: any } = await (supabase as any)
+          .from('trading_signals')
+          .insert({
+            user_id: user.id,
+            symbol,
+            signal_type: signal.type,
+            strength: signal.strength,
+            price: signal.price,
+            indicators: {
+              rsi: signal.indicators.rsi,
+              macd: signal.indicators.macd,
+              macdSignal: signal.indicators.macdSignal,
+              macdHistogram: signal.indicators.macdHistogram,
+              ema9: signal.indicators.ema9,
+              ema21: signal.indicators.ema21,
+              bbUpper: signal.indicators.bbUpper,
+              bbMiddle: signal.indicators.bbMiddle,
+              bbLower: signal.indicators.bbLower,
+              supertrend: signal.indicators.supertrend,
+              supertrendLine: signal.indicators.supertrendLine,
+              atr: signal.indicators.atr,
+            },
+            confluence_score: signal.confluenceScore,
+            candle_time: signal.candleTime.toISOString(),
+          })
+          .select('id')
+          .single()
+        const { data: savedSignal, error: sigErr } = signalResult
+
+        if (sigErr || !savedSignal) {
+          console.error(`[signals] Failed to save signal for ${symbol}:`, sigErr)
+          return
+        }
+
+        // Auto-execute paper trade for STRONG/VERY_STRONG signals
+        let tradeResult = 'No trade'
+        if (isActionableSignal(signal)) {
+          const result = await executePaperTrade(user.id, {
+            id: savedSignal.id,
+            symbol,
+            signal_type: signal.type,
+            price: signal.price,
+            indicators: { atr: signal.indicators.atr ?? undefined },
+          })
+          tradeResult = result.reason
+        }
+
+        results.push({
+          symbol,
+          signal: signal.type,
+          strength: signal.strength,
+          score: signal.confluenceScore,
+          price: signal.price,
+          tradeResult,
+        })
+      } catch (err) {
+        console.error(`[signals] Error processing ${symbol}:`, err)
+      }
+    })
+  )
+
+  return NextResponse.json({ signals: results, count: results.length })
+}
