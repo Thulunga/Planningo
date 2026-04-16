@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useOptimistic } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -61,6 +61,16 @@ export function TodosClient({ todos }: TodosClientProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
 
+  const [optimisticTodos, dispatchOptimistic] = useOptimistic(
+    todos,
+    (state, action: { type: 'toggle'; id: string; newStatus: string } | { type: 'delete'; id: string }) => {
+      if (action.type === 'toggle') {
+        return state.map((t) => (t.id === action.id ? { ...t, status: action.newStatus } : t))
+      }
+      return state.filter((t) => t.id !== action.id)
+    }
+  )
+
   // New todo form state
   const [newTodo, setNewTodo] = useState({
     title: '',
@@ -98,15 +108,18 @@ export function TodosClient({ todos }: TodosClientProps) {
     }
   }
 
-  async function handleToggle(todo: Tables<'todos'>) {
+  function handleToggle(todo: Tables<'todos'>) {
+    const newStatus = todo.status === 'done' ? 'todo' : 'done'
     startTransition(async () => {
+      dispatchOptimistic({ type: 'toggle', id: todo.id, newStatus })
       const result = await toggleTodoStatus(todo.id, todo.status)
       if (result?.error) toast.error(result.error)
     })
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     startTransition(async () => {
+      dispatchOptimistic({ type: 'delete', id })
       const result = await deleteTodo(id)
       if (result?.error) toast.error(result.error)
       else toast.success('Todo deleted')
@@ -121,7 +134,7 @@ export function TodosClient({ todos }: TodosClientProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Todos</h1>
-          <p className="text-sm text-muted-foreground">{todos.length} items</p>
+          <p className="text-sm text-muted-foreground">{optimisticTodos.length} items</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
@@ -152,7 +165,7 @@ export function TodosClient({ todos }: TodosClientProps) {
       </div>
 
       {/* Todo list */}
-      {todos.length === 0 ? (
+      {optimisticTodos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle2 className="mb-3 h-12 w-12 text-muted-foreground/30" />
@@ -168,7 +181,7 @@ export function TodosClient({ todos }: TodosClientProps) {
         </Card>
       ) : (
         <div className="space-y-1.5">
-          {todos.map((todo) => (
+          {optimisticTodos.map((todo) => (
             <Card
               key={todo.id}
               className={`transition-opacity ${todo.status === 'done' ? 'opacity-60' : ''}`}
