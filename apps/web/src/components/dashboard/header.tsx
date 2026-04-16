@@ -17,9 +17,10 @@ import type { Tables } from '@planningo/database'
 
 interface HeaderProps {
   profile: Tables<'profiles'> | null
+  isAdmin?: boolean
 }
 
-export function Header({ profile }: HeaderProps) {
+export function Header({ profile, isAdmin = false }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:static md:inset-x-auto">
       {/* Mobile: hamburger button + logo */}
@@ -34,7 +35,7 @@ export function Header({ profile }: HeaderProps) {
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <MobileNav profile={profile} />
+            <MobileNav profile={profile} isAdmin={isAdmin} />
           </SheetContent>
         </Sheet>
         <Link href="/" className="flex items-center gap-2">

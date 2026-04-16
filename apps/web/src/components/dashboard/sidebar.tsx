@@ -14,6 +14,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
 } from 'lucide-react'
 import { cn, Button, Tooltip, TooltipContent, TooltipTrigger } from '@planningo/ui'
 import { useUIStore } from '@/stores/ui-store'
@@ -32,9 +33,10 @@ const navItems = [
 
 interface SidebarProps {
   profile: Tables<'profiles'> | null
+  isAdmin?: boolean
 }
 
-export function Sidebar({ profile }: SidebarProps) {
+export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
 
@@ -58,7 +60,12 @@ export function Sidebar({ profile }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
         <ul className="space-y-0.5 px-2">
-          {navItems.map((item) => {
+          {[
+            ...navItems,
+            ...(isAdmin
+              ? [{ href: '/trading', icon: TrendingUp, label: 'Trading Bot' }]
+              : []),
+          ].map((item) => {
             const isActive =
               item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
             const Icon = item.icon
