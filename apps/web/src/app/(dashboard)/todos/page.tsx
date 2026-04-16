@@ -1,10 +1,12 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { createClient, getUserProfile } from '@/lib/supabase/server'
 import { TodosClient } from '@/components/todos/todos-client'
+import TodosLoading from './loading'
 
 export const metadata: Metadata = { title: 'Todos' }
 
-export default async function TodosPage({
+async function TodosList({
   searchParams,
 }: {
   searchParams: { status?: string; priority?: string; tag?: string }
@@ -30,4 +32,16 @@ export default async function TodosPage({
   const { data: todos } = await query
 
   return <TodosClient todos={todos ?? []} />
+}
+
+export default function TodosPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; priority?: string; tag?: string }
+}) {
+  return (
+    <Suspense fallback={<TodosLoading />}>
+      <TodosList searchParams={searchParams} />
+    </Suspense>
+  )
 }
