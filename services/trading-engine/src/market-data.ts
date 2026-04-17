@@ -3,15 +3,6 @@
  * NSE stocks: "RELIANCE.NS", indices: "^NSEI"
  */
 
-// yahoo-finance2 is ESM-only — use dynamic import cached at module level
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _yf: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function yf(): Promise<any> {
-  if (!_yf) _yf = (await import('yahoo-finance2')).default
-  return _yf
-}
-
 export interface Candle {
   time: number   // Unix timestamp (seconds)
   open: number
@@ -27,7 +18,9 @@ export interface Candle {
  */
 export async function fetchCandles(symbol: string, count: number = 100): Promise<Candle[]> {
   try {
-    const result = await (await yf()).chart(symbol, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yf = (await import('yahoo-finance2')).default as any
+    const result = await yf.chart(symbol, {
       interval: '5m',
       range: '2d',
     })
