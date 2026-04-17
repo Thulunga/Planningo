@@ -84,7 +84,7 @@ async function scanLoop(): Promise<void> {
     // 15 min before NSE closes (3:30 PM) and 30 min before engine shutdown.
     if (!eodCloseDone && isEODCloseTime()) {
       eodCloseDone = true
-      console.log(`\n[engine] ⏰ 3:15 PM IST — end-of-day close @ ${formatISTTime()}`)
+      console.log(`\n[engine] ⏰ 2:45 PM IST — end-of-day close @ ${formatISTTime()}`)
       const closed = await forceCloseAllPositions(config.adminUserId)
       console.log(`[engine] EOD: closed ${closed} open position(s).`)
       updateHeartbeatState({ currentSymbol: null })

@@ -9,6 +9,7 @@
  */
 
 import { db } from './supabase'
+import { isEODCloseTime } from './config'
 import type { Signal } from './signal-engine'
 
 const ALLOCATION_PERCENT = 0.20
@@ -37,6 +38,10 @@ export async function executePaperTrade(
 
   // ── BUY ──────────────────────────────────────────────────────────────────
   if (signal.signal_type === 'BUY') {
+    if (isEODCloseTime()) {
+      return { action: 'SKIPPED', reason: 'EOD window (2:45 PM+) — no new BUY positions' }
+    }
+
     // Already holding?
     const { data: existing } = await db('paper_trades')
       .select('id').eq('user_id', userId).eq('symbol', signal.symbol).eq('status', 'OPEN').limit(1)
