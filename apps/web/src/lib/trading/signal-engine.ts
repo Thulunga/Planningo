@@ -11,6 +11,7 @@
 
 import type { IndicatorValues } from './indicators'
 import type { Candle } from './market-data'
+import { evaluateThreeMABoundary, type MABoundaryDecision } from './ma-boundary'
 
 export type SignalType = 'BUY' | 'SELL' | 'HOLD'
 export type SignalStrength = 'WEAK' | 'STRONG' | 'VERY_STRONG'
@@ -22,6 +23,7 @@ export interface Signal {
   price: number
   indicators: IndicatorValues
   reasons: string[]
+  preTradeFilter: MABoundaryDecision
   candleTime: Date
 }
 
@@ -38,6 +40,7 @@ export function generateSignal(
   indicators: IndicatorValues,
   candles: Candle[]
 ): Signal {
+  const preTradeFilter = evaluateThreeMABoundary(candles, indicators.atr)
   const votes: IndicatorVote[] = []
 
   // ── 1. EMA 9 / 21 Crossover ─────────────────────────────────────────────
@@ -176,6 +179,23 @@ export function generateSignal(
     .filter((v) => v.bullish !== null)
     .map((v) => v.reason)
 
+  if (type !== 'HOLD') {
+    if (preTradeFilter.signal === 'NO_TRADE') {
+      type = 'HOLD'
+      reasons.push(`MA boundary rejected trade (${preTradeFilter.reason ?? 'filter_failed'})`)
+    } else if (preTradeFilter.signal === 'WAIT') {
+      type = 'HOLD'
+      reasons.push(`MA boundary says WAIT (${preTradeFilter.reason ?? 'entry_conditions_not_met'})`)
+    } else if (preTradeFilter.signal !== type) {
+      type = 'HOLD'
+      reasons.push(`MA boundary direction mismatch (${preTradeFilter.signal} vs confluence)`)
+    } else {
+      reasons.push(`MA boundary validated ${preTradeFilter.signal} (confidence ${preTradeFilter.confidence})`)
+    }
+  } else {
+    reasons.push(`Confluence HOLD; MA boundary ${preTradeFilter.signal} (${preTradeFilter.reason ?? 'n/a'})`)
+  }
+
   const lastCandle = candles[candles.length - 1]!
 
   return {
@@ -185,6 +205,7 @@ export function generateSignal(
     price: indicators.close,
     indicators,
     reasons,
+    preTradeFilter,
     candleTime: new Date(lastCandle.time * 1000),
   }
 }
