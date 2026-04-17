@@ -27,7 +27,7 @@ export const config = {
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   adminUserId: requiredUUID('ADMIN_USER_ID'),
   engineVersion: process.env.ENGINE_VERSION ?? '1.0.0',
-  scanIntervalSeconds: parseInt(process.env.SCAN_INTERVAL_SECONDS ?? '300', 10),
+  scanIntervalSeconds: parseInt(process.env.SCAN_INTERVAL_SECONDS ?? '60', 10),
   heartbeatIntervalSeconds: 30,
 }
 
