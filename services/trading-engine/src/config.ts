@@ -9,10 +9,23 @@ function required(key: string): string {
   return val
 }
 
+function requiredUUID(key: string): string {
+  const val = required(key)
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRe.test(val)) {
+    throw new Error(
+      `${key} must be a UUID (e.g. "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") — got "${val}"\n` +
+      `  Hint: run this in Supabase SQL Editor:\n` +
+      `  SELECT id FROM profiles WHERE email = '${val.includes('@') ? val : 'your@email.com'}';`
+    )
+  }
+  return val
+}
+
 export const config = {
   supabaseUrl: required('SUPABASE_URL'),
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
-  adminUserId: required('ADMIN_USER_ID'),
+  adminUserId: requiredUUID('ADMIN_USER_ID'),
   engineVersion: process.env.ENGINE_VERSION ?? '1.0.0',
   scanIntervalSeconds: parseInt(process.env.SCAN_INTERVAL_SECONDS ?? '300', 10),
   heartbeatIntervalSeconds: 30,

@@ -27,6 +27,9 @@ async function loadWatchlist(): Promise<Array<{ symbol: string; display_name: st
 
   if (error) {
     console.error('[scanner] Failed to load watchlist:', error)
+    if (error.code === '22P02') {
+      console.error('[scanner] ⚠  ADMIN_USER_ID is not a valid UUID — update this env var in Railway')
+    }
     return []
   }
   return data ?? []
