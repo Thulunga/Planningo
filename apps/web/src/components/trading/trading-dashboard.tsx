@@ -34,6 +34,7 @@ interface TradingSignal {
   strength: 'WEAK' | 'STRONG' | 'VERY_STRONG'
   price: number
   confluence_score: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   indicators: Record<string, any>
   candle_time: string
   created_at: string
@@ -74,7 +75,6 @@ export function TradingDashboard({
 }: TradingDashboardProps) {
   const [portfolio, setPortfolio] = useState(initialPortfolio)
   const [watchlist, setWatchlist] = useState(initialWatchlist)
-  const [openTrades, setOpenTrades] = useState(initialOpenTrades)
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(
     initialWatchlist[0]?.symbol ?? null
   )
@@ -87,17 +87,28 @@ export function TradingDashboard({
   void startTransition
   void setPortfolio
   void setWatchlist
-  void setOpenTrades
 
   return (
     <div className="space-y-4">
       {/* Market status banner */}
       <MarketStatusBanner />
 
-      {/* Engine status + top stats row */}
-      <EngineStatus />
+      {/*
+        Row 2: Engine heartbeat status (left) + Open positions (right)
+        These are the two most time-sensitive pieces of information —
+        traders need to see the engine health and their live trades
+        without scrolling.
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <EngineStatus />
+        <OpenPositions
+          initialTrades={initialOpenTrades}
+          userId={userId}
+          onClose={refreshAll}
+        />
+      </div>
 
-      {/* Portfolio + Signal Feed */}
+      {/* Row 3: Portfolio summary + Signal Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
         <PortfolioSummary portfolio={portfolio} onRefresh={refreshAll} />
         <div className="min-h-[320px]">
@@ -126,9 +137,6 @@ export function TradingDashboard({
           <CandlestickChart symbol={selectedSymbol} />
         </div>
       )}
-
-      {/* Open Positions */}
-      <OpenPositions trades={openTrades} onClose={refreshAll} />
 
       {/* Activity Log — live per-stock scan breakdown */}
       <ActivityLog userId={userId} />

@@ -11,9 +11,9 @@
  * and WHY a trade was or wasn't executed — in real time.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import {
-  Terminal, ChevronDown, ChevronUp, Circle, ArrowUpRight, ArrowDownRight, Minus
+  Terminal, ChevronDown, ChevronUp, Circle, ArrowUpRight, ArrowDownRight, Minus, Loader2
 } from 'lucide-react'
 import { cn } from '@planningo/ui'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -56,18 +56,22 @@ interface ActivityLogProps {
   initialLogs?: ScanLog[]
 }
 
+const INITIAL_LIMIT = 20
+const LOAD_MORE_SIZE = 20
+
 export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
-  const [logs, setLogs] = useState<ScanLog[]>(initialLogs.slice(0, 60))
+  const [logs, setLogs] = useState<ScanLog[]>(initialLogs.slice(0, INITIAL_LIMIT))
   const [isConnected, setIsConnected] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // ── Realtime subscription ────────────────────────────────────────────────
+  // ── Realtime subscription + initial load ────────────────────────────────
   useEffect(() => {
     const supabase = getSupabaseClient()
 
-    // Load initial logs
     async function loadInitial() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
@@ -75,8 +79,12 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
         .select('*')
         .eq('user_id', userId)
         .order('scanned_at', { ascending: false })
-        .limit(60)
-      if (data) setLogs((data as ScanLog[]).reverse())
+        .limit(INITIAL_LIMIT)
+      if (data) {
+        const rows = (data as ScanLog[]).reverse()
+        setLogs(rows)
+        setHasMore(rows.length === INITIAL_LIMIT)
+      }
     }
     loadInitial()
 
@@ -88,13 +96,38 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
         (payload) => {
           const newLog = payload.new as ScanLog
           if (newLog.user_id !== userId) return
-          setLogs((prev) => [...prev, newLog].slice(-120))
+          setLogs((prev) => [...prev, newLog].slice(-200))
         }
       )
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
 
     return () => { supabase.removeChannel(channel) }
   }, [userId])
+
+  // ── Load older logs ──────────────────────────────────────────────────────
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const supabase = getSupabaseClient()
+    const oldest = logs[0]?.scanned_at
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from('scan_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .lt('scanned_at', oldest)
+        .order('scanned_at', { ascending: false })
+        .limit(LOAD_MORE_SIZE)
+      if (data) {
+        const older = (data as ScanLog[]).reverse()
+        setLogs((prev) => [...older, ...prev])
+        setHasMore(older.length === LOAD_MORE_SIZE)
+      }
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [logs, userId, loadingMore, hasMore])
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -146,16 +179,30 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
         ref={containerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto bg-zinc-950 font-mono text-xs"
-        style={{ minHeight: '420px', maxHeight: '600px' }}
+        style={{ minHeight: '280px', maxHeight: '480px' }}
       >
         {logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-zinc-600 py-16 gap-2">
+          <div className="flex flex-col items-center justify-center h-full text-zinc-600 py-12 gap-2">
             <Terminal className="h-8 w-8 opacity-30" />
             <span>Waiting for engine activity...</span>
             <span className="text-[10px] opacity-60">Logs appear here as the Railway engine scans stocks</span>
           </div>
         ) : (
           <div className="divide-y divide-zinc-800/50">
+            {/* Load older button at top */}
+            {hasMore && (
+              <div className="flex items-center justify-center py-2 bg-zinc-900/60">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="flex items-center gap-1.5 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1 rounded hover:bg-zinc-800/50 disabled:opacity-50"
+                >
+                  {loadingMore
+                    ? <><Loader2 className="h-3 w-3 animate-spin" />Loading...</>
+                    : <>↑ Load older logs</>}
+                </button>
+              </div>
+            )}
             {logs.map((log) => (
               <LogEntry key={log.id} log={log} />
             ))}

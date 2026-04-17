@@ -41,8 +41,11 @@ interface SignalFeedProps {
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
+const PAGE_SIZE = 10
+
 export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
   const [signals, setSignals] = useState<TradingSignal[]>(initialSignals)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isRealtime, setIsRealtime] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
@@ -63,6 +66,8 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
         (payload) => {
           const newSignal = payload.new as TradingSignal
           setSignals((prev) => [newSignal, ...prev].slice(0, 50))
+          // Always bump visible count so the new signal is visible at top
+          setVisibleCount((n) => Math.max(n, PAGE_SIZE))
           const icon = newSignal.signal_type === 'BUY' ? '🟢' : '🔴'
           toast(`${icon} ${newSignal.signal_type} ${newSignal.symbol}`, {
             description: `₹${newSignal.price} · ${newSignal.strength} · Score ${newSignal.confluence_score}/6`,
@@ -157,9 +162,22 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
             </p>
           </div>
         ) : (
-          signals.map((signal) => (
-            <SignalRow key={signal.id} signal={signal} />
-          ))
+          <>
+            {signals.slice(0, visibleCount).map((signal) => (
+              <SignalRow key={signal.id} signal={signal} />
+            ))}
+            {visibleCount < signals.length && (
+              <div className="flex items-center justify-center py-3 border-t border-border/50">
+                <button
+                  onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded hover:bg-muted/50"
+                >
+                  Load {Math.min(PAGE_SIZE, signals.length - visibleCount)} more
+                  <span className="ml-1 opacity-50">({signals.length - visibleCount} remaining)</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
