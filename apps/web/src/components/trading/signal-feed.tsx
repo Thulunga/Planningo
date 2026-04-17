@@ -119,7 +119,7 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
   return (
     <div className="rounded-xl border border-border bg-card flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
           <h2 className="font-semibold text-sm">Signal Feed</h2>
@@ -146,7 +146,7 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
       </div>
 
       {lastRefresh && (
-        <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border/50">
+        <div className="px-3 py-1 text-[11px] text-muted-foreground border-b border-border/50">
           Last scan: {lastRefresh.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
       )}
@@ -167,7 +167,7 @@ export function SignalFeed({ userId, initialSignals }: SignalFeedProps) {
               <SignalRow key={signal.id} signal={signal} />
             ))}
             {visibleCount < signals.length && (
-              <div className="flex items-center justify-center py-3 border-t border-border/50">
+              <div className="flex items-center justify-center py-2 border-t border-border/50">
                 <button
                   onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded hover:bg-muted/50"
@@ -219,28 +219,28 @@ function SignalRow({ signal }: { signal: TradingSignal }) {
     <div className="border-b border-border/50 last:border-0">
       {/* ── Compact row ─────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+        className="flex items-center gap-2.5 px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         {/* Signal badge */}
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white text-xs font-bold',
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white text-xs font-bold',
             isBuy ? 'bg-emerald-500' : 'bg-red-500'
           )}
         >
-          {isBuy ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          {isBuy ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
         </div>
 
         {/* Main info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">
+            <span className="font-semibold text-xs">
               {signal.symbol.replace('.NS', '').replace('.BO', '')}
             </span>
             <span
               className={cn(
-                'text-xs font-medium px-1.5 py-0.5 rounded',
+                'text-[10px] font-medium px-1.5 py-0.5 rounded',
                 isBuy
                   ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                   : 'bg-red-500/15 text-red-600 dark:text-red-400'
@@ -248,20 +248,20 @@ function SignalRow({ signal }: { signal: TradingSignal }) {
             >
               {signal.signal_type}
             </span>
-            <span className={cn('text-xs font-medium', strengthColor)}>
+            <span className={cn('text-[10px] font-medium', strengthColor)}>
               {signal.strength === 'VERY_STRONG' ? '⚡ V.STRONG' : signal.strength}
             </span>
           </div>
           {/* Indicator pills */}
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-xs text-muted-foreground mr-1">
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            <span className="text-[11px] text-muted-foreground mr-1">
               ₹{signal.price.toLocaleString('en-IN')}
             </span>
             {pills.map((p) => (
               <span
                 key={p.label}
                 className={cn(
-                  'text-[10px] font-mono px-1.5 py-px rounded border',
+                  'text-[9px] font-mono px-1 py-px rounded border',
                   p.bullish === true
                     ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                     : p.bullish === false
@@ -277,8 +277,8 @@ function SignalRow({ signal }: { signal: TradingSignal }) {
 
         {/* Score + time + expand */}
         <div className="text-right shrink-0 flex flex-col items-end gap-1">
-          <div className="text-sm font-bold font-mono">{signal.confluence_score}/6</div>
-          <div className="text-xs text-muted-foreground/60">
+          <div className="text-xs font-bold font-mono">{signal.confluence_score}/6</div>
+          <div className="text-[10px] text-muted-foreground/60">
             {new Date(signal.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
           </div>
           <span className="text-muted-foreground/40">
@@ -289,8 +289,8 @@ function SignalRow({ signal }: { signal: TradingSignal }) {
 
       {/* ── Expanded details ──────────────────────────────────────────────── */}
       {expanded && (
-        <div className="px-4 pb-3 bg-muted/20 border-t border-border/40 text-xs space-y-1.5">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 pt-2">
+        <div className="px-3 pb-2 bg-muted/20 border-t border-border/40 text-[11px] space-y-1">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1.5">
             {ind.rsi     != null && <DetailRow label="RSI (14)"     value={ind.rsi.toFixed(2)} />}
             {ind.macd    != null && <DetailRow label="MACD"         value={ind.macd.toFixed(4)} />}
             {ind.macdSignal != null && <DetailRow label="MACD Signal" value={ind.macdSignal.toFixed(4)} />}

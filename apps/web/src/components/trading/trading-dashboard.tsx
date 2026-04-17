@@ -117,23 +117,26 @@ export function TradingDashboard({
         Left side shows the signal feed and right side shows activity logs.
       */}
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-          <div className="min-h-[320px]">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+          <div className="h-[460px]">
             <SignalFeed userId={userId} initialSignals={signals} />
           </div>
-          <div>
+          <div className="h-[460px]">
             <ActivityLog userId={userId} />
           </div>
         </div>
       </div>
 
-      {/* Watchlist */}
-      <WatchlistPanel
-        watchlist={watchlist}
-        onRefresh={refreshAll}
-        onSymbolSelect={setSelectedSymbol}
-        selectedSymbol={selectedSymbol}
-      />
+      {/* Watchlist + Trade History */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        <WatchlistPanel
+          watchlist={watchlist}
+          onRefresh={refreshAll}
+          onSymbolSelect={setSelectedSymbol}
+          selectedSymbol={selectedSymbol}
+        />
+        <TradeHistory trades={closedTrades} />
+      </div>
 
       {/* Chart */}
       {selectedSymbol && (
@@ -149,8 +152,6 @@ export function TradingDashboard({
         </div>
       )}
 
-      {/* Trade History */}
-      <TradeHistory trades={closedTrades} />
     </div>
   )
 }
