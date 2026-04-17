@@ -163,8 +163,9 @@ export async function checkStopLossAndTargets(userId: string): Promise<void> {
 
     // Fetch current price from Yahoo Finance
     try {
-      const { default: yf } = await import('yahoo-finance2')
-      const quote = await yf.quote(trade.symbol) as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const yf = (await import('yahoo-finance2')).default as any
+      const quote = await yf.quote(trade.symbol)
       const currentPrice: number = quote?.regularMarketPrice ?? 0
 
       if (currentPrice === 0) continue
