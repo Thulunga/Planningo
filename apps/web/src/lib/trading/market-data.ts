@@ -1,10 +1,10 @@
 /**
- * Market data layer using yahoo-finance2.
+ * Market data layer using direct Yahoo Finance HTTP API.
  * NSE stocks use the ".NS" suffix (e.g. "RELIANCE.NS").
  * Indices: "^NSEI" (Nifty 50), "^NSEBANK" (Bank Nifty).
  */
 
-import yahooFinance from 'yahoo-finance2'
+const YF_HEADERS = { 'User-Agent': 'Mozilla/5.0' }
 
 export interface Candle {
   time: number   // Unix timestamp (seconds)
@@ -39,36 +39,39 @@ export async function fetchCandles(
   count: number = 100
 ): Promise<Candle[]> {
   try {
-    // Fetch 2 days of 5-min data to ensure we get enough intraday candles
-    const result = await yahooFinance.chart(symbol, {
-      interval: '5m' as any,
-      range: '2d' as any,
-    }) as any
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=2d`
+    const res = await fetch(url, { headers: YF_HEADERS })
+    if (!res.ok) return []
 
-    if (!result?.quotes || result.quotes.length === 0) {
-      return []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    const result = json?.chart?.result?.[0]
+    if (!result) return []
+
+    const timestamps: number[] = result.timestamp ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const quote = result.indicators?.quote?.[0] as any
+
+    if (!quote || timestamps.length === 0) return []
+
+    const candles: Candle[] = []
+    for (let i = 0; i < timestamps.length; i++) {
+      const o = quote.open?.[i]
+      const h = quote.high?.[i]
+      const l = quote.low?.[i]
+      const c = quote.close?.[i]
+      if (o == null || h == null || l == null || c == null) continue
+      candles.push({
+        time: timestamps[i],
+        open: o,
+        high: h,
+        low: l,
+        close: c,
+        volume: quote.volume?.[i] ?? 0,
+      })
     }
 
-    const candles: Candle[] = (result.quotes as any[])
-      .filter(
-        (q: any) =>
-          q.date != null &&
-          q.open != null &&
-          q.high != null &&
-          q.low != null &&
-          q.close != null
-      )
-      .map((q: any) => ({
-        time: Math.floor(new Date(q.date).getTime() / 1000),
-        open: q.open,
-        high: q.high,
-        low: q.low,
-        close: q.close,
-        volume: q.volume ?? 0,
-      }))
-      .sort((a: Candle, b: Candle) => a.time - b.time)
-
-    // Return only the last `count` candles
+    candles.sort((a, b) => a.time - b.time)
     return candles.slice(-count)
   } catch (err) {
     console.error(`[market-data] fetchCandles error for ${symbol}:`, err)
@@ -81,7 +84,14 @@ export async function fetchCandles(
  */
 export async function fetchQuote(symbol: string): Promise<Quote | null> {
   try {
-    const result = await yahooFinance.quote(symbol) as any
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`
+    const res = await fetch(url, { headers: YF_HEADERS })
+    if (!res.ok) return null
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = json?.quoteResponse?.result?.[0] as any
     if (!result) return null
 
     return {
@@ -119,16 +129,21 @@ export async function fetchQuotes(symbols: string[]): Promise<Quote[]> {
  */
 export async function searchStocks(query: string): Promise<Array<{ symbol: string; name: string }>> {
   try {
-    const results = await yahooFinance.search(query) as any
-    return ((results?.quotes ?? []) as any[])
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0`
+    const res = await fetch(url, { headers: YF_HEADERS })
+    if (!res.ok) return []
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await res.json()) as any
+    return ((json?.quotes ?? []) as any[])  // eslint-disable-line @typescript-eslint/no-explicit-any
       .filter(
-        (q: any) =>
+        (q: any) =>  // eslint-disable-line @typescript-eslint/no-explicit-any
           q.quoteType === 'EQUITY' &&
           typeof q.symbol === 'string' &&
           (q.symbol.endsWith('.NS') || q.symbol.endsWith('.BO'))
       )
       .slice(0, 10)
-      .map((q: any) => ({
+      .map((q: any) => ({  // eslint-disable-line @typescript-eslint/no-explicit-any
         symbol: q.symbol as string,
         name: q.longname ?? q.shortname ?? q.symbol,
       }))

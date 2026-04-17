@@ -14,9 +14,10 @@
  *   - Service exits cleanly after market close, costing ~$0 overnight
  */
 
-import { config, isScanWindow, isShutdownTime, formatISTTime } from './config'
+import { config, isScanWindow, isShutdownTime, isEODCloseTime, formatISTTime } from './config'
 import { startHeartbeat, stopHeartbeat, updateHeartbeatState } from './heartbeat'
 import { runScanCycle } from './scanner'
+import { forceCloseAllPositions } from './paper-trader'
 
 console.log('═'.repeat(60))
 console.log('  📈  PLANNINGO TRADING ENGINE v' + config.engineVersion)
@@ -26,6 +27,7 @@ console.log('═'.repeat(60))
 
 let running = true
 let scanLoopTimeout: ReturnType<typeof setTimeout> | null = null
+let eodCloseDone = false // guard: run force-close only once per session
 
 /**
  * Graceful shutdown handler.
@@ -75,6 +77,17 @@ async function scanLoop(): Promise<void> {
       // Not yet in scan window — wait 60s and check again
       await new Promise((r) => { scanLoopTimeout = setTimeout(r, 60_000) })
       continue
+    }
+
+    // ── End-of-day force close at 3:15 PM IST ─────────────────────────────
+    // Runs once. Closes every open intraday position at current market price,
+    // 15 min before NSE closes (3:30 PM) and 30 min before engine shutdown.
+    if (!eodCloseDone && isEODCloseTime()) {
+      eodCloseDone = true
+      console.log(`\n[engine] ⏰ 2:45 PM IST — end-of-day close @ ${formatISTTime()}`)
+      const closed = await forceCloseAllPositions(config.adminUserId)
+      console.log(`[engine] EOD: closed ${closed} open position(s).`)
+      updateHeartbeatState({ currentSymbol: null })
     }
 
     updateHeartbeatState({ status: 'RUNNING' })

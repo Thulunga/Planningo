@@ -76,6 +76,19 @@ export function isShutdownTime(): boolean {
   return totalMinutes > 15 * 60 + 45
 }
 
+/**
+ * Returns true from 2:45 PM IST onward.
+ * End-of-day window: force-close all open intraday positions and block
+ * any new entries. 2:45 PM gives a 45-minute buffer before NSE closes
+ * at 3:30 PM and 60 minutes before the engine shuts down at 3:45 PM.
+ */
+export function isEODCloseTime(): boolean {
+  if (isWeekend()) return false
+  const { hours, minutes } = getNSETime()
+  const totalMinutes = hours * 60 + minutes
+  return totalMinutes >= 14 * 60 + 45
+}
+
 export function formatISTTime(): string {
   const now = new Date()
   const istOffset = 5 * 60 + 30
