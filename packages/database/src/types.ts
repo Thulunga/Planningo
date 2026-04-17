@@ -701,6 +701,111 @@ export type Database = {
         }
         Relationships: []
       }
+      service_heartbeat: {
+        Row: {
+          id: string
+          service_name: string
+          status: 'STARTING' | 'RUNNING' | 'STOPPING' | 'OFFLINE'
+          last_heartbeat: string
+          scan_count: number
+          signal_count: number
+          symbols_watched: number
+          current_symbol: string | null
+          engine_version: string | null
+          started_at: string
+        }
+        Insert: {
+          id?: string
+          service_name?: string
+          status?: string
+          last_heartbeat?: string
+          scan_count?: number
+          signal_count?: number
+          symbols_watched?: number
+          current_symbol?: string | null
+          engine_version?: string | null
+          started_at?: string
+        }
+        Update: {
+          status?: string
+          last_heartbeat?: string
+          scan_count?: number
+          signal_count?: number
+          symbols_watched?: number
+          current_symbol?: string | null
+          engine_version?: string | null
+        }
+        Relationships: []
+      }
+      scan_logs: {
+        Row: {
+          id: string
+          user_id: string
+          symbol: string
+          scanned_at: string
+          price: number | null
+          rsi: number | null
+          macd: number | null
+          macd_signal: number | null
+          macd_histogram: number | null
+          ema9: number | null
+          ema21: number | null
+          bb_upper: number | null
+          bb_middle: number | null
+          bb_lower: number | null
+          supertrend: string | null
+          supertrend_line: number | null
+          atr: number | null
+          vwap: number | null
+          votes: Record<string, number> | null
+          confluence_score: number | null
+          signal_type: string | null
+          signal_strength: string | null
+          reasons: Record<string, string> | null
+          trade_action: string | null
+          trade_reason: string | null
+          trade_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          symbol: string
+          scanned_at?: string
+          price?: number | null
+          rsi?: number | null
+          macd?: number | null
+          macd_signal?: number | null
+          macd_histogram?: number | null
+          ema9?: number | null
+          ema21?: number | null
+          bb_upper?: number | null
+          bb_middle?: number | null
+          bb_lower?: number | null
+          supertrend?: string | null
+          supertrend_line?: number | null
+          atr?: number | null
+          vwap?: number | null
+          votes?: Record<string, number> | null
+          confluence_score?: number | null
+          signal_type?: string | null
+          signal_strength?: string | null
+          reasons?: Record<string, string> | null
+          trade_action?: string | null
+          trade_reason?: string | null
+          trade_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          price?: number | null
+          rsi?: number | null
+          signal_type?: string | null
+          signal_strength?: string | null
+          trade_action?: string | null
+          trade_reason?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

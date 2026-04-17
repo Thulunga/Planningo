@@ -167,6 +167,22 @@ export async function getTradeHistory(limit = 30) {
   return { data: data ?? [], error: error?.message }
 }
 
+// ── Scan logs ─────────────────────────────────────────────────────────────
+
+export async function getRecentScanLogs(limit = 60) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !isAdmin(user.email)) return { error: 'Unauthorized', data: null }
+
+  const { data, error } = await db(supabase, 'scan_logs')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('scanned_at', { ascending: false })
+    .limit(limit)
+
+  return { data: data ?? [], error: error?.message }
+}
+
 // ── Stock search ──────────────────────────────────────────────────────────
 
 export async function searchNSEStocks(query: string) {

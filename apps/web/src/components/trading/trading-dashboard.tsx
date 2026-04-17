@@ -9,6 +9,8 @@ import { WatchlistPanel } from './watchlist-panel'
 import { CandlestickChart } from './candlestick-chart'
 import { OpenPositions } from './open-positions'
 import { TradeHistory } from './trade-history'
+import { EngineStatus } from './engine-status'
+import { ActivityLog } from './activity-log'
 
 interface Portfolio {
   virtual_capital: number
@@ -59,6 +61,7 @@ interface TradingDashboardProps {
   signals: TradingSignal[]
   openTrades: PaperTrade[]
   closedTrades: PaperTrade[]
+  initialScanLogs?: unknown[]
 }
 
 export function TradingDashboard({
@@ -78,16 +81,23 @@ export function TradingDashboard({
   const [, startTransition] = useTransition()
 
   function refreshAll() {
-    // Force a page re-render by router refresh
     window.location.reload()
   }
+
+  void startTransition
+  void setPortfolio
+  void setWatchlist
+  void setOpenTrades
 
   return (
     <div className="space-y-4">
       {/* Market status banner */}
       <MarketStatusBanner />
 
-      {/* Top row: Portfolio + Signal Feed */}
+      {/* Engine status + top stats row */}
+      <EngineStatus />
+
+      {/* Portfolio + Signal Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
         <PortfolioSummary portfolio={portfolio} onRefresh={refreshAll} />
         <div className="min-h-[320px]">
@@ -119,6 +129,9 @@ export function TradingDashboard({
 
       {/* Open Positions */}
       <OpenPositions trades={openTrades} onClose={refreshAll} />
+
+      {/* Activity Log — live per-stock scan breakdown */}
+      <ActivityLog userId={userId} />
 
       {/* Trade History */}
       <TradeHistory trades={closedTrades} />
