@@ -148,6 +148,43 @@ export async function closeTrade(
 }
 
 /**
+ * Force-close every open position at current market price.
+ * Called once at 3:15 PM IST to guarantee all intraday trades are
+ * flat before NSE closes at 3:30 PM.
+ * Falls back to entry price if the quote API is unavailable.
+ */
+export async function forceCloseAllPositions(userId: string): Promise<number> {
+  const { data: openTrades } = await db('paper_trades')
+    .select('*').eq('user_id', userId).eq('status', 'OPEN')
+
+  if (!openTrades || openTrades.length === 0) return 0
+
+  let closed = 0
+  for (const trade of openTrades) {
+    try {
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(trade.symbol)}`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const json = (res.ok ? await res.json() : {}) as any
+      const marketPrice: number = json?.quoteResponse?.result?.[0]?.regularMarketPrice ?? 0
+      const exitPrice = marketPrice > 0 ? marketPrice : trade.entry_price
+
+      await closeTrade(userId, trade, exitPrice, 'CLOSED')
+      console.log(
+        `[paper-trader] EOD close: ${trade.symbol} @ ₹${exitPrice}` +
+        (marketPrice === 0 ? ' (fallback to entry — no quote)' : '')
+      )
+      closed++
+    } catch (err) {
+      console.error(`[paper-trader] EOD close error for ${trade.symbol}:`, err)
+    }
+  }
+  return closed
+}
+
+/**
  * Check all open positions for stop loss or target hits.
  * Called after each price scan.
  */

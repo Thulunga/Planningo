@@ -76,6 +76,18 @@ export function isShutdownTime(): boolean {
   return totalMinutes > 15 * 60 + 45
 }
 
+/**
+ * Returns true from 3:15 PM IST onward.
+ * End-of-day window: force-close all open intraday positions before
+ * the market closes at 3:30 PM, giving a clean 15-minute buffer.
+ */
+export function isEODCloseTime(): boolean {
+  if (isWeekend()) return false
+  const { hours, minutes } = getNSETime()
+  const totalMinutes = hours * 60 + minutes
+  return totalMinutes >= 15 * 60 + 15
+}
+
 export function formatISTTime(): string {
   const now = new Date()
   const istOffset = 5 * 60 + 30
