@@ -1,5 +1,11 @@
 import type { Candle } from './market-data'
 
+/**
+ * NOTE: This file intentionally exists in the service runtime.
+ * The web app has its own copy under `apps/web/src/lib/trading/ma-boundary.ts`
+ * because both runtimes compile independently with different tsconfig roots.
+ * Keeping one file per runtime avoids cross-package build coupling.
+ */
 export type MAType = 'SMA' | 'EMA' | 'WMA' | 'VWMA' | 'DEMA' | 'TEMA' | 'HMA'
 export type MABoundarySignal = 'NO_TRADE' | 'BUY' | 'SELL' | 'WAIT'
 
