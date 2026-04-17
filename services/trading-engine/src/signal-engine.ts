@@ -10,6 +10,7 @@
 
 import type { IndicatorValues } from './indicators'
 import type { Candle } from './market-data'
+import { evaluateThreeMABoundary, type MABoundaryDecision } from './ma-boundary'
 
 export type SignalType    = 'BUY' | 'SELL' | 'HOLD'
 export type SignalStrength = 'WEAK' | 'STRONG' | 'VERY_STRONG'
@@ -29,6 +30,7 @@ export interface Signal {
   indicators: IndicatorValues
   votes: IndicatorVoteDetail[]
   reasons: Record<string, string>   // { ema_cross: "...", rsi: "...", ... }
+  preTradeFilter: MABoundaryDecision
   candleTime: Date
 }
 
@@ -36,6 +38,7 @@ export interface Signal {
  * Score each of the 6 indicators and return a confluence signal with full breakdown.
  */
 export function generateSignal(indicators: IndicatorValues, candles: Candle[]): Signal {
+  const preTradeFilter = evaluateThreeMABoundary(candles, indicators.atr)
   const voteDetails: IndicatorVoteDetail[] = []
 
   // ── 1. EMA 9 / 21 Cross ─────────────────────────────────────────────────
@@ -175,11 +178,6 @@ export function generateSignal(indicators: IndicatorValues, candles: Candle[]): 
     confluenceScore = Math.max(buyCount, sellCount)
   }
 
-  let strength: SignalStrength = 'WEAK'
-  if (confluenceScore >= 6)      strength = 'VERY_STRONG'
-  else if (confluenceScore >= 5) strength = 'STRONG'
-  else                           strength = 'WEAK'
-
   const reasons: Record<string, string> = {}
   const keyMap: Record<string, string> = {
     'EMA Cross': 'ema_cross', 'RSI(14)': 'rsi', 'MACD': 'macd',
@@ -190,6 +188,28 @@ export function generateSignal(indicators: IndicatorValues, candles: Candle[]): 
     reasons[key] = `${v.vote !== 'NEUTRAL' ? (v.vote === 'BUY' ? '✅' : '❌') : '⚪'} ${v.reason}`
   }
 
+  if (type !== 'HOLD') {
+    if (preTradeFilter.signal === 'NO_TRADE') {
+      type = 'HOLD'
+      reasons.pre_trade_filter = `⛔ MA boundary rejected trade (${preTradeFilter.reason ?? 'filter_failed'})`
+    } else if (preTradeFilter.signal === 'WAIT') {
+      type = 'HOLD'
+      reasons.pre_trade_filter = `⚪ MA boundary says WAIT (${preTradeFilter.reason ?? 'entry_conditions_not_met'})`
+    } else if (preTradeFilter.signal !== type) {
+      type = 'HOLD'
+      reasons.pre_trade_filter = `⚠ MA boundary direction mismatch (${preTradeFilter.signal} vs confluence)`
+    } else {
+      reasons.pre_trade_filter = `✅ MA boundary validated ${preTradeFilter.signal} (confidence ${preTradeFilter.confidence})`
+    }
+  } else {
+    reasons.pre_trade_filter = `⚪ Confluence is HOLD; MA boundary ${preTradeFilter.signal} (${preTradeFilter.reason ?? 'n/a'})`
+  }
+
+  let strength: SignalStrength = 'WEAK'
+  if (confluenceScore >= 6)      strength = 'VERY_STRONG'
+  else if (confluenceScore >= 5) strength = 'STRONG'
+  else                           strength = 'WEAK'
+
   const lastCandle = candles[candles.length - 1]!
 
   return {
@@ -198,6 +218,7 @@ export function generateSignal(indicators: IndicatorValues, candles: Candle[]): 
     indicators,
     votes: voteDetails,
     reasons,
+    preTradeFilter,
     candleTime: new Date(lastCandle.time * 1000),
   }
 }
