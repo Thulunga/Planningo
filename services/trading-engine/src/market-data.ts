@@ -3,6 +3,9 @@
  * NSE stocks: "RELIANCE.NS", indices: "^NSEI"
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const yahooFinance = require('yahoo-finance2') as any
+
 export interface Candle {
   time: number   // Unix timestamp (seconds)
   open: number
@@ -18,9 +21,7 @@ export interface Candle {
  */
 export async function fetchCandles(symbol: string, count: number = 100): Promise<Candle[]> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const yf = (await import('yahoo-finance2')).default as any
-    const result = await yf.chart(symbol, {
+    const result = await yahooFinance.chart(symbol, {
       interval: '5m',
       range: '2d',
     })

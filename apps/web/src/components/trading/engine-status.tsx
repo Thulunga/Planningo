@@ -78,7 +78,7 @@ export function EngineStatus() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'service_heartbeat' },
         (payload) => {
-          if (payload.new && (payload.new as Heartbeat).scan_count !== undefined) {
+          if (payload.new) {
             setHeartbeat(payload.new as Heartbeat)
           }
         }
@@ -87,7 +87,13 @@ export function EngineStatus() {
         setIsConnected(status === 'SUBSCRIBED')
       })
 
-    return () => { supabase.removeChannel(channel) }
+    // Polling fallback — re-fetch every 35s in case Realtime drops the event
+    const poll = setInterval(loadInitial, 35_000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
   }, [])
 
   // Tick every second for relative timestamps
