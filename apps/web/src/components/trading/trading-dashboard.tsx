@@ -90,29 +90,40 @@ export function TradingDashboard({
 
   return (
     <div className="space-y-4">
-      {/* Market status banner */}
-      <MarketStatusBanner />
-
       {/*
-        Row 2: Engine heartbeat status (left) + Open positions (right)
-        These are the two most time-sensitive pieces of information —
-        traders need to see the engine health and their live trades
-        without scrolling.
+        Primary snapshot:
+        Left side stacks market status, railway engine status, and open positions.
+        Right side keeps the paper trading portfolio summary.
       */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <EngineStatus />
-        <OpenPositions
-          initialTrades={initialOpenTrades}
-          userId={userId}
-          onClose={refreshAll}
-        />
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-4 items-start">
+          <div className="space-y-4">
+            <MarketStatusBanner />
+            <EngineStatus />
+            <OpenPositions
+              initialTrades={initialOpenTrades}
+              userId={userId}
+              onClose={refreshAll}
+            />
+          </div>
+          <div>
+            <PortfolioSummary portfolio={portfolio} onRefresh={refreshAll} />
+          </div>
+        </div>
       </div>
 
-      {/* Row 3: Portfolio summary + Signal Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
-        <PortfolioSummary portfolio={portfolio} onRefresh={refreshAll} />
-        <div className="min-h-[320px]">
-          <SignalFeed userId={userId} initialSignals={signals} />
+      {/*
+        Live monitoring:
+        Left side shows the signal feed and right side shows activity logs.
+      */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <div className="min-h-[320px]">
+            <SignalFeed userId={userId} initialSignals={signals} />
+          </div>
+          <div>
+            <ActivityLog userId={userId} />
+          </div>
         </div>
       </div>
 
@@ -137,9 +148,6 @@ export function TradingDashboard({
           <CandlestickChart symbol={selectedSymbol} />
         </div>
       )}
-
-      {/* Activity Log — live per-stock scan breakdown */}
-      <ActivityLog userId={userId} />
 
       {/* Trade History */}
       <TradeHistory trades={closedTrades} />
