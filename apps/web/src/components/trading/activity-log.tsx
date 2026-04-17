@@ -20,6 +20,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface ScanLog {
   id: string
+  user_id: string
   symbol: string
   scanned_at: string
   price: number | null
@@ -83,14 +84,11 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
       .channel('scan_logs_feed')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'scan_logs',
-          filter: `user_id=eq.${userId}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'scan_logs' },
         (payload) => {
-          setLogs((prev) => [...prev, payload.new as ScanLog].slice(-120))
+          const newLog = payload.new as ScanLog
+          if (newLog.user_id !== userId) return
+          setLogs((prev) => [...prev, newLog].slice(-120))
         }
       )
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
