@@ -10,8 +10,6 @@
 
 import { db } from './supabase'
 import type { Signal } from './signal-engine'
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const yahooFinance = require('yahoo-finance2') as any
 
 const ALLOCATION_PERCENT = 0.20
 const STOP_MULTIPLIER    = 1.5
@@ -163,10 +161,15 @@ export async function checkStopLossAndTargets(userId: string): Promise<void> {
     // We need current price — skip if no stop/target set
     if (!trade.stop_loss && !trade.target) continue
 
-    // Fetch current price from Yahoo Finance
+    // Fetch current price from Yahoo Finance quote API
     try {
-      const quote = await yahooFinance.quote(trade.symbol)
-      const currentPrice: number = quote?.regularMarketPrice ?? 0
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(trade.symbol)}`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const json = (res.ok ? await res.json() : {}) as any
+      const currentPrice: number = json?.quoteResponse?.result?.[0]?.regularMarketPrice ?? 0
 
       if (currentPrice === 0) continue
 
