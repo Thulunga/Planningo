@@ -118,10 +118,10 @@ export function TradingDashboard({
       */}
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
-          <div className="h-[460px]">
+          <div className="h-[460px] min-h-0">
             <SignalFeed userId={userId} initialSignals={signals} />
           </div>
-          <div className="h-[460px]">
+          <div className="h-[460px] min-h-0">
             <ActivityLog userId={userId} />
           </div>
         </div>

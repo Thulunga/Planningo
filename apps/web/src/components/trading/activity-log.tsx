@@ -144,7 +144,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card flex h-full flex-col overflow-hidden">
+    <div className="rounded-xl border border-border bg-card flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-zinc-900/60 shrink-0">
         <div className="flex items-center gap-2.5">
@@ -178,7 +178,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto bg-zinc-950 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto bg-zinc-950 font-mono text-xs"
         style={{ minHeight: '280px' }}
       >
         {logs.length === 0 ? (
