@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 
 interface Candle {
   time: number
@@ -20,20 +20,23 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const candleSeriesRef = useRef<any>(null)
+  const [chartReady, setChartReady] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Initialise the chart once
+  // ── Initialise chart (once) ────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return
 
     let chart: any = null
+    let resizeObserver: ResizeObserver | null = null
+    let cancelled = false
 
     async function initChart() {
       const { createChart, ColorType, CrosshairMode } = await import('lightweight-charts')
-      const container = containerRef.current
-      if (!container) return
+      if (cancelled || !containerRef.current) return
 
+      const container = containerRef.current
       const isDark = document.documentElement.classList.contains('dark')
 
       chart = createChart(container, {
@@ -53,7 +56,7 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
           secondsVisible: false,
         },
         width: container.clientWidth,
-        height: 280,
+        height: 300,
       })
 
       candleSeriesRef.current = chart.addCandlestickSeries({
@@ -67,30 +70,34 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
 
       chartRef.current = chart
 
-      // Handle resize
-      const resizeObserver = new ResizeObserver(() => {
-        chart?.applyOptions({ width: container.clientWidth })
+      resizeObserver = new ResizeObserver(() => {
+        if (container && chart) {
+          chart.applyOptions({ width: container.clientWidth })
+        }
       })
       resizeObserver.observe(container)
 
-      return () => {
-        resizeObserver.disconnect()
-        chart?.remove()
-      }
+      // Signal that the chart is ready to receive data
+      if (!cancelled) setChartReady(true)
     }
 
     initChart()
 
     return () => {
-      chartRef.current?.remove()
+      cancelled = true
+      resizeObserver?.disconnect()
+      chart?.remove()
       chartRef.current = null
       candleSeriesRef.current = null
+      setChartReady(false)
     }
   }, [])
 
-  // Load candles when symbol changes
+  // ── Load candles when symbol changes or chart becomes ready ───────────
   useEffect(() => {
-    if (!symbol || !candleSeriesRef.current) return
+    if (!symbol || !chartReady || !candleSeriesRef.current) return
+
+    let cancelled = false
 
     async function loadCandles() {
       setIsLoading(true)
@@ -99,45 +106,63 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
         const res = await fetch(
           `/api/trading/market-data?symbol=${encodeURIComponent(symbol)}&count=100`
         )
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
         const candles: Candle[] = data.candles ?? []
 
+        if (cancelled) return
+
         if (candles.length === 0) {
-          setError('No candle data available for this symbol')
+          setError('No candle data available — market may be closed')
           return
         }
 
-        // lightweight-charts requires time in seconds (UTC)
-        const chartData = candles.map((c) => ({
-          time: c.time as any,
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-        }))
+        // lightweight-charts needs data sorted by time ascending, no duplicates
+        const seen = new Set<number>()
+        const chartData = candles
+          .filter((c) => {
+            if (seen.has(c.time)) return false
+            seen.add(c.time)
+            return c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0
+          })
+          .sort((a, b) => a.time - b.time)
+          .map((c) => ({
+            time: c.time as any,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          }))
+
+        if (chartData.length === 0) {
+          setError('Candle data is empty or malformed')
+          return
+        }
 
         candleSeriesRef.current?.setData(chartData)
         chartRef.current?.timeScale().fitContent()
-      } catch {
-        setError('Failed to load chart data')
+      } catch (err) {
+        if (!cancelled) setError(`Failed to load chart data: ${err instanceof Error ? err.message : 'unknown error'}`)
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
 
     loadCandles()
-  }, [symbol])
+    return () => { cancelled = true }
+  }, [symbol, chartReady])  // chartReady in deps — loads as soon as chart is initialised
 
   return (
-    <div className="relative">
+    <div className="relative w-full" style={{ minHeight: 300 }}>
       {isLoading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-xl">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-lg">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
-      {error && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">{error}</p>
+      {error && !isLoading && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
+          <AlertCircle className="h-5 w-5 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground text-center px-4">{error}</p>
         </div>
       )}
       <div ref={containerRef} className="w-full" />
