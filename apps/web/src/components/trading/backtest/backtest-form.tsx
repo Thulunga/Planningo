@@ -1,10 +1,16 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Play, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
+import { Play, ChevronDown, ChevronUp, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { runBacktestAction } from '@/lib/actions/backtest'
 import type { RunBacktestParams } from '@/lib/actions/backtest'
 import type { BacktestResult } from '@planningo/trading-core'
+
+export interface WatchlistItem {
+  id: string
+  symbol: string
+  display_name: string
+}
 
 interface Props {
   onResult: (result: {
@@ -14,17 +20,23 @@ interface Props {
     candleCount: number
     runId: string
   }) => void
+  watchlist?: WatchlistItem[]
 }
+
+const CUSTOM = '__CUSTOM__'
 
 function dateStr(d: Date) {
   return d.toISOString().substring(0, 10)
 }
 
-export function BacktestForm({ onResult }: Props) {
+export function BacktestForm({ onResult, watchlist = [] }: Props) {
   const today     = new Date()
   const thirtyAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-  const [symbol,      setSymbol]      = useState('RELIANCE.NS')
+  const defaultSymbol = watchlist[0]?.symbol ?? 'RELIANCE.NS'
+
+  const [selected,    setSelected]    = useState(watchlist.length ? watchlist[0].symbol : CUSTOM)
+  const [customSym,   setCustomSym]   = useState(watchlist.length ? '' : 'RELIANCE.NS')
   const [fromDate,    setFromDate]    = useState(dateStr(thirtyAgo))
   const [toDate,      setToDate]      = useState(dateStr(today))
   const [capital,     setCapital]     = useState(100_000)
@@ -33,11 +45,12 @@ export function BacktestForm({ onResult }: Props) {
   const [error,       setError]       = useState<string | null>(null)
   const [isPending,   startTransition] = useTransition()
 
-  // Advanced strategy params
-  const [confluence, setConfluence]   = useState(4)
+  const [confluence,  setConfluence]  = useState(4)
   const [rsiOversold, setRsiOversold] = useState(35)
-  const [atrStop,   setAtrStop]       = useState(1.5)
-  const [atrTarget, setAtrTarget]     = useState(3.0)
+  const [atrStop,     setAtrStop]     = useState(1.5)
+  const [atrTarget,   setAtrTarget]   = useState(3.0)
+
+  const symbol = selected === CUSTOM ? customSym.toUpperCase() : selected
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,7 +60,7 @@ export function BacktestForm({ onResult }: Props) {
       symbol,
       fromDate,
       toDate,
-      initialCapital: capital,
+      initialCapital:      capital,
       confluenceThreshold: confluence,
       rsiOversold,
       atrMultiplierStop:   atrStop,
@@ -65,22 +78,55 @@ export function BacktestForm({ onResult }: Props) {
     })
   }
 
-  const daysDiff = Math.round((new Date(toDate).getTime() - new Date(fromDate).getTime()) / 86_400_000)
+  const daysDiff   = Math.round((new Date(toDate).getTime() - new Date(fromDate).getTime()) / 86_400_000)
   const willUseDaily = daysDiff > 58
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      {/* Same-rules badge */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+        Uses the same 6-indicator strategy &amp; risk rules as the live paper trading engine
+      </div>
+
       {/* Symbol + dates */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs text-muted-foreground mb-1">Symbol</label>
-          <input
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            placeholder="RELIANCE.NS"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            required
-          />
+          {watchlist.length > 0 ? (
+            <div className="space-y-2">
+              <select
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {watchlist.map((w) => (
+                  <option key={w.id} value={w.symbol}>
+                    {w.display_name} ({w.symbol})
+                  </option>
+                ))}
+                <option value={CUSTOM}>Custom…</option>
+              </select>
+              {selected === CUSTOM && (
+                <input
+                  value={customSym}
+                  onChange={(e) => setCustomSym(e.target.value.toUpperCase())}
+                  placeholder="e.g. INFY.NS"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  required
+                  autoFocus
+                />
+              )}
+            </div>
+          ) : (
+            <input
+              value={customSym}
+              onChange={(e) => setCustomSym(e.target.value.toUpperCase())}
+              placeholder={defaultSymbol}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              required
+            />
+          )}
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-1">From</label>
@@ -134,7 +180,6 @@ export function BacktestForm({ onResult }: Props) {
         </div>
       </div>
 
-      {/* Daily data warning */}
       {willUseDaily && (
         <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-600 dark:text-yellow-400">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -155,8 +200,8 @@ export function BacktestForm({ onResult }: Props) {
       {showAdv && (
         <div className="rounded-md border border-border p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Confluence (3–6)', value: confluence,  setter: setConfluence,  min: 3, max: 6,  step: 1 },
-            { label: 'RSI Oversold',     value: rsiOversold, setter: setRsiOversold, min: 20, max: 50, step: 1 },
+            { label: 'Confluence (3–6)', value: confluence,  setter: setConfluence,  min: 3,   max: 6, step: 1   },
+            { label: 'RSI Oversold',     value: rsiOversold, setter: setRsiOversold, min: 20,  max: 50, step: 1  },
             { label: 'ATR Stop ×',       value: atrStop,     setter: setAtrStop,     min: 0.5, max: 3, step: 0.1 },
             { label: 'ATR Target ×',     value: atrTarget,   setter: setAtrTarget,   min: 1,   max: 6, step: 0.5 },
           ].map(({ label, value, setter, min, max, step }) => (

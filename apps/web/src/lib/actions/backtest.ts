@@ -161,6 +161,21 @@ export async function runBacktestAction(params: RunBacktestParams) {
   }
 }
 
+// ── Delete a run ─────────────────────────────────────────────────────────────
+
+export async function deleteBacktestRun(runId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !isAdmin(user.email)) return { error: 'Unauthorized' }
+
+  const { error } = await db(supabase, 'backtest_runs')
+    .delete()
+    .eq('id', runId)
+    .eq('user_id', user.id)
+
+  return { error: error?.message ?? null }
+}
+
 // ── List past runs ────────────────────────────────────────────────────────────
 
 export async function getBacktestHistory(limit = 20) {
