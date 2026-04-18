@@ -24,8 +24,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 FROM base AS builder
 WORKDIR /monorepo
 
-COPY --from=deps /monorepo/node_modules                        ./node_modules
-COPY --from=deps /monorepo/packages/trading-core/node_modules  ./packages/trading-core/node_modules
+COPY --from=deps /monorepo/node_modules                          ./node_modules
+COPY --from=deps /monorepo/packages/trading-core/node_modules   ./packages/trading-core/node_modules
 COPY --from=deps /monorepo/services/trading-engine/node_modules ./services/trading-engine/node_modules
 
 # Copy source (trading-core first, then service)
@@ -35,14 +35,29 @@ COPY services/trading-engine/ ./services/trading-engine/
 WORKDIR /monorepo/services/trading-engine
 RUN pnpm build
 
+# ── Production deps (pnpm deploy resolves workspace: references correctly) ──
+# `pnpm deploy` creates a standalone node_modules with only prod deps,
+# substituting workspace:* packages with their actual files. This avoids
+# the "Unsupported URL Type workspace:" error when npm/node tries to install
+# a package.json that still has workspace: protocol entries.
+FROM base AS prod-deps
+WORKDIR /monorepo
+
+COPY --from=deps /monorepo/node_modules                          ./node_modules
+COPY --from=deps /monorepo/packages/trading-core/node_modules   ./packages/trading-core/node_modules
+COPY --from=deps /monorepo/services/trading-engine/node_modules ./services/trading-engine/node_modules
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/trading-core/  ./packages/trading-core/
+COPY services/trading-engine/ ./services/trading-engine/
+
+RUN pnpm deploy --filter trading-engine --prod /prod
+
 # ── Runtime ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-COPY --from=builder /monorepo/services/trading-engine/dist ./dist
-COPY --from=builder /monorepo/services/trading-engine/package.json ./
-
-# Install only production deps for the runner (technicalindicators, @supabase/*)
-RUN npm install --omit=dev --ignore-scripts
+COPY --from=builder  /monorepo/services/trading-engine/dist ./dist
+COPY --from=prod-deps /prod/node_modules                    ./node_modules
 
 CMD ["node", "dist/index.js"]
