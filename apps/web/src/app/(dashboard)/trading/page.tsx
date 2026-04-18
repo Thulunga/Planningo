@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { BarChart2 } from 'lucide-react'
 import { getUser } from '@/lib/supabase/server'
 import {
   getPortfolio,
@@ -36,11 +38,20 @@ export default async function TradingPage() {
 
   return (
     <div className="space-y-2">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Trading Bot</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          NSE intraday · 5-min signals · 6-indicator confluence · Paper trading · ₹1,00,000 virtual capital
-        </p>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Trading Bot</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            NSE intraday · 5-min signals · 6-indicator confluence · Paper trading · ₹1,00,000 virtual capital
+          </p>
+        </div>
+        <Link
+          href="/trading/analytics"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors shrink-0"
+        >
+          <BarChart2 className="h-3.5 w-3.5" />
+          Analytics
+        </Link>
       </div>
 
       <TradingDashboard

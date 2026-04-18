@@ -5,19 +5,22 @@
  *   1. Validate env vars
  *   2. Start heartbeat (writes STARTING → Supabase)
  *   3. Wait for market open (9:15 AM IST)
- *   4. Enter scan loop (every SCAN_INTERVAL_SECONDS)
- *   5. At 3:45 PM IST → write final STOPPING heartbeat → exit
+ *   4. Snapshot start-of-day equity for daily loss tracking
+ *   5. Enter scan loop (every SCAN_INTERVAL_SECONDS)
+ *   6. At 3:45 PM IST → write final STOPPING heartbeat → exit
  *
  * On Railway:
- *   - Deploy via Dockerfile
- *   - Use Railway cron to trigger a new deploy each morning at 8:55 AM IST (3:25 AM UTC)
- *   - Service exits cleanly after market close, costing ~$0 overnight
+ *   - Build context: monorepo root
+ *   - Dockerfile: services/trading-engine/Dockerfile
+ *   - Deploy via Railway cron each morning at 8:55 AM IST (3:25 AM UTC)
+ *   - Service exits cleanly after market close, costs ~$0 overnight
  */
 
 import { config, isScanWindow, isShutdownTime, isEODCloseTime, formatISTTime } from './config'
 import { startHeartbeat, stopHeartbeat, updateHeartbeatState } from './heartbeat'
 import { runScanCycle } from './scanner'
-import { forceCloseAllPositions } from './paper-trader'
+import { forceCloseAllPositions, resetDailyRiskState, loadEngineState } from './paper-trader'
+import { db } from './supabase'
 
 console.log('═'.repeat(60))
 console.log('  📈  PLANNINGO TRADING ENGINE v' + config.engineVersion)
@@ -27,30 +30,21 @@ console.log('═'.repeat(60))
 
 let running = true
 let scanLoopTimeout: ReturnType<typeof setTimeout> | null = null
-let eodCloseDone = false // guard: run force-close only once per session
+let eodCloseDone = false
 
-/**
- * Graceful shutdown handler.
- */
 async function shutdown(reason: string): Promise<void> {
   if (!running) return
   running = false
-
   console.log(`\n[engine] Shutting down: ${reason}`)
   if (scanLoopTimeout) clearTimeout(scanLoopTimeout)
-
   await stopHeartbeat('STOPPING')
   console.log('[engine] Goodbye.')
   process.exit(0)
 }
 
-// Catch signals for graceful shutdown
 process.on('SIGTERM', () => shutdown('SIGTERM received'))
 process.on('SIGINT',  () => shutdown('SIGINT received (Ctrl+C)'))
 
-/**
- * Wait until a condition is true, polling every `intervalMs`.
- */
 function waitUntil(condition: () => boolean, intervalMs: number, label: string): Promise<void> {
   return new Promise((resolve) => {
     const check = (): void => {
@@ -63,9 +57,6 @@ function waitUntil(condition: () => boolean, intervalMs: number, label: string):
   })
 }
 
-/**
- * Main scan loop.
- */
 async function scanLoop(): Promise<void> {
   while (running) {
     if (isShutdownTime()) {
@@ -74,14 +65,11 @@ async function scanLoop(): Promise<void> {
     }
 
     if (!isScanWindow()) {
-      // Not yet in scan window — wait 60s and check again
       await new Promise((r) => { scanLoopTimeout = setTimeout(r, 60_000) })
       continue
     }
 
-    // ── End-of-day force close at 3:15 PM IST ─────────────────────────────
-    // Runs once. Closes every open intraday position at current market price,
-    // 15 min before NSE closes (3:30 PM) and 30 min before engine shutdown.
+    // EOD force-close at 2:45 PM IST — runs once per session
     if (!eodCloseDone && isEODCloseTime()) {
       eodCloseDone = true
       console.log(`\n[engine] ⏰ 2:45 PM IST — end-of-day close @ ${formatISTTime()}`)
@@ -103,29 +91,52 @@ async function scanLoop(): Promise<void> {
       return
     }
 
-    // Wait for next interval
     const waitMs = config.scanIntervalSeconds * 1000
     console.log(`[engine] Next scan in ${config.scanIntervalSeconds}s (${formatISTTime()})`)
     await new Promise((r) => { scanLoopTimeout = setTimeout(r, waitMs) })
   }
 }
 
-/**
- * Entry point.
- */
+async function snapshotStartOfDayEquity(): Promise<void> {
+  // First try to restore persisted state from a previous run today
+  await loadEngineState(config.adminUserId)
+
+  const { data } = await db('paper_portfolio')
+    .select('available_cash').eq('user_id', config.adminUserId).single()
+
+  const { data: openTrades } = await db('paper_trades')
+    .select('entry_price, quantity').eq('user_id', config.adminUserId).eq('status', 'OPEN')
+
+  const locked = (openTrades ?? []).reduce(
+    (s: number, t: { entry_price: number; quantity: number }) => s + t.entry_price * t.quantity, 0
+  )
+  const equity = (data?.available_cash ?? 0) + locked
+
+  // Only overwrite start-of-day equity if no persisted state exists for today.
+  // If loadEngineState restored a value, keep it (it was set at true market open).
+  const { data: existing } = await db('engine_state')
+    .select('id').eq('admin_user_id', config.adminUserId)
+    .eq('trading_day', new Date().toISOString().substring(0, 10))
+    .single()
+
+  if (!existing) {
+    await resetDailyRiskState(equity)
+    console.log(`[engine] Start-of-day equity snapshot: ₹${equity.toFixed(0)}`)
+  } else {
+    console.log(`[engine] Resumed from persisted state (restart mid-session)`)
+  }
+}
+
 async function main(): Promise<void> {
-  // Start heartbeat immediately so the UI shows the engine is alive
   await startHeartbeat()
   updateHeartbeatState({ status: 'STARTING' })
 
-  // If already past shutdown time (shouldn't happen, but safety check)
   if (isShutdownTime()) {
     console.log('[engine] Started after market close — exiting.')
     await shutdown('Started after market close')
     return
   }
 
-  // Wait until scan window opens (9:15 AM IST)
   if (!isScanWindow()) {
     await waitUntil(
       () => isScanWindow() || isShutdownTime(),
@@ -138,6 +149,8 @@ async function main(): Promise<void> {
     await shutdown('Market closed before scan started')
     return
   }
+
+  await snapshotStartOfDayEquity()
 
   console.log(`[engine] Market open — starting scan loop @ ${formatISTTime()}`)
   await scanLoop()
