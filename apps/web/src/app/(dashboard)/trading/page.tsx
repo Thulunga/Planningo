@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BarChart2 } from 'lucide-react'
+import { BarChart2, FlaskConical } from 'lucide-react'
 import { getUser } from '@/lib/supabase/server'
 import {
   getPortfolio,
@@ -45,13 +45,22 @@ export default async function TradingPage() {
             NSE intraday · 5-min signals · 6-indicator confluence · Paper trading · ₹1,00,000 virtual capital
           </p>
         </div>
-        <Link
-          href="/trading/analytics"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors shrink-0"
-        >
-          <BarChart2 className="h-3.5 w-3.5" />
-          Analytics
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/trading/analytics"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+          >
+            <BarChart2 className="h-3.5 w-3.5" />
+            Analytics
+          </Link>
+          <Link
+            href="/trading/backtest"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            Backtest
+          </Link>
+        </div>
       </div>
 
       <TradingDashboard
