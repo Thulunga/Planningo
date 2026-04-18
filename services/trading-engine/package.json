@@ -5,7 +5,7 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs --platform node --target node20 --no-splitting --external @supabase/supabase-js --external technicalindicators",
+    "build": "tsup",
     "start": "node dist/index.js",
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "typecheck": "tsc --noEmit"
