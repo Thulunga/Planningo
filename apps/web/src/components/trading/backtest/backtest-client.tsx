@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { BacktestResult } from '@planningo/trading-core'
 import { BacktestForm } from './backtest-form'
+import type { WatchlistItem } from './backtest-form'
 import { BacktestResults } from './backtest-results'
 import { BacktestHistory } from './backtest-history'
 import { getBacktestRun } from '@/lib/actions/backtest'
@@ -20,9 +21,10 @@ interface ActiveResult {
 
 interface Props {
   initialHistory: RunRow[]
+  watchlist: WatchlistItem[]
 }
 
-export function BacktestClient({ initialHistory }: Props) {
+export function BacktestClient({ initialHistory, watchlist }: Props) {
   const [history,       setHistory]       = useState<RunRow[]>(initialHistory)
   const [activeResult,  setActiveResult]  = useState<ActiveResult | null>(null)
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>()
@@ -36,16 +38,15 @@ export function BacktestClient({ initialHistory }: Props) {
   }) {
     setActiveResult(data)
     setSelectedRunId(data.runId)
-    // Prepend the new run to history (optimistic — will be loaded properly on next page load)
     const m = data.result.metrics
     setHistory((prev) => [{
-      id:           data.runId,
-      symbol:       data.result.config.symbol,
-      start_date:   data.result.config.startDate.toISOString().substring(0, 10),
-      end_date:     data.result.config.endDate.toISOString().substring(0, 10),
-      status:       'COMPLETED',
-      metrics:      m,
-      created_at:   new Date().toISOString(),
+      id:         data.runId,
+      symbol:     data.result.config.symbol,
+      start_date: data.result.config.startDate.toISOString().substring(0, 10),
+      end_date:   data.result.config.endDate.toISOString().substring(0, 10),
+      status:     'COMPLETED',
+      metrics:    m,
+      created_at: new Date().toISOString(),
     }, ...prev])
   }
 
@@ -59,7 +60,6 @@ export function BacktestClient({ initialHistory }: Props) {
     const { run } = res.data
     if (run.status !== 'COMPLETED' || !run.metrics || !run.equity_curve) return
 
-    // Reconstruct a BacktestResult-like object from the stored data
     const reconstructed: BacktestResult = {
       runId,
       config: {
@@ -69,10 +69,10 @@ export function BacktestClient({ initialHistory }: Props) {
         initialCapital: run.initial_capital,
         ...(run.config ?? {}),
       },
-      trades:      res.data.trades.map((t: RunRow) => ({
+      trades: res.data.trades.map((t: RunRow) => ({
         id:              t.id,
         symbol:          t.symbol,
-        side:            'LONG' as const,
+        side:            (t.side ?? 'LONG') as 'LONG' | 'SHORT',
         entryTime:       new Date(t.entry_time),
         entryPrice:      t.entry_price,
         exitTime:        t.exit_time ? new Date(t.exit_time) : undefined,
@@ -93,24 +93,32 @@ export function BacktestClient({ initialHistory }: Props) {
         riskAmount:      t.risk_amount ?? undefined,
         chargesTotal:    t.charges_total ?? undefined,
       })),
-      metrics:      run.metrics,
-      equityCurve:  (run.equity_curve as RunRow[]).map((p) => ({
+      metrics:     run.metrics,
+      equityCurve: (run.equity_curve as RunRow[]).map((p) => ({
         time:        new Date(p.time as string),
         equity:      p.equity      as number,
         drawdown:    p.drawdown    as number,
         drawdownAbs: p.drawdownAbs as number,
       })),
-      totalCandles:  run.total_candles ?? 0,
-      startedAt:     new Date(run.created_at),
-      completedAt:   run.completed_at ? new Date(run.completed_at) : new Date(),
+      totalCandles: run.total_candles ?? 0,
+      startedAt:    new Date(run.created_at),
+      completedAt:  run.completed_at ? new Date(run.completed_at) : new Date(),
     }
 
     setActiveResult({
       runId,
-      result:     reconstructed,
-      interval:   '5m',
+      result:      reconstructed,
+      interval:    '5m',
       candleCount: run.total_candles ?? 0,
     })
+  }
+
+  function onDelete(runId: string) {
+    setHistory((prev) => prev.filter((r) => r.id !== runId))
+    if (selectedRunId === runId) {
+      setSelectedRunId(undefined)
+      setActiveResult(null)
+    }
   }
 
   return (
@@ -118,7 +126,7 @@ export function BacktestClient({ initialHistory }: Props) {
       {/* Form */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-semibold text-sm mb-4">Configure Backtest</h2>
-        <BacktestForm onResult={onNewResult} />
+        <BacktestForm onResult={onNewResult} watchlist={watchlist} />
       </div>
 
       {/* Results */}
@@ -141,6 +149,7 @@ export function BacktestClient({ initialHistory }: Props) {
           <BacktestHistory
             runs={history}
             onSelect={onSelectHistory}
+            onDelete={onDelete}
             selectedRunId={selectedRunId}
           />
         </div>

@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, FlaskConical } from 'lucide-react'
 import { getBacktestHistory } from '@/lib/actions/backtest'
+import { getWatchlist } from '@/lib/actions/trading'
 import { BacktestClient } from '@/components/trading/backtest/backtest-client'
 
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,17 @@ export const metadata = {
 }
 
 export default async function BacktestPage() {
-  const historyResult = await getBacktestHistory(20)
+  const [historyResult, watchlistResult] = await Promise.all([
+    getBacktestHistory(20),
+    getWatchlist(),
+  ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const watchlist = (watchlistResult.data ?? []).map((w: any) => ({
+    id:           w.id as string,
+    symbol:       w.symbol as string,
+    display_name: (w.display_name ?? w.symbol) as string,
+  }))
 
   return (
     <div className="space-y-6">
@@ -36,7 +47,10 @@ export default async function BacktestPage() {
       </div>
 
       <Suspense>
-        <BacktestClient initialHistory={historyResult.data ?? []} />
+        <BacktestClient
+          initialHistory={historyResult.data ?? []}
+          watchlist={watchlist}
+        />
       </Suspense>
     </div>
   )
