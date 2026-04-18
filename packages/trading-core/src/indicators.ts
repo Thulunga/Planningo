@@ -12,10 +12,16 @@ import { DEFAULT_STRATEGY_CONFIG } from './config'
 /**
  * Calculate all 6 indicators for the most recent candle in a series.
  * Requires at least `config.minCandlesRequired` candles (default 35).
+ *
+ * @param nowSec  Unix timestamp (seconds) to use as "now" for the VWAP rolling
+ *                window. Pass `candle.time` during backtesting so each candle
+ *                anchors its own VWAP window rather than using wall-clock time.
+ *                Defaults to `Date.now() / 1000` (live mode).
  */
 export function calculateIndicators(
   candles: Candle[],
-  config: StrategyConfig = DEFAULT_STRATEGY_CONFIG
+  config: StrategyConfig = DEFAULT_STRATEGY_CONFIG,
+  nowSec?: number
 ): IndicatorValues {
   const last = candles[candles.length - 1] ?? { close: 0, high: 0, low: 0, volume: 0 }
 
@@ -71,8 +77,8 @@ export function calculateIndicators(
     candles, config.supertrendPeriod, config.supertrendMultiplier
   )
 
-  // VWAP (rolling intraday window)
-  const vwap = calculateVWAP(candles, config.vwapHours)
+  // VWAP (rolling intraday window, anchored to nowSec)
+  const vwap = calculateVWAP(candles, config.vwapHours, nowSec)
 
   return {
     rsi, macd, macdSignal, macdHistogram,
@@ -86,8 +92,8 @@ export function calculateIndicators(
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
-function calculateVWAP(candles: Candle[], windowHours: number): number | null {
-  const now          = Math.floor(Date.now() / 1000)
+function calculateVWAP(candles: Candle[], windowHours: number, nowSec?: number): number | null {
+  const now          = nowSec ?? Math.floor(Date.now() / 1000)
   const windowStart  = now - windowHours * 3600
   const session      = candles.filter((c) => c.time >= windowStart)
 

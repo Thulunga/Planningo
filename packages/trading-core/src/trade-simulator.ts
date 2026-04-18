@@ -3,7 +3,7 @@
  * Handles fill simulation (slippage), brokerage charges, and trade lifecycle.
  */
 
-import type { BacktestConfig, Candle, SimulatedTrade, SignalStrength } from './types'
+import type { BacktestConfig, Candle, SimulatedTrade, SignalStrength, TradeSide } from './types'
 
 let tradeSeq = 0
 export function resetTradeSeq(): void { tradeSeq = 0 }
@@ -59,7 +59,7 @@ export function applySlippage(
 
 // ── Trade lifecycle ───────────────────────────────────────────────────────────
 
-/** Open a new simulated trade. */
+/** Open a new simulated long (BUY) trade. */
 export function openTrade(
   symbol: string,
   entryCandle: Candle,
@@ -76,6 +76,40 @@ export function openTrade(
   return {
     id:           `bt-${tradeSeq}`,
     symbol,
+    side:         'LONG',
+    entryTime:    new Date(entryCandle.time * 1000),
+    entryPrice:   fillPrice,
+    quantity,
+    stopLoss,
+    target,
+    status:       'OPEN',
+    confluenceScore,
+    signalStrength,
+    riskAmount,
+    mae:          0,
+    mfe:          0,
+  }
+}
+
+/** Open a new simulated short (SELL) trade. */
+export function openShortTrade(
+  symbol: string,
+  entryCandle: Candle,
+  quantity: number,
+  stopLoss: number,  // above entry for shorts
+  target: number,    // below entry for shorts
+  slippagePct: number,
+  confluenceScore?: number,
+  signalStrength?: SignalStrength,
+  riskAmount?: number
+): SimulatedTrade {
+  // Shorting: we fill the sell at a slightly lower price (adverse slippage)
+  const fillPrice = applySlippage(entryCandle.close, 'SELL', slippagePct)
+  tradeSeq++
+  return {
+    id:           `bt-${tradeSeq}`,
+    symbol,
+    side:         'SHORT',
     entryTime:    new Date(entryCandle.time * 1000),
     entryPrice:   fillPrice,
     quantity,
@@ -93,7 +127,9 @@ export function openTrade(
 /** Update MAE/MFE with a new candle while trade is open. */
 export function updateMAEMFE(trade: SimulatedTrade, candle: Candle): void {
   if (trade.status !== 'OPEN') return
-  const unrealised = (candle.close - trade.entryPrice) * trade.quantity
+  // For shorts, profit direction is inverted
+  const direction  = trade.side === 'SHORT' ? -1 : 1
+  const unrealised = direction * (candle.close - trade.entryPrice) * trade.quantity
   if (trade.mae === undefined || unrealised < trade.mae) trade.mae = unrealised
   if (trade.mfe === undefined || unrealised > trade.mfe) trade.mfe = unrealised
 }
@@ -105,14 +141,21 @@ export function updateMAEMFE(trade: SimulatedTrade, candle: Candle): void {
 export function closeTrade(
   trade: SimulatedTrade,
   exitCandle: Candle,
-  reason: 'SIGNAL_SELL' | 'STOP_HIT' | 'TARGET_HIT' | 'EOD_CLOSE' | 'FORCE_CLOSE',
+  reason: 'SIGNAL_SELL' | 'SIGNAL_BUY' | 'STOP_HIT' | 'TARGET_HIT' | 'EOD_CLOSE' | 'FORCE_CLOSE',
   config: BacktestConfig,
   overrideExitPrice?: number  // used for stop/target exact price
 ): SimulatedTrade {
-  const direction   = 'SELL' // only long trades supported
-  const rawExit     = overrideExitPrice ?? exitCandle.close
-  const exitPrice   = applySlippage(rawExit, direction, config.slippagePct)
-  const grossPnl    = (exitPrice - trade.entryPrice) * trade.quantity
+  const isShort   = trade.side === 'SHORT'
+  // Closing a long: we SELL. Closing a short: we BUY back.
+  const closeDir  = isShort ? 'BUY' : 'SELL'
+  const rawExit   = overrideExitPrice ?? exitCandle.close
+  const exitPrice = applySlippage(rawExit, closeDir, config.slippagePct)
+
+  // For shorts, profit = entry - exit (we sold high, bought back low)
+  const grossPnl  = isShort
+    ? (trade.entryPrice - exitPrice) * trade.quantity
+    : (exitPrice - trade.entryPrice) * trade.quantity
+
   const charges     = calcCharges(trade.quantity, trade.entryPrice, exitPrice, config)
   const pnl         = parseFloat((grossPnl - charges).toFixed(2))
   const pnlPct      = parseFloat(((pnl / (trade.entryPrice * trade.quantity)) * 100).toFixed(3))
@@ -122,6 +165,7 @@ export function closeTrade(
 
   const statusMap = {
     SIGNAL_SELL: 'CLOSED',
+    SIGNAL_BUY:  'CLOSED',
     STOP_HIT:    'STOPPED_OUT',
     TARGET_HIT:  'TARGET_HIT',
     EOD_CLOSE:   'EOD_CLOSED',
@@ -153,13 +197,24 @@ export function checkStopTarget(
 ): { triggered: true; reason: 'STOP_HIT' | 'TARGET_HIT'; exitPrice: number } | { triggered: false } {
   if (trade.status !== 'OPEN') return { triggered: false }
 
-  // Stop: candle low reaches or breaches the stop price
-  if (candle.low <= trade.stopLoss) {
-    return { triggered: true, reason: 'STOP_HIT', exitPrice: trade.stopLoss }
-  }
-  // Target: candle high reaches or breaches the target
-  if (candle.high >= trade.target) {
-    return { triggered: true, reason: 'TARGET_HIT', exitPrice: trade.target }
+  if (trade.side === 'SHORT') {
+    // Short: stop is above entry (triggered when candle.high reaches it)
+    if (candle.high >= trade.stopLoss) {
+      return { triggered: true, reason: 'STOP_HIT', exitPrice: trade.stopLoss }
+    }
+    // Short: target is below entry (triggered when candle.low reaches it)
+    if (candle.low <= trade.target) {
+      return { triggered: true, reason: 'TARGET_HIT', exitPrice: trade.target }
+    }
+  } else {
+    // Long: stop is below entry
+    if (candle.low <= trade.stopLoss) {
+      return { triggered: true, reason: 'STOP_HIT', exitPrice: trade.stopLoss }
+    }
+    // Long: target is above entry
+    if (candle.high >= trade.target) {
+      return { triggered: true, reason: 'TARGET_HIT', exitPrice: trade.target }
+    }
   }
   return { triggered: false }
 }

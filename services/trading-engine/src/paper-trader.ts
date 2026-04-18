@@ -7,10 +7,12 @@
  *   - Risk manager (from @planningo/trading-core) validates every entry:
  *     1% risk-per-trade, daily loss limit, cooldown after stop-outs.
  *   - Idempotency: duplicate open/close calls raise a DB exception (caught here).
+ *   - Daily risk state persisted to `engine_state` table so Railway restarts
+ *     mid-session don't silently reset the daily loss counter/cooldown.
  */
 
 import { db, supabase } from './supabase'
-import { isEODCloseTime } from './config'
+import { config, isEODCloseTime } from './config'
 import {
   validateEntry, DEFAULT_RISK_CONFIG,
 } from '@planningo/trading-core'
@@ -23,18 +25,57 @@ export interface TradeResult {
   pnl?: number
 }
 
-// ── Daily risk state (reset at market open each day) ─────────────────────────
-// In a future iteration these can be persisted to Supabase for cross-restart continuity.
+// ── Daily risk state (persisted to engine_state for cross-restart continuity) ─
 let startOfDayEquity: number | null = null
 let lastLossTime: Date | null       = null
 
-export function resetDailyRiskState(equity: number): void {
-  startOfDayEquity = equity
-  lastLossTime     = null
+function todayIST(): string {
+  const now = new Date()
+  // IST = UTC + 5:30
+  const ist = new Date(now.getTime() + (now.getTimezoneOffset() * 60_000) + 5.5 * 3_600_000)
+  return ist.toISOString().substring(0, 10)  // "YYYY-MM-DD"
 }
 
-export function recordLoss(time: Date): void {
+/** Load today's risk state from DB. Called on engine startup to restore after restarts. */
+export async function loadEngineState(userId: string): Promise<void> {
+  const today = todayIST()
+  const { data } = await db('engine_state')
+    .select('start_of_day_equity, last_loss_time')
+    .eq('admin_user_id', userId)
+    .eq('trading_day', today)
+    .single()
+
+  if (data) {
+    startOfDayEquity = data.start_of_day_equity as number
+    lastLossTime     = data.last_loss_time ? new Date(data.last_loss_time as string) : null
+    console.log(
+      `[paper-trader] Restored engine state: equity=₹${startOfDayEquity?.toFixed(0)}` +
+      (lastLossTime ? ` lastLoss=${lastLossTime.toISOString()}` : '')
+    )
+  }
+}
+
+/** Persist current risk state to DB (upsert). */
+async function persistEngineState(userId: string): Promise<void> {
+  const today = todayIST()
+  await db('engine_state').upsert({
+    admin_user_id:        userId,
+    trading_day:          today,
+    start_of_day_equity:  startOfDayEquity ?? 0,
+    last_loss_time:       lastLossTime?.toISOString() ?? null,
+    updated_at:           new Date().toISOString(),
+  }, { onConflict: 'admin_user_id,trading_day' })
+}
+
+export async function resetDailyRiskState(equity: number): Promise<void> {
+  startOfDayEquity = equity
+  lastLossTime     = null
+  await persistEngineState(config.adminUserId)
+}
+
+export async function recordLoss(time: Date): Promise<void> {
   lastLossTime = time
+  await persistEngineState(config.adminUserId)
 }
 
 // ── Trade execution ───────────────────────────────────────────────────────────
@@ -144,7 +185,7 @@ export async function closeTrade(
   const netPnl = pnl as number
 
   if (status === 'STOPPED_OUT' && netPnl < 0) {
-    recordLoss(new Date())
+    await recordLoss(new Date())
   }
 
   return {

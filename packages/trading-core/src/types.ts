@@ -137,10 +137,12 @@ export interface RiskCheckResult {
 // ─── Simulated Trade (backtesting) ───────────────────────────────────────────
 
 export type TradeStatus = 'OPEN' | 'CLOSED' | 'STOPPED_OUT' | 'TARGET_HIT' | 'EOD_CLOSED'
+export type TradeSide   = 'LONG' | 'SHORT'
 
 export interface SimulatedTrade {
   id: string
   symbol: string
+  side: TradeSide              // LONG (buy first) or SHORT (sell first)
   entryTime: Date
   entryPrice: number           // after slippage
   exitTime?: Date
@@ -205,6 +207,7 @@ export interface BacktestConfig {
   brokeragePct: number   // default 0.0003  (Zerodha intraday ~₹20 flat or 0.03% if large)
   sttPct: number         // default 0.00025 (0.025% STT on sell-side turnover)
   stampDutyPct: number   // default 0.00003 (0.003% stamp duty on buy-side)
+  allowShorts: boolean   // default false — enable short selling in backtests
 }
 
 export interface BacktestResult {

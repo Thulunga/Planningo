@@ -5,7 +5,7 @@ export type {
   SignalType, SignalStrength, IndicatorVote, IndicatorVoteDetail, Signal,
   MAType, MABoundarySignal, MABoundaryConfig, MABoundaryDecision,
   StrategyConfig, RiskConfig, RiskCheckResult,
-  TradeStatus, SimulatedTrade,
+  TradeStatus, TradeSide, SimulatedTrade,
   PerformanceMetrics, EquityPoint,
   BacktestConfig, BacktestResult,
   ParameterGrid, OptimizerConfig, ExperimentResult,
@@ -42,7 +42,7 @@ export type { StopTarget, DailyLossCheck, CooldownCheck } from './risk-manager'
 // ─── Trade Simulator ──────────────────────────────────────────────────────��──
 export {
   calcCharges, applySlippage,
-  openTrade, closeTrade, checkStopTarget, updateMAEMFE,
+  openTrade, openShortTrade, closeTrade, checkStopTarget, updateMAEMFE,
   resetTradeSeq,
 } from './trade-simulator'
 

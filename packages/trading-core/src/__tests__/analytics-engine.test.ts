@@ -10,6 +10,7 @@ function makeTrade(
   const exit   = new Date(entry.getTime() + durationMinutes * 60_000)
   return {
     id, symbol: 'TEST.NS',
+    side:       'LONG',
     entryTime:  entry,
     entryPrice: 100,
     exitTime:   exit,

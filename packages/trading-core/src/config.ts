@@ -35,11 +35,12 @@ export const DEFAULT_RISK_CONFIG: RiskConfig = {
 
 export const DEFAULT_BACKTEST_CONFIG: Pick<
   BacktestConfig,
-  'initialCapital' | 'slippagePct' | 'brokeragePct' | 'sttPct' | 'stampDutyPct'
+  'initialCapital' | 'slippagePct' | 'brokeragePct' | 'sttPct' | 'stampDutyPct' | 'allowShorts'
 > = {
   initialCapital: 100_000,
   slippagePct: 0.0005,    // 0.05% per side (market order mid-spread approximation)
   brokeragePct: 0.0003,   // Zerodha intraday MIS: 0.03% or ₹20 flat — use pct as proxy
   sttPct: 0.00025,        // 0.025% STT on sell-side turnover (NSE equity intraday)
   stampDutyPct: 0.00003,  // 0.003% stamp duty on buy-side (Maharashtra)
+  allowShorts: false,     // long-only by default; set true to enable short selling in backtests
 }

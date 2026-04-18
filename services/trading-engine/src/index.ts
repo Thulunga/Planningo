@@ -19,7 +19,7 @@
 import { config, isScanWindow, isShutdownTime, isEODCloseTime, formatISTTime } from './config'
 import { startHeartbeat, stopHeartbeat, updateHeartbeatState } from './heartbeat'
 import { runScanCycle } from './scanner'
-import { forceCloseAllPositions, resetDailyRiskState } from './paper-trader'
+import { forceCloseAllPositions, resetDailyRiskState, loadEngineState } from './paper-trader'
 import { db } from './supabase'
 
 console.log('═'.repeat(60))
@@ -98,10 +98,12 @@ async function scanLoop(): Promise<void> {
 }
 
 async function snapshotStartOfDayEquity(): Promise<void> {
+  // First try to restore persisted state from a previous run today
+  await loadEngineState(config.adminUserId)
+
   const { data } = await db('paper_portfolio')
     .select('available_cash').eq('user_id', config.adminUserId).single()
 
-  // Sum locked capital in open trades
   const { data: openTrades } = await db('paper_trades')
     .select('entry_price, quantity').eq('user_id', config.adminUserId).eq('status', 'OPEN')
 
@@ -109,8 +111,20 @@ async function snapshotStartOfDayEquity(): Promise<void> {
     (s: number, t: { entry_price: number; quantity: number }) => s + t.entry_price * t.quantity, 0
   )
   const equity = (data?.available_cash ?? 0) + locked
-  resetDailyRiskState(equity)
-  console.log(`[engine] Start-of-day equity snapshot: ₹${equity.toFixed(0)}`)
+
+  // Only overwrite start-of-day equity if no persisted state exists for today.
+  // If loadEngineState restored a value, keep it (it was set at true market open).
+  const { data: existing } = await db('engine_state')
+    .select('id').eq('admin_user_id', config.adminUserId)
+    .eq('trading_day', new Date().toISOString().substring(0, 10))
+    .single()
+
+  if (!existing) {
+    await resetDailyRiskState(equity)
+    console.log(`[engine] Start-of-day equity snapshot: ₹${equity.toFixed(0)}`)
+  } else {
+    console.log(`[engine] Resumed from persisted state (restart mid-session)`)
+  }
 }
 
 async function main(): Promise<void> {

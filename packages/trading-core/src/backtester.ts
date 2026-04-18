@@ -27,7 +27,7 @@ import { calculateIndicators } from './indicators'
 import { generateSignal, isActionableSignal } from './signal-engine'
 import { validateEntry, computeStopTarget } from './risk-manager'
 import {
-  openTrade, closeTrade, checkStopTarget, updateMAEMFE, resetTradeSeq,
+  openTrade, openShortTrade, closeTrade, checkStopTarget, updateMAEMFE, resetTradeSeq,
 } from './trade-simulator'
 import { computeMetrics, buildEquityCurve } from './analytics-engine'
 import { isEODCloseTime } from './market-hours'
@@ -103,7 +103,9 @@ export async function runBacktest(
         closedTrades.push(closed)
         openPositions.delete(symbol)
         equity = recalcEquity(equity, trade, closed)
-        if (closed.status === 'STOPPED_OUT') lastLossTime = closed.exitTime!
+        if (closed.status === 'STOPPED_OUT') {
+          lastLossTime = closed.exitTime!
+        }
         exitedThisCandleSymbol = symbol
       }
     }
@@ -123,17 +125,28 @@ export async function runBacktest(
     if (i < minHistory - 1) continue  // not enough history yet
 
     const history = inRange.slice(0, i + 1)
-    const indicators = calculateIndicators(history, config.strategyConfig)
+    const indicators = calculateIndicators(history, config.strategyConfig, candle.time)
     const signal     = generateSignal(indicators, history, config.strategyConfig)
 
     if (!isActionableSignal(signal)) continue
 
-    // ── Step 4: Risk checks before BUY ───────────────────────────────────
+    // ── Step 4: BUY signal ────────────────────────────────────────────────
     if (signal.type === 'BUY') {
-      if (openPositions.has(config.symbol)) continue                            // already in position
-      if (openPositions.size >= config.riskConfig.maxConcurrentPositions) continue
+      const existing = openPositions.get(config.symbol)
 
-      // Skip if we just exited this candle (avoid re-entry same candle)
+      // Close an open SHORT position on a BUY signal
+      if (existing?.side === 'SHORT') {
+        const closed = closeTrade(existing, candle, 'SIGNAL_BUY', config)
+        closedTrades.push(closed)
+        openPositions.delete(config.symbol)
+        equity = recalcEquity(equity, existing, closed, true)
+        if (closed.status === 'STOPPED_OUT') lastLossTime = closed.exitTime!
+        exitedThisCandleSymbol = config.symbol
+        continue   // don't immediately open long on same candle
+      }
+
+      if (existing) continue  // already long — skip
+      if (openPositions.size >= config.riskConfig.maxConcurrentPositions) continue
       if (exitedThisCandleSymbol === config.symbol) continue
 
       const riskCheck = validateEntry(
@@ -150,16 +163,45 @@ export async function runBacktest(
         signal.confluenceScore, signal.strength, riskCheck.riskAmount
       )
       openPositions.set(config.symbol, trade)
-      equity -= trade.entryPrice * trade.quantity   // deduct cost
+      equity -= trade.entryPrice * trade.quantity
     }
 
-    // ── Step 5: Sell signal → close matching open position ────────────────
-    if (signal.type === 'SELL' && openPositions.has(config.symbol)) {
-      const trade  = openPositions.get(config.symbol)!
-      const closed = closeTrade(trade, candle, 'SIGNAL_SELL', config)
-      closedTrades.push(closed)
-      openPositions.delete(config.symbol)
-      equity = recalcEquity(equity, trade, closed)
+    // ── Step 5: SELL signal ───────────────────────────────────────────────
+    if (signal.type === 'SELL') {
+      const existing = openPositions.get(config.symbol)
+
+      // Close an open LONG position on a SELL signal
+      if (existing?.side === 'LONG') {
+        const closed = closeTrade(existing, candle, 'SIGNAL_SELL', config)
+        closedTrades.push(closed)
+        openPositions.delete(config.symbol)
+        equity = recalcEquity(equity, existing, closed, false)
+        if (closed.status === 'STOPPED_OUT') lastLossTime = closed.exitTime!
+        exitedThisCandleSymbol = config.symbol
+        continue   // don't immediately open short on same candle
+      }
+
+      if (existing) continue  // already short — skip
+      if (!config.allowShorts) continue
+      if (openPositions.size >= config.riskConfig.maxConcurrentPositions) continue
+      if (exitedThisCandleSymbol === config.symbol) continue
+
+      const riskCheck = validateEntry(
+        signal.price, indicators.atr, 'SELL',
+        equity, startOfDayEquity, lastLossTime, config.riskConfig,
+        new Date(candle.time * 1000)
+      )
+      if (!riskCheck.approved) continue
+
+      const trade = openShortTrade(
+        config.symbol, candle, riskCheck.quantity,
+        riskCheck.stopPrice, riskCheck.targetPrice,
+        config.slippagePct,
+        signal.confluenceScore, signal.strength, riskCheck.riskAmount
+      )
+      openPositions.set(config.symbol, trade)
+      // For shorts the margin/capital requirement is just the notional value
+      equity -= trade.entryPrice * trade.quantity
     }
   }
 
@@ -194,9 +236,12 @@ export async function runBacktest(
 function recalcEquity(
   currentEquity: number,
   openTrade: SimulatedTrade,
-  closed: SimulatedTrade
+  closed: SimulatedTrade,
+  isShort = false
 ): number {
-  // Add back the entry cost, then add net PnL (already charges-deducted)
+  // For both longs and shorts we deducted entryPrice×qty when opening,
+  // so add it back then apply net PnL (already charges-deducted).
+  void isShort  // same formula for both sides
   const entryCost = openTrade.entryPrice * openTrade.quantity
   return parseFloat((currentEquity + entryCost + (closed.pnl ?? 0)).toFixed(2))
 }
