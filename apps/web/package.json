@@ -12,6 +12,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.6.0",
     "@planningo/database": "workspace:*",
+    "@planningo/trading-core": "workspace:*",
     "@planningo/ui": "workspace:*",
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.44.2",

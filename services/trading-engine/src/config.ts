@@ -1,6 +1,6 @@
 /**
- * Configuration and environment variable validation.
- * Fail fast on startup if required vars are missing.
+ * Service configuration — environment variable validation and market-hours helpers.
+ * Market-hours logic (IST-correct) is re-exported from @planningo/trading-core.
  */
 
 function required(key: string): string {
@@ -14,85 +14,27 @@ function requiredUUID(key: string): string {
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRe.test(val)) {
     throw new Error(
-      `${key} must be a UUID (e.g. "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") — got "${val}"\n` +
-      `  Hint: run this in Supabase SQL Editor:\n` +
-      `  SELECT id FROM profiles WHERE email = '${val.includes('@') ? val : 'your@email.com'}';`
+      `${key} must be a UUID — got "${val}"\n` +
+      `  Hint: SELECT id FROM profiles WHERE email = 'your@email.com';`
     )
   }
   return val
 }
 
 export const config = {
-  supabaseUrl: required('SUPABASE_URL'),
-  supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
-  adminUserId: requiredUUID('ADMIN_USER_ID'),
-  engineVersion: process.env.ENGINE_VERSION ?? '1.0.0',
-  scanIntervalSeconds: parseInt(process.env.SCAN_INTERVAL_SECONDS ?? '60', 10),
+  supabaseUrl:              required('SUPABASE_URL'),
+  supabaseServiceRoleKey:   required('SUPABASE_SERVICE_ROLE_KEY'),
+  adminUserId:              requiredUUID('ADMIN_USER_ID'),
+  engineVersion:            process.env.ENGINE_VERSION ?? '1.1.0',
+  scanIntervalSeconds:      parseInt(process.env.SCAN_INTERVAL_SECONDS ?? '60', 10),
   heartbeatIntervalSeconds: 30,
 }
 
-// ── NSE Market Hours (IST = UTC+5:30) ────────────────────────────────────────
-
-export function getNSETime(): { hours: number; minutes: number; dayOfWeek: number } {
-  const now = new Date()
-  // IST offset: UTC+5:30 (330 minutes)
-  const istOffset = 5 * 60 + 30
-  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
-  const istMinutes = (utcMinutes + istOffset) % (24 * 60)
-
-  return {
-    hours: Math.floor(istMinutes / 60),
-    minutes: istMinutes % 60,
-    dayOfWeek: now.getUTCDay(), // 0=Sun ... 6=Sat (UTC day — approx fine for IST)
-  }
-}
-
-export function isWeekend(): boolean {
-  const { dayOfWeek } = getNSETime()
-  return dayOfWeek === 0 || dayOfWeek === 6
-}
-
-/** Returns true from 9:00 AM IST (pre-open startup) */
-export function isEngineStartTime(): boolean {
-  if (isWeekend()) return false
-  const { hours, minutes } = getNSETime()
-  const totalMinutes = hours * 60 + minutes
-  return totalMinutes >= 9 * 60  // 9:00 AM IST
-}
-
-/** Returns true during active scanning window: 9:15 AM – 3:45 PM IST */
-export function isScanWindow(): boolean {
-  if (isWeekend()) return false
-  const { hours, minutes } = getNSETime()
-  const totalMinutes = hours * 60 + minutes
-  return totalMinutes >= 9 * 60 + 15 && totalMinutes <= 15 * 60 + 45
-}
-
-/** Returns true after 3:45 PM IST — engine should shut down */
-export function isShutdownTime(): boolean {
-  if (isWeekend()) return true
-  const { hours, minutes } = getNSETime()
-  const totalMinutes = hours * 60 + minutes
-  return totalMinutes > 15 * 60 + 45
-}
-
-/**
- * Returns true from 2:45 PM IST onward.
- * End-of-day window: force-close all open intraday positions and block
- * any new entries. 2:45 PM gives a 45-minute buffer before NSE closes
- * at 3:30 PM and 60 minutes before the engine shuts down at 3:45 PM.
- */
-export function isEODCloseTime(): boolean {
-  if (isWeekend()) return false
-  const { hours, minutes } = getNSETime()
-  const totalMinutes = hours * 60 + minutes
-  return totalMinutes >= 14 * 60 + 45
-}
-
-export function formatISTTime(): string {
-  const now = new Date()
-  const istOffset = 5 * 60 + 30
-  const utcMs = now.getTime()
-  const istDate = new Date(utcMs + istOffset * 60 * 1000)
-  return istDate.toISOString().replace('T', ' ').substring(0, 19) + ' IST'
-}
+// Re-export IST-correct market-hours helpers from the shared core package.
+// The original service had a bug: it used now.getUTCDay() for day-of-week
+// which is wrong at IST day boundaries (Sunday 11:30 PM UTC = Monday IST).
+export {
+  getNSETime, isWeekend, isEngineStartTime,
+  isScanWindow, isShutdownTime, isEODCloseTime,
+  formatISTTime,
+} from '@planningo/trading-core'

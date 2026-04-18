@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+# Dockerfile path relative to the MONOREPO root (set Root Directory = "/" in Railway)
+dockerfilePath = "services/trading-engine/Dockerfile"
 
 [deploy]
 startCommand = "node dist/index.js"
