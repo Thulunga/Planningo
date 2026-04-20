@@ -59,7 +59,7 @@ export function DashboardOverview({
 
   return (
     <div className="space-y-6">
-      {/* Greeting hero — analog clock + gradient banner with date */}
+      {/* Greeting hero - analog clock + gradient banner with date */}
       <div className="flex flex-col sm:flex-row items-center gap-6 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:px-6">
         {/* Analog clock */}
         <div className="shrink-0">
@@ -69,7 +69,7 @@ export function DashboardOverview({
           />
         </div>
 
-        {/* Divider — vertical on desktop, horizontal on mobile */}
+        {/* Divider - vertical on desktop, horizontal on mobile */}
         <div className="hidden sm:block w-px self-stretch bg-border/50" />
         <div className="block sm:hidden h-px w-full bg-border/50" />
 

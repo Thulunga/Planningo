@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // Type errors are tracked separately — don't block production builds
+    // Type errors are tracked separately - don't block production builds
     ignoreBuildErrors: true,
   },
   eslint: {

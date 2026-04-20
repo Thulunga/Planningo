@@ -42,6 +42,7 @@ export interface IndicatorVoteDetail {
   vote: IndicatorVote
   value: string
   reason: string
+  weight?: number  // Weight for weighted scoring system (default 1.0)
 }
 
 export interface Signal {
@@ -53,7 +54,20 @@ export interface Signal {
   votes: IndicatorVoteDetail[]
   reasons: Record<string, string>
   preTradeFilter: MABoundaryDecision
+  trendContext: TrendContext
   candleTime: Date
+}
+
+// ─── Multi-Timeframe Trend ──────────────────────────────────────────────────
+
+export type TrendDirection = 'BULLISH' | 'BEARISH' | 'NEUTRAL'
+
+export interface TrendContext {
+  direction: TrendDirection
+  strength: 'STRONG' | 'WEAK'
+  htfEma50: number | null
+  htfRsi: number | null
+  candleTime: number
 }
 
 // ─── MA Boundary ─────────────────────────────────────────────────────────────
@@ -91,11 +105,11 @@ export interface StrategyConfig {
   emaFast: number              // default 9
   emaSlow: number              // default 21
   rsiPeriod: number            // default 14
-  rsiOversold: number          // default 35 — BUY below this
-  rsiNeutralZone: number       // default 45 — BUY up to here (oversold territory)
-  rsiBullishZone: number       // default 60 — BUY up to here (healthy bullish)
-  rsiNeutralHigh: number       // default 70 — NEUTRAL above rsiBullishZone, below this
-  rsiOverbought: number        // default 70 — SELL above this
+  rsiOversold: number          // default 35 - BUY below this
+  rsiNeutralZone: number       // default 45 - BUY up to here (oversold territory)
+  rsiBullishZone: number       // default 60 - BUY up to here (healthy bullish)
+  rsiNeutralHigh: number       // default 70 - NEUTRAL above rsiBullishZone, below this
+  rsiOverbought: number        // default 70 - SELL above this
   macdFast: number             // default 12
   macdSlow: number             // default 26
   macdSignalPeriod: number     // default 9
@@ -103,10 +117,10 @@ export interface StrategyConfig {
   supertrendMultiplier: number // default 3
   bbPeriod: number             // default 20
   bbStdDev: number             // default 2
-  vwapHours: number            // default 8 — rolling window for intraday VWAP
+  vwapHours: number            // default 8 - rolling window for intraday VWAP
   atrPeriod: number            // default 14
-  confluenceThreshold: number  // default 4 — minimum votes needed to generate signal
-  minCandlesRequired: number   // default 35 — guard against thin history
+  confluenceThreshold: number  // default 4 - minimum votes needed to generate signal
+  minCandlesRequired: number   // default 35 - guard against thin history
 }
 
 // ─── Risk Config ─────────────────────────────────────────────────────────────
@@ -120,6 +134,7 @@ export interface RiskConfig {
   atrMultiplierStop: number          // default 1.5
   atrMultiplierTarget: number        // default 3.0   → gives R:R = 3/1.5 = 2:1
   maxConcurrentPositions: number     // default 5
+  maxTradesPerDay?: number           // default 3 (new: limit trades per day)
 }
 
 // ─── Risk Check ──────────────────────────────────────────────────────────────
@@ -148,6 +163,7 @@ export interface SimulatedTrade {
   exitTime?: Date
   exitPrice?: number           // after slippage
   quantity: number
+  remainingQuantity?: number   // qty left after partial exit (for trailing portion)
   stopLoss: number
   target: number
   pnl?: number                 // net after charges
@@ -162,6 +178,9 @@ export interface SimulatedTrade {
   signalStrength?: SignalStrength
   chargesTotal?: number        // total brokerage + STT + stamp duty
   riskAmount?: number          // rupees risked at entry
+  partialExitPrice?: number    // price at which 50% was exited (1R level)
+  partialExitTime?: Date       // time of partial exit
+  trailingStopPrice?: number   // current trailing stop for remaining position
 }
 
 // ─── Performance Metrics ─────────────────────────────────────────────────────
@@ -207,7 +226,7 @@ export interface BacktestConfig {
   brokeragePct: number   // default 0.0003  (Zerodha intraday ~₹20 flat or 0.03% if large)
   sttPct: number         // default 0.00025 (0.025% STT on sell-side turnover)
   stampDutyPct: number   // default 0.00003 (0.003% stamp duty on buy-side)
-  allowShorts: boolean   // default false — enable short selling in backtests
+  allowShorts: boolean   // default false - enable short selling in backtests
 }
 
 export interface BacktestResult {

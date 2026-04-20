@@ -1,5 +1,5 @@
 /**
- * Service heartbeat — writes a single row to `service_heartbeat` every 30s.
+ * Service heartbeat - writes a single row to `service_heartbeat` every 30s.
  * The UI subscribes via Supabase Realtime to show ONLINE/OFFLINE status.
  */
 
@@ -24,7 +24,7 @@ let state: HeartbeatState = {
 }
 
 /**
- * Update in-memory state — next heartbeat upsert will carry these values.
+ * Update in-memory state - next heartbeat upsert will carry these values.
  */
 export function updateHeartbeatState(patch: Partial<HeartbeatState>): void {
   state = { ...state, ...patch }
@@ -48,7 +48,7 @@ async function writeHeartbeat(): Promise<void> {
       },
       { onConflict: 'service_name' }
     )
-    console.log(`[heartbeat] ${formatISTTime()} — ${state.status} | scans:${state.scanCount} signals:${state.signalCount}`)
+    console.log(`[heartbeat] ${formatISTTime()} - ${state.status} | scans:${state.scanCount} signals:${state.signalCount}`)
   } catch (err) {
     console.error('[heartbeat] Write failed:', err)
   }
@@ -62,7 +62,7 @@ export async function startHeartbeat(): Promise<void> {
   await writeHeartbeat()
 
   heartbeatInterval = setInterval(writeHeartbeat, config.heartbeatIntervalSeconds * 1000)
-  console.log(`[heartbeat] Started — interval: ${config.heartbeatIntervalSeconds}s`)
+  console.log(`[heartbeat] Started - interval: ${config.heartbeatIntervalSeconds}s`)
 }
 
 /**

@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   const now = new Date().toISOString()
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  // Run all three queries in parallel — cuts fetch time by ~2/3
+  // Run all three queries in parallel - cuts fetch time by ~2/3
   const [{ data: todaysTodos }, { data: upcomingEvents }, { data: todaysPlanner }] =
     await Promise.all([
       supabase

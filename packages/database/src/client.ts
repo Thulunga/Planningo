@@ -35,7 +35,7 @@ export function createSupabaseServerClient(
               cookieStore.set(name, value, options)
             })
           } catch {
-            // setAll called from a Server Component — cookies can't be set
+            // setAll called from a Server Component - cookies can't be set
             // The middleware is responsible for refreshing sessions
           }
         },
@@ -45,7 +45,7 @@ export function createSupabaseServerClient(
 }
 
 /**
- * Service role client — ONLY use in Edge Functions or trusted server code.
+ * Service role client - ONLY use in Edge Functions or trusted server code.
  * NEVER expose to the browser.
  */
 export function createSupabaseServiceClient() {

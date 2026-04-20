@@ -1,5 +1,5 @@
 /**
- * Paper trading engine — service runtime.
+ * Paper trading engine - service runtime.
  *
  * Key changes vs. original:
  *   - All portfolio mutations go through atomic Postgres RPCs (open_paper_trade /
@@ -93,7 +93,7 @@ export async function executePaperTrade(
   // ── BUY ──────────────────────────────────────────────────────────────────
   if (signal.signal_type === 'BUY') {
     if (isEODCloseTime()) {
-      return { action: 'SKIPPED', reason: 'EOD window (2:45 PM+) — no new BUY positions' }
+      return { action: 'SKIPPED', reason: 'EOD window (2:45 PM+) - no new BUY positions' }
     }
 
     // Check for existing position (idempotency guard)
@@ -160,7 +160,7 @@ export async function executePaperTrade(
     return await closeTrade(userId, openTrade, signal.price, 'CLOSED')
   }
 
-  return { action: 'SKIPPED', reason: 'HOLD signal — no action' }
+  return { action: 'SKIPPED', reason: 'HOLD signal - no action' }
 }
 
 // ── Close via atomic RPC ──────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ export async function forceCloseAllPositions(userId: string): Promise<number> {
       await closeTrade(userId, trade, exitPrice, 'CLOSED')
       console.log(
         `[paper-trader] EOD close: ${trade.symbol} @ ₹${exitPrice}` +
-        (marketPrice === 0 ? ' (fallback to entry — no quote)' : '')
+        (marketPrice === 0 ? ' (fallback to entry - no quote)' : '')
       )
       closed++
     } catch (err) {

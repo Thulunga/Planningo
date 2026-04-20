@@ -1,5 +1,5 @@
 /**
- * Paper trading engine — web app runtime.
+ * Paper trading engine - web app runtime.
  *
  * Trade open/close operations now go through atomic Postgres RPCs
  * (open_paper_trade / close_paper_trade) to prevent portfolio balance
@@ -97,7 +97,7 @@ export async function executePaperTrade(
     return await closeTrade(userId, openTrade, signal.price, 'CLOSED')
   }
 
-  return { action: 'SKIPPED', reason: 'HOLD signal — no action needed' }
+  return { action: 'SKIPPED', reason: 'HOLD signal - no action needed' }
 }
 
 export async function closeTrade(

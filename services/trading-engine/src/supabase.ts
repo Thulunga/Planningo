@@ -1,6 +1,6 @@
 /**
  * Service-role Supabase client.
- * Uses the SERVICE_ROLE key — bypasses Row Level Security.
+ * Uses the SERVICE_ROLE key - bypasses Row Level Security.
  * Only use server-side; never expose to clients.
  */
 

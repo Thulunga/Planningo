@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { initializePortfolio } from '@/lib/trading/paper-trader'
 import { searchStocks } from '@/lib/trading/market-data'
+import { normalizeTradingSymbol } from '@/lib/trading/symbol'
 import { computeMetrics, buildEquityCurve, computeBreakdowns } from '@planningo/trading-core'
 import type { SimulatedTrade, TradeSide } from '@planningo/trading-core'
 
@@ -38,7 +39,7 @@ export async function addToWatchlist(symbol: string, displayName: string) {
 
   const { error } = await db(supabase, 'trading_watchlist').insert({
     user_id: user.id,
-    symbol: symbol.toUpperCase(),
+    symbol: normalizeTradingSymbol(symbol),
     display_name: displayName,
     is_active: true,
   })

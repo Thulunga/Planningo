@@ -1,8 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 00014_engine_tables.sql
 -- Railway trading-engine support tables:
---   service_heartbeat  — single-row status beacon (public read, service writes)
---   scan_logs          — per-symbol scan results with full indicator breakdown
+--   service_heartbeat  - single-row status beacon (public read, service writes)
+--   scan_logs          - per-symbol scan results with full indicator breakdown
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── service_heartbeat ──────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS service_heartbeat_name_idx ON service_heartbea
 -- Enable Realtime so dashboard sees status changes instantly
 ALTER TABLE service_heartbeat REPLICA IDENTITY FULL;
 
--- No RLS — engine uses service-role key, UI reads anonymously
+-- No RLS - engine uses service-role key, UI reads anonymously
 -- (Row contains no personal data)
 
 -- ── scan_logs ──────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS scan_logs (
   signal_strength   TEXT,          -- 'WEAK' | 'STRONG' | 'VERY_STRONG' | null
 
   -- Human-readable reason for each indicator vote
-  reasons           JSONB,         -- { ema_cross: "EMA9 ↑ EMA21", rsi: "RSI 58 — neutral momentum", ... }
+  reasons           JSONB,         -- { ema_cross: "EMA9 ↑ EMA21", rsi: "RSI 58 - neutral momentum", ... }
 
   -- Trade execution outcome
   trade_action      TEXT,          -- 'OPENED' | 'CLOSED' | 'SKIPPED' | 'HOLD'

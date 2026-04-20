@@ -14,9 +14,11 @@ interface Candle {
 
 interface CandlestickChartProps {
   symbol: string
+  className?: string
+  height?: number
 }
 
-export function CandlestickChart({ symbol }: CandlestickChartProps) {
+export function CandlestickChart({ symbol, className, height }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const candleSeriesRef = useRef<any>(null)
@@ -33,7 +35,7 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
     let cancelled = false
 
     async function initChart() {
-      const { createChart, ColorType, CrosshairMode } = await import('lightweight-charts')
+      const { createChart, ColorType, CrosshairMode, CandlestickSeries } = await import('lightweight-charts')
       if (cancelled || !containerRef.current) return
 
       const container = containerRef.current
@@ -56,10 +58,10 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
           secondsVisible: false,
         },
         width: container.clientWidth,
-        height: 300,
+        height: Math.max(300, Math.min(900, height ?? container.clientHeight)),
       })
 
-      candleSeriesRef.current = chart.addCandlestickSeries({
+      candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
         upColor: '#10b981',
         downColor: '#ef4444',
         borderUpColor: '#10b981',
@@ -72,13 +74,16 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
 
       resizeObserver = new ResizeObserver(() => {
         if (container && chart) {
-          chart.applyOptions({ width: container.clientWidth })
+          chart.applyOptions({
+            width: container.clientWidth,
+            height: Math.max(300, Math.min(900, height ?? container.clientHeight)),
+          })
         }
       })
       resizeObserver.observe(container)
 
-      // Signal that the chart is ready to receive data
-      if (!cancelled) setChartReady(true)
+      // Signal that the chart is ready to receive data (idempotent).
+      if (!cancelled) setChartReady((prev) => (prev ? prev : true))
     }
 
     initChart()
@@ -89,9 +94,20 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
       chart?.remove()
       chartRef.current = null
       candleSeriesRef.current = null
-      setChartReady(false)
     }
   }, [])
+
+  // Keep chart canvas height in sync with parent-driven target height.
+  useEffect(() => {
+    const chart = chartRef.current
+    const container = containerRef.current
+    if (!chart || !container) return
+
+    chart.applyOptions({
+      width: container.clientWidth,
+      height: Math.max(300, Math.min(900, height ?? container.clientHeight)),
+    })
+  }, [height])
 
   // ── Load candles when symbol changes or chart becomes ready ───────────
   useEffect(() => {
@@ -113,7 +129,7 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
         if (cancelled) return
 
         if (candles.length === 0) {
-          setError('No candle data available — market may be closed')
+          setError('No candle data available - market may be closed')
           return
         }
 
@@ -150,10 +166,13 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
 
     loadCandles()
     return () => { cancelled = true }
-  }, [symbol, chartReady])  // chartReady in deps — loads as soon as chart is initialised
+  }, [symbol, chartReady])  // chartReady in deps - loads as soon as chart is initialised
 
   return (
-    <div className="relative w-full" style={{ minHeight: 300 }}>
+    <div
+      className={`relative w-full min-h-[300px] h-full ${className ?? ''}`}
+      style={height ? { height: `${Math.max(300, Math.min(900, height))}px` } : undefined}
+    >
       {isLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded-lg">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -165,7 +184,7 @@ export function CandlestickChart({ symbol }: CandlestickChartProps) {
           <p className="text-sm text-muted-foreground text-center px-4">{error}</p>
         </div>
       )}
-      <div ref={containerRef} className="w-full" />
+      <div ref={containerRef} className="w-full h-full" />
     </div>
   )
 }

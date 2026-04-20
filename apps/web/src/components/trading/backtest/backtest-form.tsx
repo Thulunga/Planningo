@@ -183,7 +183,7 @@ export function BacktestForm({ onResult, watchlist = [] }: Props) {
       {willUseDaily && (
         <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-600 dark:text-yellow-400">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          Date range &gt; 58 days — will use daily candles. Strategy is tuned for 5-min intraday; results are indicative only.
+          Date range &gt; 58 days - will use daily candles. Strategy is tuned for 5-min intraday; results are indicative only.
         </div>
       )}
 

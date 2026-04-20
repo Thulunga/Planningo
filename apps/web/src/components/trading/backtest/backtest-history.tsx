@@ -23,7 +23,7 @@ export function BacktestHistory({ runs, onSelect, onDelete, selectedRunId }: Pro
   if (runs.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-4 text-center">
-        No past runs yet — run your first backtest above.
+        No past runs yet - run your first backtest above.
       </p>
     )
   }

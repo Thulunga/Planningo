@@ -67,7 +67,7 @@ ALTER TABLE paper_trades REPLICA IDENTITY FULL;
 ALTER TABLE paper_portfolio REPLICA IDENTITY FULL;
 
 -- ============================================================
--- Row-Level Security (admin only — RLS enforces it)
+-- Row-Level Security (admin only - RLS enforces it)
 -- ============================================================
 ALTER TABLE trading_watchlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trading_signals ENABLE ROW LEVEL SECURITY;

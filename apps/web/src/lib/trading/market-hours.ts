@@ -1,5 +1,5 @@
 /**
- * Re-exports from @planningo/trading-core — IST-correct implementation.
+ * Re-exports from @planningo/trading-core - IST-correct implementation.
  * The original web app implementation was already correct (used toIST() helper).
  * Unified here so both runtimes share the same code.
  */

@@ -1,5 +1,5 @@
 /**
- * Technical indicator calculations — 6-indicator suite for NSE 5-min intraday.
+ * Technical indicator calculations - 6-indicator suite for NSE 5-min intraday.
  * Authoritative implementation; web app and service both import from here.
  */
 

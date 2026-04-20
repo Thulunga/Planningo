@@ -11,7 +11,7 @@
 -- an advisory lock on the portfolio row (SELECT ... FOR UPDATE).
 --
 -- Both functions use SECURITY DEFINER so the service-role client can call
--- them without bypassing RLS checks — the function verifies ownership.
+-- them without bypassing RLS checks - the function verifies ownership.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── open_paper_trade ──────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ $$;
 
 -- ── close_paper_trade ─────────────────────────────────────────────────────────
 -- Closes an open trade and atomically returns funds + P&L to available_cash.
--- Returns the net P&L (after charges — charges subtracted by caller).
+-- Returns the net P&L (after charges - charges subtracted by caller).
 -- Safe to call multiple times: raises exception if trade is already closed.
 CREATE OR REPLACE FUNCTION close_paper_trade(
   p_user_id    UUID,

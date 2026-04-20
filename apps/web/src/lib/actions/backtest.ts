@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { fetchHistoricalCandles } from '@/lib/trading/historical-data'
+import { normalizeTradingSymbol } from '@/lib/trading/symbol'
 import {
   runBacktest,
   DEFAULT_STRATEGY_CONFIG,
@@ -24,7 +25,7 @@ export interface RunBacktestParams {
   fromDate: string        // "YYYY-MM-DD"
   toDate: string          // "YYYY-MM-DD"
   initialCapital: number  // default 100000
-  // Strategy overrides (optional — defaults to DEFAULT_STRATEGY_CONFIG)
+  // Strategy overrides (optional - defaults to DEFAULT_STRATEGY_CONFIG)
   confluenceThreshold?: number
   rsiOversold?: number
   rsiOverbought?: number
@@ -48,6 +49,8 @@ export async function runBacktestAction(params: RunBacktestParams) {
 
   if (from >= to) return { error: 'Start date must be before end date', data: null }
 
+  const normalizedSymbol = normalizeTradingSymbol(params.symbol)
+
   // Build configs with any overrides
   const strategyConfig: StrategyConfig = {
     ...DEFAULT_STRATEGY_CONFIG,
@@ -66,7 +69,7 @@ export async function runBacktestAction(params: RunBacktestParams) {
   // Create a placeholder run row
   const { data: runRow, error: insertErr } = await db(supabase, 'backtest_runs').insert({
     user_id:         user.id,
-    symbol:          params.symbol.toUpperCase(),
+    symbol:          normalizedSymbol,
     start_date:      params.fromDate,
     end_date:        params.toDate,
     initial_capital: params.initialCapital,
@@ -82,7 +85,7 @@ export async function runBacktestAction(params: RunBacktestParams) {
   try {
     // Fetch candles
     const { candles, interval, warning } = await fetchHistoricalCandles(
-      params.symbol.toUpperCase(), from, to
+      normalizedSymbol, from, to
     )
 
     if (candles.length === 0) {
@@ -95,13 +98,13 @@ export async function runBacktestAction(params: RunBacktestParams) {
     // Run backtest
     const result = await runBacktest(candles, {
       ...DEFAULT_BACKTEST_CONFIG,
-      symbol:         params.symbol.toUpperCase(),
+      symbol:         normalizedSymbol,
       startDate:      from,
       endDate:        to,
       initialCapital: params.initialCapital,
       strategyConfig,
       riskConfig,
-      allowShorts: params.allowShorts ?? false,
+      allowShorts: params.allowShorts ?? true,
     })
 
     // Save individual trades
@@ -109,6 +112,7 @@ export async function runBacktestAction(params: RunBacktestParams) {
       const tradeRows = result.trades.map((t) => ({
         run_id:          runId,
         symbol:          result.config.symbol,
+        side:            t.side,
         entry_time:      t.entryTime.toISOString(),
         entry_price:     t.entryPrice,
         exit_time:       t.exitTime?.toISOString() ?? null,
@@ -124,12 +128,16 @@ export async function runBacktestAction(params: RunBacktestParams) {
         mae:             t.mae ?? null,
         mfe:             t.mfe ?? null,
         duration_minutes: t.durationMinutes ?? null,
-        confluence_score: t.confluenceScore ?? null,
+        // Cap at 6 for DB CHECK constraint (weighted scores can exceed 6; column is legacy INT)
+        confluence_score: t.confluenceScore != null ? Math.min(Math.round(t.confluenceScore), 6) : null,
         signal_strength:  t.signalStrength ?? null,
         risk_amount:      t.riskAmount ?? null,
         charges_total:    t.chargesTotal ?? null,
       }))
-      await db(supabase, 'backtest_trades').insert(tradeRows)
+      const { error: tradeInsertErr } = await db(supabase, 'backtest_trades').insert(tradeRows)
+      if (tradeInsertErr) {
+        console.error('[backtest] Failed to save trades:', tradeInsertErr.message)
+      }
     }
 
     // Update run with results

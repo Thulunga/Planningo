@@ -38,7 +38,7 @@ describe('isWeekend', () => {
   it('returns false for Monday IST', () => {
     expect(isWeekend(istDate('2024-01-15T10:00:00'))).toBe(false)
   })
-  it('handles UTC/IST boundary correctly — Sunday 11 PM UTC = Monday IST', () => {
+  it('handles UTC/IST boundary correctly - Sunday 11 PM UTC = Monday IST', () => {
     // Sunday 23:00 UTC = Monday 4:30 AM IST → NOT weekend in IST
     const d = new Date('2024-01-14T23:00:00Z')
     expect(isWeekend(d)).toBe(false)

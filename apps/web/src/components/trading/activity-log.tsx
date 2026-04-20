@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * ActivityLog — terminal-style live feed of per-stock scan results.
+ * ActivityLog - terminal-style live feed of per-stock scan results.
  *
  * Subscribes to `scan_logs` via Supabase Realtime.
  * Shows: timestamp, symbol, price, each indicator vote (✅/❌/⚪) with reason,
  *        signal result, and trade action + reason.
  *
  * This gives the admin full visibility into WHY a signal was or wasn't generated
- * and WHY a trade was or wasn't executed — in real time.
+ * and WHY a trade was or wasn't executed - in real time.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'

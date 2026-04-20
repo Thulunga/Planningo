@@ -74,7 +74,7 @@ export function WatchlistPanel({
       }
       setQuotes(map)
     } catch {
-      // silently fail — will retry on next interval
+      // silently fail - will retry on next interval
     } finally {
       setIsLoadingQuotes(false)
     }
@@ -168,7 +168,7 @@ export function WatchlistPanel({
               <div
                 key={item.id}
                 className={cn(
-                  'grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 px-4 py-2.5 items-center cursor-pointer transition-colors',
+                  'group grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 px-4 py-2.5 items-center cursor-pointer transition-colors',
                   isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'
                 )}
                 onClick={() => onSymbolSelect(item.symbol)}
@@ -186,7 +186,7 @@ export function WatchlistPanel({
                 {/* Price */}
                 <div className="text-right">
                   <div className="font-mono text-sm font-medium">
-                    {quote ? `₹${quote.price.toLocaleString('en-IN')}` : '—'}
+                    {quote ? `₹${quote.price.toLocaleString('en-IN')}` : '-'}
                   </div>
                 </div>
 
@@ -197,7 +197,7 @@ export function WatchlistPanel({
                       {isUp ? <TrendingUp className="inline h-3 w-3 mr-0.5" /> : <TrendingDown className="inline h-3 w-3 mr-0.5" />}
                       {isUp ? '+' : ''}{quote.changePercent.toFixed(2)}%
                     </>
-                  ) : '—'}
+                  ) : '-'}
                 </div>
 
                 {/* Indicator pills */}

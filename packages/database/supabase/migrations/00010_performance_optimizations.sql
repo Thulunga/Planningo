@@ -5,7 +5,7 @@
 --
 -- WHY:  auth.uid() called directly in a USING/WITH CHECK clause is treated
 --       as a volatile function and re-evaluated for every row the planner
---       examines. Wrapping it in a sub-select — (select auth.uid()) — makes
+--       examines. Wrapping it in a sub-select - (select auth.uid()) - makes
 --       PostgreSQL treat it as a stable InitPlan, evaluated exactly once per
 --       statement and cached for the lifetime of the query. On tables with
 --       many rows this can eliminate millions of redundant JWT-decode calls.

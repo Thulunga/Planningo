@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Fixed sidebar — hidden on mobile, visible md+ */}
+      {/* Fixed sidebar - hidden on mobile, visible md+ */}
       <Sidebar profile={profile} isAdmin={isAdmin} />
 
       {/* Main content area */}
@@ -27,13 +27,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Header with clock, hamburger (mobile), theme toggle */}
         <Header profile={profile} isAdmin={isAdmin} />
 
-        {/* Page content — extra bottom padding on mobile for tab bar clearance */}
+        {/* Page content - extra bottom padding on mobile for tab bar clearance */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pt-14 md:pt-0">
           <div className="mx-auto w-full max-w-screen-2xl p-4 pb-24 md:p-6 md:pb-6">{children}</div>
         </main>
       </div>
 
-      {/* Fixed bottom tab bar — mobile only */}
+      {/* Fixed bottom tab bar - mobile only */}
       <BottomTabBar />
     </div>
   )

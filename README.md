@@ -1,6 +1,6 @@
 # Planningo
 
-Your all-in-one productivity platform — todos, calendar, day planner, reminders, trip planning, and expense splitting.
+Your all-in-one productivity platform - todos, calendar, day planner, reminders, trip planning, and expense splitting.
 
 ## Tech Stack
 
@@ -13,18 +13,18 @@ Your all-in-one productivity platform — todos, calendar, day planner, reminder
 | Calendar | react-big-calendar + date-fns |
 | Backend | Supabase (PostgreSQL, Auth, Realtime, Storage) |
 | Push Notifications | Web Push API + VAPID keys |
-| Auth | Supabase Auth — Email/Password, Email OTP, Google OAuth |
+| Auth | Supabase Auth - Email/Password, Email OTP, Google OAuth |
 
 ## Features
 
-- **Dashboard** — Overview of todos, upcoming events, today's schedule
-- **Todos** — Create, filter, and manage todos with priorities, tags, and due dates
-- **Day Planner** — Time-blocked daily planning with color-coded blocks
-- **Calendar** — Full monthly/weekly/daily calendar (react-big-calendar)
-- **Reminders** — Set reminders on events and todos (browser push + in-app)
-- **Trip Planner** — Plan trips with day-by-day itineraries, booking references, costs
-- **Expenses** — Splitwise-style group expense tracking with balance calculation
-- **Dark mode** — Default dark theme with light mode toggle
+- **Dashboard** - Overview of todos, upcoming events, today's schedule
+- **Todos** - Create, filter, and manage todos with priorities, tags, and due dates
+- **Day Planner** - Time-blocked daily planning with color-coded blocks
+- **Calendar** - Full monthly/weekly/daily calendar (react-big-calendar)
+- **Reminders** - Set reminders on events and todos (browser push + in-app)
+- **Trip Planner** - Plan trips with day-by-day itineraries, booking references, costs
+- **Expenses** - Splitwise-style group expense tracking with balance calculation
+- **Dark mode** - Default dark theme with light mode toggle
 
 ## Project Structure
 

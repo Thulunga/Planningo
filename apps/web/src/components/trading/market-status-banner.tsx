@@ -6,18 +6,19 @@ import { getMarketInfo, formatDuration, type MarketInfo } from '@/lib/trading/ma
 import { cn } from '@planningo/ui'
 
 export function MarketStatusBanner() {
-  const [info, setInfo] = useState<MarketInfo>(() => getMarketInfo())
+  const [info, setInfo] = useState<MarketInfo | null>(null)
 
   useEffect(() => {
-    // Update every second for the clock display
+    // Populate only on the client to avoid SSR/hydration timestamp mismatch
+    setInfo(getMarketInfo())
     const interval = setInterval(() => {
       setInfo(getMarketInfo())
     }, 1000)
     return () => clearInterval(interval)
   }, [])
 
-  const isOpen = info.status === 'OPEN'
-  const isPreOpen = info.status === 'PRE_OPEN'
+  const isOpen    = info?.status === 'OPEN'
+  const isPreOpen = info?.status === 'PRE_OPEN'
 
   return (
     <div
@@ -50,25 +51,25 @@ export function MarketStatusBanner() {
             {isOpen ? 'NSE OPEN' : isPreOpen ? 'PRE-OPEN' : 'MARKET CLOSED'}
           </span>
           <span className="text-muted-foreground text-sm hidden sm:inline">
-            · {info.openTime} – {info.closeTime} IST
+            · {info?.openTime} – {info?.closeTime} IST
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        {!isOpen && info.msUntilChange > 0 && (
+        {!isOpen && (info?.msUntilChange ?? 0) > 0 && (
           <span className="flex items-center gap-1">
             <TrendingUp className="h-3.5 w-3.5" />
-            Opens in {formatDuration(info.msUntilChange)}
+            Opens in {formatDuration(info!.msUntilChange)}
           </span>
         )}
         {isOpen && (
           <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
             <Clock className="h-3.5 w-3.5" />
-            {formatDuration(info.msUntilChange)} left
+            {formatDuration(info!.msUntilChange)} left
           </span>
         )}
-        <span className="font-mono text-xs hidden md:inline">{info.currentIST} IST</span>
+        <span className="font-mono text-xs hidden md:inline">{info?.currentIST ?? '--:--:--'} IST</span>
       </div>
     </div>
   )

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     default: 'Planningo',
     template: '%s | Planningo',
   },
-  description: 'Your all-in-one productivity platform — todos, calendar, trips, and expenses.',
+  description: 'Your all-in-one productivity platform - todos, calendar, trips, and expenses.',
   keywords: ['productivity', 'todo', 'calendar', 'planner', 'trip planner', 'expense splitting'],
 }
 

@@ -71,7 +71,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   })
 
   // Auto-detect browser timezone on first load if profile still has the
-  // default 'UTC' sentinel — saves the user from a trip to settings.
+  // default 'UTC' sentinel - saves the user from a trip to settings.
   useEffect(() => {
     if (data.timezone === 'UTC' && typeof Intl !== 'undefined') {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone

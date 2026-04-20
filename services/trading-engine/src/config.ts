@@ -1,5 +1,5 @@
 /**
- * Service configuration — environment variable validation and market-hours helpers.
+ * Service configuration - environment variable validation and market-hours helpers.
  * Market-hours logic (IST-correct) is re-exported from @planningo/trading-core.
  */
 
@@ -14,7 +14,7 @@ function requiredUUID(key: string): string {
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRe.test(val)) {
     throw new Error(
-      `${key} must be a UUID — got "${val}"\n` +
+      `${key} must be a UUID - got "${val}"\n` +
       `  Hint: SELECT id FROM profiles WHERE email = 'your@email.com';`
     )
   }

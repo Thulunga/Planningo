@@ -109,7 +109,7 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
                     {formatINR(trade.entry_price)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    {trade.exit_price ? formatINR(trade.exit_price) : '—'}
+                    {trade.exit_price ? formatINR(trade.exit_price) : '-'}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums font-semibold">
                     <span className={isWin ? 'text-emerald-500' : 'text-red-500'}>
@@ -141,7 +141,7 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
                           day: '2-digit',
                           month: 'short',
                         })
-                      : '—'}
+                      : '-'}
                   </td>
                 </tr>
               )

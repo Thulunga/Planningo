@@ -1,5 +1,5 @@
 /**
- * Re-exports from @planningo/trading-core — single source of truth.
+ * Re-exports from @planningo/trading-core - single source of truth.
  */
 export type {
   Signal, SignalType, SignalStrength, IndicatorVoteDetail,

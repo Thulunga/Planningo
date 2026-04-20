@@ -1,4 +1,5 @@
 import type { StrategyConfig, RiskConfig, BacktestConfig } from './types'
+import { DEFAULT_HTF_CONFIG } from './multi-timeframe-analyzer'
 
 export const DEFAULT_STRATEGY_CONFIG: StrategyConfig = {
   emaFast: 9,
@@ -31,6 +32,7 @@ export const DEFAULT_RISK_CONFIG: RiskConfig = {
   atrMultiplierStop: 1.5,          // SL = entry − 1.5×ATR
   atrMultiplierTarget: 3.0,        // Target = entry + 3.0×ATR → 2:1 R:R
   maxConcurrentPositions: 5,
+  maxTradesPerDay: 3,              // NEW: max 3 trades per day (prevents overtrading)
 }
 
 export const DEFAULT_BACKTEST_CONFIG: Pick<
@@ -39,8 +41,8 @@ export const DEFAULT_BACKTEST_CONFIG: Pick<
 > = {
   initialCapital: 100_000,
   slippagePct: 0.0005,    // 0.05% per side (market order mid-spread approximation)
-  brokeragePct: 0.0003,   // Zerodha intraday MIS: 0.03% or ₹20 flat — use pct as proxy
+  brokeragePct: 0.0003,   // Zerodha intraday MIS: 0.03% or ₹20 flat - use pct as proxy
   sttPct: 0.00025,        // 0.025% STT on sell-side turnover (NSE equity intraday)
   stampDutyPct: 0.00003,  // 0.003% stamp duty on buy-side (Maharashtra)
-  allowShorts: false,     // long-only by default; set true to enable short selling in backtests
+  allowShorts: true,      // ✅ ENABLED: symmetric long+short trading
 }

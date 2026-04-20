@@ -59,7 +59,7 @@ export function OpenPositions({ initialTrades, userId, onClose }: OpenPositionsP
             if (t.status === 'OPEN') {
               setTrades((prev) => prev.map((x) => (x.id === t.id ? t : x)))
             } else {
-              // Closed / stopped out — remove from open list
+              // Closed / stopped out - remove from open list
               setTrades((prev) => prev.filter((x) => x.id !== t.id))
             }
           } else if (payload.eventType === 'DELETE') {
@@ -245,7 +245,7 @@ export function OpenPositions({ initialTrades, userId, onClose }: OpenPositionsP
                       {ltp != null ? (
                         <span className="font-semibold">{formatINR(ltp)}</span>
                       ) : (
-                        <span className="text-muted-foreground/40">—</span>
+                        <span className="text-muted-foreground/40">-</span>
                       )}
                     </td>
 
@@ -261,18 +261,18 @@ export function OpenPositions({ initialTrades, userId, onClose }: OpenPositionsP
                           )}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/40">—</span>
+                        <span className="text-muted-foreground/40">-</span>
                       )}
                     </td>
 
                     {/* SL */}
                     <td className="px-3 py-2.5 text-right tabular-nums text-xs text-red-500/80 hidden sm:table-cell">
-                      {trade.stop_loss ? formatINR(trade.stop_loss) : '—'}
+                      {trade.stop_loss ? formatINR(trade.stop_loss) : '-'}
                     </td>
 
                     {/* Target */}
                     <td className="px-3 py-2.5 text-right tabular-nums text-xs text-emerald-500/80 hidden sm:table-cell">
-                      {trade.target ? formatINR(trade.target) : '—'}
+                      {trade.target ? formatINR(trade.target) : '-'}
                     </td>
 
                     {/* Close button */}

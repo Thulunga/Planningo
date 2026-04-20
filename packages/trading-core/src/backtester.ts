@@ -1,5 +1,5 @@
 /**
- * Deterministic backtesting engine — candle-by-candle replay with no look-ahead bias.
+ * Deterministic backtesting engine - candle-by-candle replay with no look-ahead bias.
  *
  * Algorithm per candle:
  *   1. Check open positions: update MAE/MFE, check stop/target hits
@@ -25,9 +25,12 @@ import type {
 import { DEFAULT_STRATEGY_CONFIG, DEFAULT_RISK_CONFIG, DEFAULT_BACKTEST_CONFIG } from './config'
 import { calculateIndicators } from './indicators'
 import { generateSignal, isActionableSignal } from './signal-engine'
+import { getTrendContext, DEFAULT_HTF_CONFIG } from './multi-timeframe-analyzer'
+import { isTradeAllowedByTime, DEFAULT_TIME_FILTER_CONFIG } from './time-filter'
 import { validateEntry, computeStopTarget } from './risk-manager'
 import {
   openTrade, openShortTrade, closeTrade, checkStopTarget, updateMAEMFE, resetTradeSeq,
+  checkPartialBooking1R, executePartialBooking, updateTrailingStop, checkTrailingStopHit,
 } from './trade-simulator'
 import { computeMetrics, buildEquityCurve } from './analytics-engine'
 import { isEODCloseTime } from './market-hours'
@@ -78,6 +81,7 @@ export async function runBacktest(
   let startOfDayEquity   = config.initialCapital
   let currentDay         = ''
   let lastLossTime: Date | null = null
+  let tradesOpenedToday  = 0                              // Track daily trade count
   const openPositions    = new Map<string, SimulatedTrade>()  // symbol → trade
   const closedTrades: SimulatedTrade[] = []
 
@@ -89,6 +93,7 @@ export async function runBacktest(
     if (day !== currentDay) {
       currentDay       = day
       startOfDayEquity = equity
+      tradesOpenedToday = 0  // Reset daily trade count
     }
 
     // ── Step 1: Update open positions ─────────────────────────────────────
@@ -97,6 +102,41 @@ export async function runBacktest(
     for (const [symbol, trade] of openPositions.entries()) {
       updateMAEMFE(trade, candle)
 
+      // ── Check for partial booking at 1R level (NEW) ──────────────────
+      const oneRExitPrice = checkPartialBooking1R(trade, candle)
+      if (oneRExitPrice !== null && trade.partialExitPrice === undefined) {
+        // Execute partial exit: close 50%, trail remaining 50%
+        const indicatorsPartial = calculateIndicators(inRange.slice(0, i + 1), config.strategyConfig, candle.time)
+        const [closedPartial, remainingTrade] = executePartialBooking(
+          trade, oneRExitPrice, indicatorsPartial.atr, candle, config
+        )
+        closedTrades.push(closedPartial)
+        openPositions.set(symbol, remainingTrade)
+        equity = recalcEquity(equity, trade, closedPartial)
+        continue  // Don't check stops/targets on this candle
+      }
+
+      // ── Update trailing stop for remaining position after partial exit ─
+      if (trade.partialExitPrice !== undefined && trade.trailingStopPrice) {
+        const recentCandles = inRange.slice(Math.max(0, i - 5), i + 1)  // Last 5 candles
+        const indicatorsTrailing = calculateIndicators(inRange.slice(0, i + 1), config.strategyConfig, candle.time)
+        updateTrailingStop(trade, recentCandles, indicatorsTrailing?.atr ?? null)
+        
+        // Check if trailing stop is hit
+        const trailingHit = checkTrailingStopHit(trade, candle)
+        if (trailingHit !== null) {
+          const closed = closeTrade(trade, candle, 'STOP_HIT', config, trailingHit)
+          closed.exitReason = 'TRAILING_STOP'
+          closedTrades.push(closed)
+          openPositions.delete(symbol)
+          equity = recalcEquity(equity, trade, closed)
+          lastLossTime = closed.exitTime!
+          exitedThisCandleSymbol = symbol
+          continue
+        }
+      }
+
+      // ── Check normal stops/targets ────────────────────────────────────
       const check = checkStopTarget(trade, candle)
       if (check.triggered) {
         const closed = closeTrade(trade, candle, check.reason, config, check.exitPrice)
@@ -124,9 +164,18 @@ export async function runBacktest(
     // ── Step 3: Signal generation (no look-ahead: slice up to i inclusive) ─
     if (i < minHistory - 1) continue  // not enough history yet
 
+    // ── Time Filter: Skip blackout hours (9:15–9:30 and 3:00–3:30 IST) ─
+    if (!isTradeAllowedByTime(candle.time, DEFAULT_TIME_FILTER_CONFIG)) {
+      continue  // Skip signal generation in blackout times
+    }
+
     const history = inRange.slice(0, i + 1)
     const indicators = calculateIndicators(history, config.strategyConfig, candle.time)
-    const signal     = generateSignal(indicators, history, config.strategyConfig)
+    
+    // Analyze HTF trend (15-min by default)
+    const trendContext = getTrendContext(history, DEFAULT_HTF_CONFIG)
+    
+    const signal     = generateSignal(indicators, history, config.strategyConfig, trendContext)
 
     if (!isActionableSignal(signal)) continue
 
@@ -145,9 +194,13 @@ export async function runBacktest(
         continue   // don't immediately open long on same candle
       }
 
-      if (existing) continue  // already long — skip
+      if (existing) continue  // already long - skip
       if (openPositions.size >= config.riskConfig.maxConcurrentPositions) continue
       if (exitedThisCandleSymbol === config.symbol) continue
+
+      // ── Max Trades Per Day Check ──────────────────────────────────────
+      const maxTrades = config.riskConfig.maxTradesPerDay ?? 3
+      if (tradesOpenedToday >= maxTrades) continue  // Daily limit reached
 
       const riskCheck = validateEntry(
         signal.price, indicators.atr, 'BUY',
@@ -164,6 +217,7 @@ export async function runBacktest(
       )
       openPositions.set(config.symbol, trade)
       equity -= trade.entryPrice * trade.quantity
+      tradesOpenedToday++  // Increment daily trade counter
     }
 
     // ── Step 5: SELL signal ───────────────────────────────────────────────
@@ -181,10 +235,14 @@ export async function runBacktest(
         continue   // don't immediately open short on same candle
       }
 
-      if (existing) continue  // already short — skip
+      if (existing) continue  // already short - skip
       if (!config.allowShorts) continue
       if (openPositions.size >= config.riskConfig.maxConcurrentPositions) continue
       if (exitedThisCandleSymbol === config.symbol) continue
+
+      // ── Max Trades Per Day Check ──────────────────────────────────────
+      const maxTrades = config.riskConfig.maxTradesPerDay ?? 3
+      if (tradesOpenedToday >= maxTrades) continue  // Daily limit reached
 
       const riskCheck = validateEntry(
         signal.price, indicators.atr, 'SELL',
@@ -202,6 +260,7 @@ export async function runBacktest(
       openPositions.set(config.symbol, trade)
       // For shorts the margin/capital requirement is just the notional value
       equity -= trade.entryPrice * trade.quantity
+      tradesOpenedToday++  // Increment daily trade counter
     }
   }
 

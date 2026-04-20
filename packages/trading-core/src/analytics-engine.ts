@@ -1,5 +1,5 @@
 /**
- * Analytics Engine — compute performance metrics and equity curve
+ * Analytics Engine - compute performance metrics and equity curve
  * from a set of closed simulated trades.
  */
 

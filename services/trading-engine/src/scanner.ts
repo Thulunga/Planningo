@@ -1,5 +1,5 @@
 /**
- * Scanner — reads the watchlist, runs all indicators per symbol,
+ * Scanner - reads the watchlist, runs all indicators per symbol,
  * generates signals, writes scan_logs + trading_signals, executes paper trades.
  *
  * One full pass = one "scan cycle".
@@ -28,7 +28,7 @@ async function loadWatchlist(): Promise<Array<{ symbol: string; display_name: st
   if (error) {
     console.error('[scanner] Failed to load watchlist:', error)
     if (error.code === '22P02') {
-      console.error('[scanner] ⚠  ADMIN_USER_ID is not a valid UUID — update this env var in Railway')
+      console.error('[scanner] ⚠  ADMIN_USER_ID is not a valid UUID - update this env var in Railway')
     }
     return []
   }
@@ -42,7 +42,7 @@ async function loadWatchlist(): Promise<Array<{ symbol: string; display_name: st
 export async function runScanCycle(): Promise<number> {
   const watchlist = await loadWatchlist()
   if (watchlist.length === 0) {
-    console.log('[scanner] No active symbols in watchlist — skipping scan')
+    console.log('[scanner] No active symbols in watchlist - skipping scan')
     return 0
   }
 
@@ -50,7 +50,7 @@ export async function runScanCycle(): Promise<number> {
   let cycleSignals = 0
 
   console.log(`\n${'═'.repeat(60)}`)
-  console.log(`[scanner] Scan #${totalScanCount} @ ${formatISTTime()} — ${watchlist.length} symbols`)
+  console.log(`[scanner] Scan #${totalScanCount} @ ${formatISTTime()} - ${watchlist.length} symbols`)
   console.log('═'.repeat(60))
 
   updateHeartbeatState({
@@ -74,7 +74,7 @@ export async function runScanCycle(): Promise<number> {
   totalSignalCount += cycleSignals
   updateHeartbeatState({ currentSymbol: null, signalCount: totalSignalCount })
 
-  console.log(`[scanner] Cycle complete — ${cycleSignals} signals generated`)
+  console.log(`[scanner] Cycle complete - ${cycleSignals} signals generated`)
   return cycleSignals
 
   /**
@@ -85,7 +85,7 @@ export async function runScanCycle(): Promise<number> {
       const candles = await fetchCandles(symbol, 100)
 
       if (candles.length < 35) {
-        console.log(`[scanner] ${symbol}: Insufficient candles (${candles.length}) — skipping`)
+        console.log(`[scanner] ${symbol}: Insufficient candles (${candles.length}) - skipping`)
         await writeScanLog(symbol, null, null, null, {}, 0, 'HOLD', null, 'SKIPPED', 'Insufficient candle data', null)
         return
       }
@@ -145,7 +145,7 @@ export async function runScanCycle(): Promise<number> {
 
       // Execute paper trade if signal is actionable
       let tradeAction = 'HOLD'
-      let tradeReason = 'Signal type is HOLD — no trade action'
+      let tradeReason = 'Signal type is HOLD - no trade action'
       let tradeId: string | null = null
 
       if (savedSignalId && isActionableSignal(signal)) {
@@ -161,7 +161,7 @@ export async function runScanCycle(): Promise<number> {
         tradeId     = result.tradeId ?? null
       } else if (signal.type !== 'HOLD') {
         tradeAction = 'SKIPPED'
-        tradeReason = `Signal is ${signal.strength} — not actionable (need STRONG/VERY_STRONG)`
+        tradeReason = `Signal is ${signal.strength} - not actionable (need STRONG/VERY_STRONG)`
       }
 
       // Write scan log

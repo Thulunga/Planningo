@@ -33,7 +33,7 @@ export function PortfolioSummary({ portfolio, onRefresh }: PortfolioSummaryProps
   const winRate =
     portfolio.total_trades > 0
       ? ((portfolio.winning_trades / portfolio.total_trades) * 100).toFixed(0)
-      : '—'
+      : '-'
   const losingTrades = portfolio.total_trades - portfolio.winning_trades
 
   const isPositive = portfolio.total_pnl >= 0
@@ -69,7 +69,7 @@ export function PortfolioSummary({ portfolio, onRefresh }: PortfolioSummaryProps
         </Button>
       </div>
 
-      {/* Total P&L — hero number */}
+      {/* Total P&L - hero number */}
       <div>
         <div
           className={cn(
@@ -104,10 +104,10 @@ export function PortfolioSummary({ portfolio, onRefresh }: PortfolioSummaryProps
         />
         <Stat
           label="Win Rate"
-          value={winRate === '—' ? '—' : `${winRate}%`}
+          value={winRate === '-' ? '-' : `${winRate}%`}
           sub={portfolio.total_trades > 0 ? `${portfolio.winning_trades}W / ${losingTrades}L` : undefined}
           valueClass={
-            winRate !== '—' && parseInt(winRate) >= 50 ? 'text-emerald-500' : 'text-red-400'
+            winRate !== '-' && parseInt(winRate) >= 50 ? 'text-emerald-500' : 'text-red-400'
           }
         />
         <Stat

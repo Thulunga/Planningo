@@ -4,7 +4,7 @@
 --
 -- The Railway engine writes via service-role key (bypasses RLS automatically).
 -- The web UI reads via anon/auth key, so it needs an explicit SELECT policy.
--- The row contains no personal data — public read is intentional.
+-- The row contains no personal data - public read is intentional.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE public.service_heartbeat ENABLE ROW LEVEL SECURITY;

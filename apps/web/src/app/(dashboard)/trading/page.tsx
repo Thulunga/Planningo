@@ -13,7 +13,7 @@ import { TradingDashboard } from '@/components/trading/trading-dashboard'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Trading Bot — Planningo',
+  title: 'Trading Bot - Planningo',
 }
 
 export default async function TradingPage() {

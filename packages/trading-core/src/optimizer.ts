@@ -1,5 +1,5 @@
 /**
- * Strategy Optimizer — runs batch backtests across a parameter grid.
+ * Strategy Optimizer - runs batch backtests across a parameter grid.
  *
  * Guardrails against overfitting:
  *   - minTrades: skip configs generating too few trades (under-sampled)

@@ -8,7 +8,7 @@ import { BacktestClient } from '@/components/trading/backtest/backtest-client'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Backtest — Planningo',
+  title: 'Backtest - Planningo',
 }
 
 export default async function BacktestPage() {

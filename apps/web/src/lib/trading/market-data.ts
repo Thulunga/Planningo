@@ -5,6 +5,7 @@
  */
 
 const YF_HEADERS = { 'User-Agent': 'Mozilla/5.0' }
+import { normalizeTradingSymbol } from '@/lib/trading/symbol'
 
 export interface Candle {
   time: number   // Unix timestamp (seconds)
@@ -39,7 +40,8 @@ export async function fetchCandles(
   count: number = 100
 ): Promise<Candle[]> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=2d`
+    const normalizedSymbol = normalizeTradingSymbol(symbol)
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(normalizedSymbol)}?interval=5m&range=2d`
     const res = await fetch(url, { headers: YF_HEADERS })
     if (!res.ok) return []
 
@@ -80,32 +82,52 @@ export async function fetchCandles(
 }
 
 /**
- * Fetch a real-time quote for a symbol.
+ * Fetch a real-time quote for a symbol using the v8 chart endpoint
+ * (same one used by fetchCandles -- avoids v7 auth/blocking issues).
  */
 export async function fetchQuote(symbol: string): Promise<Quote | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`
+    const normalizedSymbol = normalizeTradingSymbol(symbol)
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(normalizedSymbol)}?interval=1m&range=1d`
     const res = await fetch(url, { headers: YF_HEADERS })
     if (!res.ok) return null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const json = (await res.json()) as any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = json?.quoteResponse?.result?.[0] as any
+    const result = json?.chart?.result?.[0] as any
     if (!result) return null
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = result.meta as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ohlcv = result.indicators?.quote?.[0] as any
+
+    const price: number = meta.regularMarketPrice ?? meta.chartPreviousClose ?? 0
+    const previousClose: number = meta.chartPreviousClose ?? meta.previousClose ?? price
+    const change = price - previousClose
+    const changePercent = previousClose !== 0 ? (change / previousClose) * 100 : 0
+
+    const highs: number[] = (ohlcv?.high ?? []).filter((v: number | null) => v != null)
+    const lows: number[] = (ohlcv?.low ?? []).filter((v: number | null) => v != null)
+    const high = highs.length > 0 ? Math.max(...highs) : price
+    const low = lows.length > 0 ? Math.min(...lows) : price
+
+    const volumes: number[] = (ohlcv?.volume ?? []).filter((v: number | null) => v != null)
+    const volume = volumes.reduce((a, b) => a + b, 0)
+
     return {
+      // Preserve caller symbol to keep existing UI map keys stable.
       symbol,
-      price: result.regularMarketPrice ?? 0,
-      change: result.regularMarketChange ?? 0,
-      changePercent: result.regularMarketChangePercent ?? 0,
-      high: result.regularMarketDayHigh ?? 0,
-      low: result.regularMarketDayLow ?? 0,
-      open: result.regularMarketOpen ?? 0,
-      previousClose: result.regularMarketPreviousClose ?? 0,
-      volume: result.regularMarketVolume ?? 0,
-      marketCap: result.marketCap,
-      name: result.longName ?? result.shortName ?? symbol,
+      price,
+      change,
+      changePercent,
+      high,
+      low,
+      open: ohlcv?.open?.[0] ?? price,
+      previousClose,
+      volume,
+      name: meta.longName ?? meta.shortName ?? normalizedSymbol,
       timestamp: Date.now(),
     }
   } catch (err) {

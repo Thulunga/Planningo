@@ -1,5 +1,5 @@
 /**
- * Risk Manager — position sizing, daily loss limit, and trade cooldown.
+ * Risk Manager - position sizing, daily loss limit, and trade cooldown.
  *
  * Design rules (all configurable via RiskConfig):
  *   - Risk per trade = 1% of current equity (default)

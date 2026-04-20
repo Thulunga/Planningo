@@ -1,4 +1,4 @@
-# Trading Engine — Railway Deployment
+# Trading Engine - Railway Deployment
 
 ## Critical: Build Context
 
@@ -10,10 +10,10 @@ context must be the monorepo root**, not this service directory.
 
 | Setting | Value |
 |---|---|
-| **Root Directory** | `/` *(monorepo root — do NOT leave it as `services/trading-engine`)* |
+| **Root Directory** | `/` *(monorepo root - do NOT leave it as `services/trading-engine`)* |
 | **Dockerfile Path** | `services/trading-engine/Dockerfile` |
-| **Build Command** | *(leave empty — handled by Dockerfile)* |
-| **Start Command** | *(leave empty — handled by `CMD` in Dockerfile)* |
+| **Build Command** | *(leave empty - handled by Dockerfile)* |
+| **Start Command** | *(leave empty - handled by `CMD` in Dockerfile)* |
 
 > If Root Directory is set to `services/trading-engine`, Railway will set the
 > build context to that subdirectory and `COPY packages/trading-core/ ...`
@@ -40,7 +40,7 @@ The engine starts at market open and exits cleanly at 3:45 PM IST. Deploy it
 as a Railway **Cron Job** (not a long-running service) to avoid overnight costs:
 
 - **Schedule**: `25 3 * * 1-5`  *(3:25 AM UTC = 8:55 AM IST, weekdays)*
-- **Timeout**: `28800` seconds (8 hours — covers full NSE session)
+- **Timeout**: `28800` seconds (8 hours - covers full NSE session)
 
 The service calls `process.exit(0)` after the shutdown window so Railway
 marks the run as succeeded.

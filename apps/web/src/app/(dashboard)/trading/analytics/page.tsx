@@ -7,7 +7,7 @@ import { WinRateBreakdown } from '@/components/trading/analytics/win-rate-breakd
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Trading Analytics — Planningo',
+  title: 'Trading Analytics - Planningo',
 }
 
 function StatCard({
@@ -55,7 +55,7 @@ export default async function TradingAnalyticsPage() {
       {!metrics || tradeCount === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Activity className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No closed trades yet — analytics will appear here once trades complete.</p>
+          <p className="text-muted-foreground">No closed trades yet - analytics will appear here once trades complete.</p>
         </div>
       ) : (
         <>

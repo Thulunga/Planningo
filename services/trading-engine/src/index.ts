@@ -1,5 +1,5 @@
 /**
- * Trading Engine — main orchestrator.
+ * Trading Engine - main orchestrator.
  *
  * Startup:
  *   1. Validate env vars
@@ -50,7 +50,7 @@ function waitUntil(condition: () => boolean, intervalMs: number, label: string):
     const check = (): void => {
       if (!running) { resolve(); return }
       if (condition()) { resolve(); return }
-      console.log(`[engine] Waiting for: ${label} — ${formatISTTime()}`)
+      console.log(`[engine] Waiting for: ${label} - ${formatISTTime()}`)
       setTimeout(check, intervalMs)
     }
     check()
@@ -69,10 +69,10 @@ async function scanLoop(): Promise<void> {
       continue
     }
 
-    // EOD force-close at 2:45 PM IST — runs once per session
+    // EOD force-close at 2:45 PM IST - runs once per session
     if (!eodCloseDone && isEODCloseTime()) {
       eodCloseDone = true
-      console.log(`\n[engine] ⏰ 2:45 PM IST — end-of-day close @ ${formatISTTime()}`)
+      console.log(`\n[engine] ⏰ 2:45 PM IST - end-of-day close @ ${formatISTTime()}`)
       const closed = await forceCloseAllPositions(config.adminUserId)
       console.log(`[engine] EOD: closed ${closed} open position(s).`)
       updateHeartbeatState({ currentSymbol: null })
@@ -132,7 +132,7 @@ async function main(): Promise<void> {
   updateHeartbeatState({ status: 'STARTING' })
 
   if (isShutdownTime()) {
-    console.log('[engine] Started after market close — exiting.')
+    console.log('[engine] Started after market close - exiting.')
     await shutdown('Started after market close')
     return
   }
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
 
   await snapshotStartOfDayEquity()
 
-  console.log(`[engine] Market open — starting scan loop @ ${formatISTTime()}`)
+  console.log(`[engine] Market open - starting scan loop @ ${formatISTTime()}`)
   await scanLoop()
 }
 

@@ -1,5 +1,5 @@
 /**
- * 3-MA Boundary filter — prevents counter-trend entries.
+ * 3-MA Boundary filter - prevents counter-trend entries.
  * Authoritative implementation shared by service and web app.
  *
  * Signal conditions:

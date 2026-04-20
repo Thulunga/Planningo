@@ -1,6 +1,6 @@
 /**
  * Historical candle fetcher for backtesting.
- * Uses the Yahoo Finance v8 chart API — same endpoint as market-data.ts.
+ * Uses the Yahoo Finance v8 chart API - same endpoint as market-data.ts.
  *
  * Yahoo Finance limitations:
  *   - 5-min data:  available for the last ~60 days only
@@ -12,6 +12,7 @@
  */
 
 import type { Candle } from '@planningo/trading-core'
+import { normalizeTradingSymbol } from '@/lib/trading/symbol'
 
 const YF_HEADERS = { 'User-Agent': 'Mozilla/5.0' }
 const FIVE_MIN_LIMIT_DAYS = 58
@@ -29,6 +30,7 @@ export async function fetchHistoricalCandles(
   from: Date,
   to: Date,
 ): Promise<FetchCandlesResult> {
+  const normalizedSymbol = normalizeTradingSymbol(symbol)
   const daysAgo = (Date.now() - from.getTime()) / (1000 * 60 * 60 * 24)
   const interval: CandleInterval = daysAgo <= FIVE_MIN_LIMIT_DAYS ? '5m' : '1d'
 
@@ -36,7 +38,7 @@ export async function fetchHistoricalCandles(
   const p2 = Math.floor(to.getTime() / 1000)
 
   const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(normalizedSymbol)}` +
     `?interval=${interval}&period1=${p1}&period2=${p2}&includePrePost=false`
 
   try {
@@ -82,12 +84,12 @@ export async function fetchHistoricalCandles(
       candles,
       interval,
       warning: interval === '1d'
-        ? 'Date range exceeds 58 days — using daily candles. Results are indicative only; strategy is tuned for 5-min intraday data.'
+        ? 'Date range exceeds 58 days - using daily candles. Results are indicative only; strategy is tuned for 5-min intraday data.'
         : undefined,
     }
   } catch (err) {
     throw new Error(
-      `Failed to fetch candles for ${symbol}: ${err instanceof Error ? err.message : String(err)}`
+      `Failed to fetch candles for ${normalizedSymbol}: ${err instanceof Error ? err.message : String(err)}`
     )
   }
 }

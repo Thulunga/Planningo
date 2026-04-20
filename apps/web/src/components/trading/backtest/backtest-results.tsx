@@ -132,16 +132,16 @@ export function BacktestResults({ result, interval, warning, candleCount }: Prop
                         <td className="px-3 py-1.5 tabular-nums whitespace-nowrap text-muted-foreground">
                           {t.exitTime
                             ? `${t.exitTime.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} ${t.exitTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                            : '—'}
+                            : '-'}
                         </td>
                         <td className="px-3 py-1.5 tabular-nums">{t.quantity}</td>
                         <td className="px-3 py-1.5 tabular-nums">₹{t.entryPrice.toFixed(2)}</td>
-                        <td className="px-3 py-1.5 tabular-nums">{t.exitPrice != null ? `₹${t.exitPrice.toFixed(2)}` : '—'}</td>
+                        <td className="px-3 py-1.5 tabular-nums">{t.exitPrice != null ? `₹${t.exitPrice.toFixed(2)}` : '-'}</td>
                         <td className={`px-3 py-1.5 tabular-nums font-medium ${pnlPos ? 'text-green-500' : 'text-red-500'}`}>
-                          {t.pnl != null ? `${pnlPos ? '+' : ''}₹${t.pnl.toFixed(0)}` : '—'}
+                          {t.pnl != null ? `${pnlPos ? '+' : ''}₹${t.pnl.toFixed(0)}` : '-'}
                         </td>
                         <td className={`px-3 py-1.5 tabular-nums ${(t.rMultiple ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {t.rMultiple != null ? `${t.rMultiple.toFixed(2)}R` : '—'}
+                          {t.rMultiple != null ? `${t.rMultiple.toFixed(2)}R` : '-'}
                         </td>
                         <td className="px-3 py-1.5">
                           <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${

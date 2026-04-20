@@ -17,7 +17,7 @@ ALTER TABLE trading_signals
   ADD CONSTRAINT trading_signals_confluence_score_check
     CHECK (confluence_score >= 0 AND confluence_score <= 6);
 
--- scan_logs.confluence_score has no constraint — add one for consistency
+-- scan_logs.confluence_score has no constraint - add one for consistency
 ALTER TABLE scan_logs
   DROP CONSTRAINT IF EXISTS scan_logs_confluence_score_check;
 

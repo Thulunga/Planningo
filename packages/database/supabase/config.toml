@@ -22,7 +22,7 @@ pop3_port = 54326
 
 [storage]
 enabled = true
-# Storage file size limit — 50MB
+# Storage file size limit - 50MB
 file_size_limit = "50MiB"
 
 [auth]

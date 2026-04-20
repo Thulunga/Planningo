@@ -218,3 +218,172 @@ export function checkStopTarget(
   }
   return { triggered: false }
 }
+
+/**
+ * Check if a trade has reached +1R profit (partial booking trigger).
+ * Returns exit price if triggered, null otherwise.
+ *
+ * For LONG: 1R price = entry + (entry - stopLoss)
+ * For SHORT: 1R price = entry - (stopLoss - entry)
+ */
+export function checkPartialBooking1R(
+  trade: SimulatedTrade,
+  candle: Candle
+): number | null {
+  if (trade.status !== 'OPEN') return null
+  if (trade.partialExitPrice !== undefined) return null  // Already took partial exit
+
+  if (trade.side === 'SHORT') {
+    // Short: 1R target is below entry by (stopLoss - entry) distance
+    const distance = trade.stopLoss - trade.entryPrice
+    const oneRPrice = trade.entryPrice - distance
+
+    if (candle.low <= oneRPrice) {
+      return oneRPrice
+    }
+  } else {
+    // Long: 1R target is above entry by (entry - stopLoss) distance
+    const distance = trade.entryPrice - trade.stopLoss
+    const oneRPrice = trade.entryPrice + distance
+
+    if (candle.high >= oneRPrice) {
+      return oneRPrice
+    }
+  }
+
+  return null
+}
+
+/**
+ * Execute partial booking: close 50% of position at 1R level,
+ * and update remaining 50% stop loss to breakeven + 0.5×ATR (lock profit, trail).
+ *
+ * @param trade           Trade to partially exit
+ * @param oneRExitPrice   Price at which to execute partial exit (1R level)
+ * @param atr             Average True Range for trailing stop calculation
+ * @param candle          Candle where exit happens
+ * @param config          Backtest config (for slippage/charges)
+ * @returns               [closedTrade, updatedRemainingTrade]
+ *                        closedTrade = 50% exited with pnl/charges
+ *                        updatedRemainingTrade = remaining 50% with updated SL
+ */
+export function executePartialBooking(
+  trade: SimulatedTrade,
+  oneRExitPrice: number,
+  atr: number | null,
+  candle: Candle,
+  config: BacktestConfig
+): [SimulatedTrade, SimulatedTrade] {
+  const halfQuantity = Math.floor(trade.quantity / 2)
+  const remainingQuantity = trade.quantity - halfQuantity
+
+  // ── Close 50% position ─────────────────────────────────────────────────
+  const closeDir = trade.side === 'SHORT' ? 'BUY' : 'SELL'
+  const exitPrice = applySlippage(oneRExitPrice, closeDir, config.slippagePct)
+
+  const isShort = trade.side === 'SHORT'
+  const grossPnlPartial = isShort
+    ? (trade.entryPrice - exitPrice) * halfQuantity
+    : (exitPrice - trade.entryPrice) * halfQuantity
+
+  const chargesPartial = calcCharges(halfQuantity, trade.entryPrice, exitPrice, config)
+  const pnlPartial = parseFloat((grossPnlPartial - chargesPartial).toFixed(2))
+
+  const closedTrade: SimulatedTrade = {
+    ...trade,
+    quantity: halfQuantity,
+    remainingQuantity: remainingQuantity,
+    exitTime: new Date(candle.time * 1000),
+    exitPrice,
+    pnl: pnlPartial,
+    pnlPct: parseFloat(((pnlPartial / (trade.entryPrice * halfQuantity)) * 100).toFixed(3)),
+    rMultiple: trade.riskAmount ? parseFloat((pnlPartial / (trade.riskAmount * 0.5)).toFixed(3)) : 0,
+    status: 'CLOSED',
+    exitReason: 'PARTIAL_1R',
+    chargesTotal: chargesPartial,
+    partialExitPrice: exitPrice,
+    partialExitTime: new Date(candle.time * 1000),
+    durationMinutes: Math.round((candle.time * 1000 - trade.entryTime.getTime()) / 60_000),
+  }
+
+  // ── Update remaining 50% with trailing stop ──────────────────────────
+  // Move SL to breakeven + 0.5×ATR (lock profit, allow some room to trail)
+  const trailingStopValue = atr ? atr * 0.5 : Math.abs(trade.entryPrice - trade.stopLoss) * 0.25
+  const newStopLoss = isShort
+    ? trade.entryPrice + trailingStopValue  // For shorts, SL is above
+    : trade.entryPrice - trailingStopValue  // For longs, SL is below
+
+  const remainingTrade: SimulatedTrade = {
+    ...trade,
+    quantity: remainingQuantity,
+    remainingQuantity: remainingQuantity,
+    stopLoss: parseFloat(newStopLoss.toFixed(2)),
+    trailingStopPrice: parseFloat(newStopLoss.toFixed(2)),
+    partialExitPrice: exitPrice,
+    partialExitTime: new Date(candle.time * 1000),
+    // Keep other fields: entryPrice, entryTime, target, etc.
+  }
+
+  return [closedTrade, remainingTrade]
+}
+
+/**
+ * Update trailing stop for remaining position after partial exit.
+ * Trail by recent swing low/high (or ATR-based).
+ *
+ * For LONG: trail stop by lowest close since 1R exit - 1.5×ATR
+ * For SHORT: trail stop by highest close since 1R exit + 1.5×ATR
+ */
+export function updateTrailingStop(
+  trade: SimulatedTrade,
+  recentCandles: Candle[],
+  atr: number | null
+): void {
+  if (trade.status !== 'OPEN') return
+  if (trade.partialExitTime === undefined) return  // No partial exit yet
+
+  const effectiveAtr = atr ?? Math.abs(trade.entryPrice - trade.stopLoss) * 0.2
+
+  if (trade.side === 'SHORT') {
+    // Short: trail stop by highest close - 1.5×ATR (allow room to trail up)
+    const recentHigh = Math.max(...recentCandles.map((c) => c.close))
+    const newTrailingStop = recentHigh + effectiveAtr * 1.5
+    if (newTrailingStop < trade.trailingStopPrice!) {
+      trade.trailingStopPrice = parseFloat(newTrailingStop.toFixed(2))
+    }
+  } else {
+    // Long: trail stop by lowest close + 1.5×ATR (allow room to trail down slightly)
+    const recentLow = Math.min(...recentCandles.map((c) => c.close))
+    const newTrailingStop = recentLow - effectiveAtr * 1.5
+    if (newTrailingStop > trade.trailingStopPrice!) {
+      trade.trailingStopPrice = parseFloat(newTrailingStop.toFixed(2))
+    }
+  }
+}
+
+/**
+ * Check if trailing stop is hit for a partially-exited trade.
+ * Returns exit price if triggered, null otherwise.
+ */
+export function checkTrailingStopHit(
+  trade: SimulatedTrade,
+  candle: Candle
+): number | null {
+  if (trade.status !== 'OPEN') return null
+  if (!trade.trailingStopPrice) return null
+
+  if (trade.side === 'SHORT') {
+    // Short: stop is above entry
+    if (candle.high >= trade.trailingStopPrice) {
+      return trade.trailingStopPrice
+    }
+  } else {
+    // Long: stop is below entry
+    if (candle.low <= trade.trailingStopPrice) {
+      return trade.trailingStopPrice
+    }
+  }
+
+  return null
+}
+

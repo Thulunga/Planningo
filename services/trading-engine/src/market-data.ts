@@ -1,5 +1,5 @@
 /**
- * Market data layer — fetches OHLCV candles directly from Yahoo Finance's
+ * Market data layer - fetches OHLCV candles directly from Yahoo Finance's
  * chart API (v8). This avoids yahoo-finance2 entirely: the installed build
  * ships only `quote` and `autoc` modules (no `chart`), and the package has
  * no CJS export, making require() impossible from our Node16-CJS output.

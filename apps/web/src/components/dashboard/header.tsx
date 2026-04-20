@@ -46,7 +46,7 @@ export function Header({ profile, isAdmin = false }: HeaderProps) {
         </Link>
       </div>
 
-      {/* Desktop: empty left side — logo lives in sidebar */}
+      {/* Desktop: empty left side - logo lives in sidebar */}
       <div className="hidden md:flex" />
 
       {/* Right side: clock + theme toggle */}

@@ -98,8 +98,8 @@ export function EquityCurveChart({ data, initialCapital }: Props) {
         ))}
 
         {/* X-axis labels */}
-        {xLabels.map(({ x, label }) => (
-          <text key={label} x={x} y={H - 6} textAnchor="middle"
+        {xLabels.map(({ i, x, label }) => (
+          <text key={i} x={x} y={H - 6} textAnchor="middle"
             fontSize={10} fill="currentColor" fillOpacity={0.6}>
             {label}
           </text>

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  /* ── Dark theme (default) — softened contrast, desaturated bg ── */
+  /* ── Dark theme (default) - softened contrast, desaturated bg ── */
   :root {
     --background: 224 13% 7%;
     --foreground: 213 15% 83%;
@@ -36,7 +36,7 @@
 
     --radius: 0.75rem;
 
-    /* Sidebar — slightly darker than bg */
+    /* Sidebar - slightly darker than bg */
     --sidebar: 224 13% 5%;
     --sidebar-foreground: 213 15% 75%;
     --sidebar-border: 216 13% 16%;
@@ -57,7 +57,7 @@
     --shadow-card: 0 1px 3px hsl(224 13% 3% / 0.5), 0 4px 12px hsl(224 13% 3% / 0.3);
   }
 
-  /* ── Light theme — warm off-white, real blue accent ── */
+  /* ── Light theme - warm off-white, real blue accent ── */
   .light {
     --background: 40 20% 97%;
     --foreground: 224 25% 14%;
@@ -136,7 +136,7 @@
 /* ── Mobile: prevent iOS Safari from auto-zooming on input focus ────────────
    iOS zooms in whenever a focused input/textarea/select has font-size < 16px.
    Force 16px on small screens; desktop keeps the designed text-sm (14px).    */
-/* Force 16px on mobile — !important needed to beat Tailwind's text-sm class
+/* Force 16px on mobile - !important needed to beat Tailwind's text-sm class
    selector (0,1,0) which would otherwise win over bare element selectors. */
 @media screen and (max-width: 767px) {
   input,

@@ -61,7 +61,7 @@ Deno.serve(async (_req) => {
           })
         )
 
-        // 4. Fire all send-push calls in parallel — no sequential waiting
+        // 4. Fire all send-push calls in parallel - no sequential waiting
         await Promise.all(
           subscriptions.map((sub) => {
             const info = reminderByUser.get(sub.user_id)

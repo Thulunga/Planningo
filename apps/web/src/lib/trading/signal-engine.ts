@@ -1,5 +1,5 @@
 /**
- * Re-exports from @planningo/trading-core — single source of truth.
+ * Re-exports from @planningo/trading-core - single source of truth.
  *
  * Previously this file had a 5-indicator engine (3/5 confluence threshold).
  * The unified engine uses 6 indicators with a configurable threshold (default 4/6).

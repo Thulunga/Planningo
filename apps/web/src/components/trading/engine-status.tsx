@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * EngineStatus — shows Railway trading engine health in real time.
+ * EngineStatus - shows Railway trading engine health in real time.
  * Subscribes to `service_heartbeat` via Supabase Realtime.
  *
  * States:
- *   ONLINE / RUNNING  — engine is alive and scanning
- *   STARTING          — engine just started, waiting for market open
- *   STOPPING          — market close, shutting down gracefully
- *   OFFLINE           — heartbeat older than 2 minutes or no row exists
+ *   ONLINE / RUNNING  - engine is alive and scanning
+ *   STARTING          - engine just started, waiting for market open
+ *   STOPPING          - market close, shutting down gracefully
+ *   OFFLINE           - heartbeat older than 2 minutes or no row exists
  */
 
 import { useEffect, useState } from 'react'
@@ -87,7 +87,7 @@ export function EngineStatus() {
         setIsConnected(status === 'SUBSCRIBED')
       })
 
-    // Polling fallback — re-fetch every 35s in case Realtime drops the event
+    // Polling fallback - re-fetch every 35s in case Realtime drops the event
     const poll = setInterval(loadInitial, 35_000)
 
     return () => {
@@ -207,7 +207,7 @@ export function EngineStatus() {
           {state === 'OFFLINE' && (
             <div className="flex items-center gap-2 text-xs text-red-400/80">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Last heartbeat: {timeAgo(heartbeat.last_heartbeat)} — engine may be down
+              Last heartbeat: {timeAgo(heartbeat.last_heartbeat)} - engine may be down
             </div>
           )}
         </>
