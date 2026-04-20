@@ -4,21 +4,15 @@ export interface BacktestExportPayload {
   run: Record<string, unknown>
   trades: Record<string, unknown>[]
   equityCurve: { time: string; equity: number; drawdown: number; drawdownAbs: number }[]
+  analysis?: Record<string, unknown>
 }
 
-export async function exportBacktestGzip(
+export async function exportBacktestJson(
   payload: BacktestExportPayload,
   filename: string,
 ): Promise<void> {
-  const bytes = new TextEncoder().encode(JSON.stringify(payload, null, 2))
-
-  const cs = new CompressionStream('gzip')
-  const writer = cs.writable.getWriter()
-  await writer.write(bytes)
-  await writer.close()
-
-  const buf = await new Response(cs.readable).arrayBuffer()
-  const blob = new Blob([buf], { type: 'application/gzip' })
+  const json = JSON.stringify(payload, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement('a')

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { CheckCircle2, XCircle, Clock, TrendingUp, TrendingDown, Download, Trash2 } from 'lucide-react'
 import { deleteBacktestRun, getBacktestRun } from '@/lib/actions/backtest'
-import { exportBacktestGzip } from '@/lib/trading/export-backtest'
+import { exportBacktestJson } from '@/lib/trading/export-backtest'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RunRow = Record<string, any>
@@ -51,8 +51,16 @@ export function BacktestHistory({ runs, onSelect, onDelete, selectedRunId }: Pro
       const { run: fullRun, trades } = res.data
       const symbol = (fullRun.symbol as string).replace(/[^A-Z0-9]/gi, '-')
       const date   = (fullRun.start_date as string).substring(0, 10)
+      const totalCharges = trades.reduce((acc: number, t: RunRow) => acc + Number(t.charges_total ?? 0), 0)
+      const totalRiskAmount = trades.reduce((acc: number, t: RunRow) => acc + Number(t.risk_amount ?? 0), 0)
+      const avgConfluence = trades.length > 0
+        ? trades.reduce((acc: number, t: RunRow) => acc + Number(t.confluence_score ?? 0), 0) / trades.length
+        : 0
+      const avgHoldMinutes = trades.length > 0
+        ? trades.reduce((acc: number, t: RunRow) => acc + Number(t.duration_minutes ?? 0), 0) / trades.length
+        : 0
 
-      await exportBacktestGzip(
+      await exportBacktestJson(
         {
           exportVersion: 1,
           exportedAt:   new Date().toISOString(),
@@ -100,8 +108,17 @@ export function BacktestHistory({ runs, onSelect, onDelete, selectedRunId }: Pro
             drawdown:    p.drawdown as number,
             drawdownAbs: p.drawdownAbs as number,
           })),
+          analysis: {
+            totalCharges,
+            totalRiskAmount,
+            avgConfluenceScore: Number(avgConfluence.toFixed(2)),
+            avgHoldMinutes: Number(avgHoldMinutes.toFixed(2)),
+            chargeToLossRatioPct: Math.abs(Number(fullRun.metrics?.totalReturnAbs ?? 0)) > 0
+              ? Number(((totalCharges / Math.abs(Number(fullRun.metrics.totalReturnAbs))) * 100).toFixed(2))
+              : 0,
+          },
         },
-        `backtest-${symbol}-${date}.json.gz`,
+        `backtest-${symbol}-${date}.json`,
       )
     } finally {
       setExportingId(null)
@@ -173,7 +190,7 @@ export function BacktestHistory({ runs, onSelect, onDelete, selectedRunId }: Pro
                   <button
                     onClick={(e) => handleExport(e, run)}
                     disabled={isExporting}
-                    title="Export run data (gzip JSON)"
+                    title="Export run data (JSON)"
                     className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
                   >
                     <Download className="h-3.5 w-3.5" />
