@@ -157,7 +157,7 @@ export function BacktestForm({ onResult, watchlist = [] }: Props) {
       {/* Capital */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Starting Capital (â‚¹)</label>
+          <label className="block text-xs text-muted-foreground mb-1">Starting Capital (Rs.)</label>
           <input
             type="number"
             value={capital}
@@ -170,8 +170,8 @@ export function BacktestForm({ onResult, watchlist = [] }: Props) {
         </div>
         <div className="flex items-end pb-2 gap-4 text-xs text-muted-foreground">
           <span>Confluence: <strong className="text-foreground">{botConfig.confluenceThreshold}</strong></span>
-          <span>Stop: <strong className="text-foreground">{botConfig.atrMultiplierStop}Ã— ATR</strong></span>
-          <span>Target: <strong className="text-foreground">{botConfig.atrMultiplierTarget}Ã— ATR</strong></span>
+          <span>Stop: <strong className="text-foreground">{botConfig.atrMultiplierStop}x ATR</strong></span>
+          <span>Target: <strong className="text-foreground">{botConfig.atrMultiplierTarget}x ATR</strong></span>
           <span>Shorts: <strong className="text-foreground">{botConfig.allowShorts ? 'Yes' : 'No'}</strong></span>
         </div>
       </div>

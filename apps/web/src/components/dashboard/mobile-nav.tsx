@@ -13,6 +13,7 @@ import {
   DollarSign,
   Settings,
   TrendingUp,
+  Shield,
 } from 'lucide-react'
 import { cn, SheetClose } from '@planningo/ui'
 import { UserMenu } from './user-menu'
@@ -46,9 +47,18 @@ export function MobileNav({ profile, isAdmin = false }: { profile: Tables<'profi
         <ul className="space-y-0.5 px-2">
           {[
             ...navItems,
-            ...(isAdmin ? [{ href: '/trading', icon: TrendingUp, label: 'Trading Bot' }] : []),
+            ...(isAdmin
+              ? [
+                  { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
+                  { href: '/expenses/admin', icon: Shield, label: 'Expenses Admin' },
+                ]
+              : []),
           ].map(({ href, icon: Icon, label }) => {
-            const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+            const isActive = href === '/expenses'
+              ? pathname.startsWith('/expenses') && !pathname.startsWith('/expenses/admin')
+              : href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(href)
             return (
               <li key={href}>
                 <SheetClose asChild>

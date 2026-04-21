@@ -59,9 +59,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin-only routes: /trading and /api/trading
+  // Admin-only routes: /trading, /expenses/admin, and matching APIs
   const isAdminRoute =
-    pathname.startsWith('/trading') || pathname.startsWith('/api/trading')
+    pathname.startsWith('/trading') ||
+    pathname.startsWith('/api/trading') ||
+    pathname.startsWith('/expenses/admin') ||
+    pathname.startsWith('/api/expenses/admin')
 
   if (isAdminRoute && user) {
     const adminEmail = process.env.ADMIN_EMAIL

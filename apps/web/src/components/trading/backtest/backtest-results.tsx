@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import type { BacktestResult } from '@planningo/trading-core'
 import { EquityCurveChart } from '@/components/trading/analytics/equity-curve-chart'
@@ -18,12 +18,12 @@ function exportToCSV(result: BacktestResult) {
   const rc = config.riskConfig
   const ext = (config as {extConfig?: Record<string, unknown>}).extConfig ?? {}
 
-  // ── Settings section ─────────────────────────────────────────────────────
+  // â”€â”€ Settings section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const settingsRows = [
     ['=== BOT CONFIGURATION USED ==='],
     ['Setting', 'Value'],
     ['Symbol',                      config.symbol],
-    ['Period',                      `${config.startDate.toLocaleDateString('en-IN')} – ${config.endDate.toLocaleDateString('en-IN')}`],
+    ['Period',                      `${config.startDate.toLocaleDateString('en-IN')} to ${config.endDate.toLocaleDateString('en-IN')}`],
     ['Initial Capital',             config.initialCapital],
     ['Allow Shorts',                String(config.allowShorts)],
     ['--- Strategy ---'],
@@ -32,14 +32,14 @@ function exportToCSV(result: BacktestResult) {
     ['RSI Period',                  sc.rsiPeriod],
     ['RSI Oversold / Overbought',   `${sc.rsiOversold} / ${sc.rsiOverbought}`],
     ['MACD (fast/slow/sig)',        `${sc.macdFast}/${sc.macdSlow}/${sc.macdSignalPeriod}`],
-    ['Supertrend (period×mult)',    `${sc.supertrendPeriod}×${sc.supertrendMultiplier}`],
+    ['Supertrend (periodxmult)',    `${sc.supertrendPeriod}x${sc.supertrendMultiplier}`],
     ['BB Period / StdDev',          `${sc.bbPeriod} / ${sc.bbStdDev}`],
     ['VWAP Hours',                  sc.vwapHours],
     ['ATR Period',                  sc.atrPeriod],
     ['--- Risk ---'],
     ['Risk Per Trade',              `${(rc.riskPerTradePct * 100).toFixed(1)}%`],
     ['Daily Loss Limit',            `${(rc.dailyLossLimitPct * 100).toFixed(1)}%`],
-    ['ATR Stop / Target Mult',      `${rc.atrMultiplierStop}× / ${rc.atrMultiplierTarget}×`],
+    ['ATR Stop / Target Mult',      `${rc.atrMultiplierStop}x / ${rc.atrMultiplierTarget}x`],
     ['Min R:R',                     rc.minRewardRiskRatio],
     ['Cooldown (min)',               rc.cooldownMinutesAfterLoss],
     ['Max Concurrent',              rc.maxConcurrentPositions],
@@ -51,19 +51,19 @@ function exportToCSV(result: BacktestResult) {
     [''],
     ['=== PERFORMANCE SUMMARY ==='],
     ['Total Return %',   metrics.totalReturn.toFixed(2)],
-    ['Total Return ₹',  metrics.totalReturnAbs.toFixed(0)],
+    ['Total Return Rs.',  metrics.totalReturnAbs.toFixed(0)],
     ['Win Rate %',       metrics.winRate.toFixed(1)],
     ['Profit Factor',    metrics.profitFactor === Infinity ? 'Inf' : metrics.profitFactor.toFixed(2)],
     ['Max Drawdown %',   metrics.maxDrawdown.toFixed(2)],
     ['Sharpe Ratio',     metrics.sharpeRatio !== null ? metrics.sharpeRatio.toFixed(2) : 'N/A'],
     ['Total Trades',     metrics.totalTrades],
     ['Wins / Losses',    `${metrics.winningTrades} / ${metrics.losingTrades}`],
-    ['Avg Win ₹',        metrics.averageWin.toFixed(0)],
-    ['Avg Loss ₹',       metrics.averageLoss.toFixed(0)],
+    ['Avg Win Rs.',        metrics.averageWin.toFixed(0)],
+    ['Avg Loss Rs.',       metrics.averageLoss.toFixed(0)],
     ['Avg Duration min', metrics.averageDurationMinutes],
     [''],
     ['=== TRADES ==='],
-    ['Entry Date', 'Exit Date', 'Side', 'Entry ₹', 'Exit ₹', 'Qty', 'Stop ₹', 'Target ₹', 'P&L ₹', 'P&L %', 'R Multiple', 'Duration min', 'Status', 'Confluence Score', 'Signal Strength'],
+    ['Entry Date', 'Exit Date', 'Side', 'Entry Rs.', 'Exit Rs.', 'Qty', 'Stop Rs.', 'Target Rs.', 'P&L Rs.', 'P&L %', 'R Multiple', 'Duration min', 'Status', 'Confluence Score', 'Signal Strength'],
   ]
 
   const tradeRows = trades.map((t) => [
@@ -165,38 +165,38 @@ export function BacktestResults({ result, interval, warning, candleCount }: Prop
         <>
           {/* Key metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat
+            <StatCard
               label="Total Return"
               value={`${m.totalReturn >= 0 ? '+' : ''}${m.totalReturn.toFixed(2)}%`}
-              sub={`₹${m.totalReturnAbs >= 0 ? '+' : ''}${m.totalReturnAbs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              sub={`Rs.${m.totalReturnAbs >= 0 ? '+' : ''}${m.totalReturnAbs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
               positive={m.totalReturn >= 0}
             />
-            <Stat
+            <StatCard
               label="Win Rate"
               value={`${m.winRate.toFixed(1)}%`}
               sub={`${m.winningTrades}W / ${m.losingTrades}L`}
               positive={m.winRate >= 50}
             />
-            <Stat
+            <StatCard
               label="Profit Factor"
-              value={m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2)}
+              value={m.profitFactor === Infinity ? 'Inf' : m.profitFactor.toFixed(2)}
               positive={m.profitFactor > 1}
             />
-            <Stat
+            <StatCard
               label="Max Drawdown"
               value={`${m.maxDrawdown.toFixed(2)}%`}
               positive={m.maxDrawdown > -15}
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat label="Avg Win"  value={`+₹${m.averageWin.toFixed(0)}`}  positive={true}  />
-            <Stat label="Avg Loss" value={`₹${m.averageLoss.toFixed(0)}`}  positive={false} />
-            <Stat
+            <StatCard label="Avg Win"  value={`+Rs.${m.averageWin.toFixed(0)}`}  positive={true}  />
+            <StatCard label="Avg Loss" value={`Rs.${m.averageLoss.toFixed(0)}`}  positive={false} />
+            <StatCard
               label="Sharpe"
               value={m.sharpeRatio !== null ? m.sharpeRatio.toFixed(2) : 'N/A'}
-              sub={m.sharpeRatio === null ? 'need ≥10 trades' : undefined}
+              sub={m.sharpeRatio === null ? 'need >=10 trades' : undefined}
             />
-            <Stat label="Avg Duration" value={`${m.averageDurationMinutes}m`} />
+            <StatCard label="Avg Duration" value={`${m.averageDurationMinutes}m`} />
           </div>
 
           {/* Equity curve */}
@@ -214,7 +214,7 @@ export function BacktestResults({ result, interval, warning, candleCount }: Prop
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    {['Entry', 'Exit', 'Qty', 'Entry ₹', 'Exit ₹', 'P&L', 'R', 'Status'].map((h) => (
+                    {['Entry', 'Exit', 'Qty', 'Entry Rs.', 'Exit Rs.', 'P&L', 'R', 'Status'].map((h) => (
                       <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -234,10 +234,10 @@ export function BacktestResults({ result, interval, warning, candleCount }: Prop
                             : '-'}
                         </td>
                         <td className="px-3 py-1.5 tabular-nums">{t.quantity}</td>
-                        <td className="px-3 py-1.5 tabular-nums">₹{t.entryPrice.toFixed(2)}</td>
-                        <td className="px-3 py-1.5 tabular-nums">{t.exitPrice != null ? `₹${t.exitPrice.toFixed(2)}` : '-'}</td>
+                        <td className="px-3 py-1.5 tabular-nums">Rs.{t.entryPrice.toFixed(2)}</td>
+                        <td className="px-3 py-1.5 tabular-nums">{t.exitPrice != null ? `Rs.${t.exitPrice.toFixed(2)}` : '-'}</td>
                         <td className={`px-3 py-1.5 tabular-nums font-medium ${pnlPos ? 'text-green-500' : 'text-red-500'}`}>
-                          {t.pnl != null ? `${pnlPos ? '+' : ''}₹${t.pnl.toFixed(0)}` : '-'}
+                          {t.pnl != null ? `${pnlPos ? '+' : ''}Rs.${t.pnl.toFixed(0)}` : '-'}
                         </td>
                         <td className={`px-3 py-1.5 tabular-nums ${(t.rMultiple ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                           {t.rMultiple != null ? `${t.rMultiple.toFixed(2)}R` : '-'}
