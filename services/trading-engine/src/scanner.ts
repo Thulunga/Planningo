@@ -12,9 +12,15 @@ import { calculateIndicators } from './indicators'
 import { generateSignal, isActionableSignal } from './signal-engine'
 import { executePaperTrade, checkStopLossAndTargets } from './paper-trader'
 import { updateHeartbeatState } from './heartbeat'
+import { getTrendContext, DEFAULT_HTF_CONFIG } from '@planningo/trading-core'
 
 let totalScanCount  = 0
 let totalSignalCount = 0
+
+function toDbConfluenceScore(raw: number | null | undefined): number | null {
+  if (raw == null || Number.isNaN(raw)) return null
+  return Math.max(0, Math.min(6, Math.round(raw)))
+}
 
 /**
  * Load the admin user's active watchlist from Supabase.
@@ -91,7 +97,9 @@ export async function runScanCycle(): Promise<number> {
       }
 
       const indicators = calculateIndicators(candles)
-      const signal     = generateSignal(indicators, candles)
+      const trendContext = getTrendContext(candles, DEFAULT_HTF_CONFIG)
+      const signal     = generateSignal(indicators, candles, undefined, trendContext)
+      const dbConfluenceScore = toDbConfluenceScore(signal.confluenceScore)
 
       // Format vote map for DB storage
       const votesMap: Record<string, number> = {}
@@ -131,7 +139,7 @@ export async function runScanCycle(): Promise<number> {
             atr:            indicators.atr,
             vwap:           indicators.vwap,
           },
-          confluence_score: signal.confluenceScore,
+          confluence_score: dbConfluenceScore,
           candle_time:      signal.candleTime.toISOString(),
         }).select('id').single()
 
@@ -169,7 +177,7 @@ export async function runScanCycle(): Promise<number> {
         symbol,
         indicators,
         signal.votes,
-        signal.confluenceScore,
+        dbConfluenceScore,
         signal.reasons,
         signal.confluenceScore,
         signal.type,
@@ -249,7 +257,7 @@ async function writeScanLog(
 function printScanResult(symbol: string, signal: ReturnType<typeof generateSignal>): void {
   const icon   = signal.type === 'BUY' ? '🟢' : signal.type === 'SELL' ? '🔴' : '⚪'
   const price  = `₹${signal.price.toFixed(2)}`
-  const score  = `[${signal.confluenceScore}/6]`
+  const score  = `[${signal.confluenceScore.toFixed(1)}/9.5]`
   const header = `${icon} ${symbol.padEnd(16)} ${price.padStart(12)}  ${signal.type.padEnd(4)}  ${signal.strength.padEnd(12)} ${score}`
 
   console.log(header)
