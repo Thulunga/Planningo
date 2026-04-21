@@ -13,6 +13,7 @@
 
 import { db, supabase } from './supabase'
 import { config, isEODCloseTime } from './config'
+import { normalizeTradingSymbol } from './symbol'
 import {
   validateEntry, DEFAULT_RISK_CONFIG,
 } from '@planningo/trading-core'
@@ -207,8 +208,9 @@ export async function forceCloseAllPositions(userId: string): Promise<number> {
   let closed = 0
   for (const trade of openTrades) {
     try {
+      const quoteSymbol = normalizeTradingSymbol(trade.symbol)
       const res = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(trade.symbol)}`,
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(quoteSymbol)}`,
         { headers: { 'User-Agent': 'Mozilla/5.0' } }
       )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,8 +243,9 @@ export async function checkStopLossAndTargets(userId: string): Promise<void> {
     if (!trade.stop_loss && !trade.target) continue
 
     try {
+      const quoteSymbol = normalizeTradingSymbol(trade.symbol)
       const res = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(trade.symbol)}`,
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(quoteSymbol)}`,
         { headers: { 'User-Agent': 'Mozilla/5.0' } }
       )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
