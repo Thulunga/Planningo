@@ -8,6 +8,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_RISK_CONFIG, validateEntry } from '@planningo/trading-core'
+import { isEODCloseTime } from '@/lib/trading/market-hours'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function db(supabase: any, table: string) {
@@ -40,6 +41,10 @@ export async function executePaperTrade(
 
   // ── BUY ──────────────────────────────────────────────────────────────────
   if (signal.signal_type === 'BUY') {
+    if (isEODCloseTime()) {
+      return { action: 'SKIPPED', reason: 'EOD window (2:45 PM+) - no new BUY positions' }
+    }
+
     const { data: existing } = await db(supabase, 'paper_trades')
       .select('id').eq('user_id', userId).eq('symbol', signal.symbol).eq('status', 'OPEN').limit(1)
     if (existing && existing.length > 0)

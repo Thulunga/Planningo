@@ -222,11 +222,12 @@ export interface BacktestConfig {
   initialCapital: number
   strategyConfig: StrategyConfig
   riskConfig: RiskConfig
-  slippagePct: number    // default 0.0005  (0.05% per side)
-  brokeragePct: number   // default 0.0003  (Zerodha intraday ~₹20 flat or 0.03% if large)
-  sttPct: number         // default 0.00025 (0.025% STT on sell-side turnover)
-  stampDutyPct: number   // default 0.00003 (0.003% stamp duty on buy-side)
-  allowShorts: boolean   // default false - enable short selling in backtests
+  slippagePct: number
+  brokeragePct: number
+  sttPct: number
+  stampDutyPct: number
+  allowShorts: boolean
+  extConfig?: SignalEngineExtConfig   // optional per-run filter/indicator overrides
 }
 
 export interface BacktestResult {
@@ -272,4 +273,41 @@ export interface ExperimentResult {
   compositeScore: number
   rank: number
   meetsGuardrails: boolean
+}
+
+// ─── Signal Engine Extended Config ───────────────────────────────────────────
+// Controls per-indicator enable/disable and sub-module config overrides.
+// Passed as 5th arg to generateSignal(); missing flags default to enabled.
+
+export interface SignalEngineExtConfig {
+  // ── Per-indicator on/off (weight→0 when disabled, still appears in log) ──
+  enableEMA?: boolean
+  enableRSI?: boolean
+  enableMACD?: boolean
+  enableSupertrend?: boolean
+  enableBB?: boolean
+  enableVWAP?: boolean
+  enableStructure?: boolean
+  enableVolume?: boolean
+
+  // ── Filter on/off ─────────────────────────────────────────────────────────
+  enableMABoundaryFilter?: boolean  // skip 3-MA trend-boundary gating
+  enableTrendFilter?: boolean       // skip HTF trend direction gating
+
+  // ── Sub-module config overrides ───────────────────────────────────────────
+  maBoundary?: MABoundaryConfig
+  volume?: { maPeriod?: number; multiplier?: number }
+  structure?: {
+    swingPeriod?: number
+    pullbackEmaThresholdPct?: number
+    strongCandleAtrMultiplier?: number
+    vwapThresholdPct?: number
+  }
+  htfConfig?: {
+    htfPeriodSec?: number
+    htfEmaTrendPeriod?: number
+    htfFastEmaPeriod?: number
+    htfRsiBullishThreshold?: number
+    htfRsiBearishThreshold?: number
+  }
 }

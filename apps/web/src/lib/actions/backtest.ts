@@ -9,7 +9,8 @@ import {
   DEFAULT_RISK_CONFIG,
   DEFAULT_BACKTEST_CONFIG,
 } from '@planningo/trading-core'
-import type { StrategyConfig, RiskConfig } from '@planningo/trading-core'
+import type { StrategyConfig, RiskConfig, SignalEngineExtConfig } from '@planningo/trading-core'
+import { buildAllConfigs } from '@/lib/trading/bot-config-utils'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function db(supabase: any, table: string) { return supabase.from(table) }
@@ -21,20 +22,22 @@ function isAdmin(email: string | undefined): boolean {
 // ── Input types ───────────────────────────────────────────────────────────────
 
 export interface RunBacktestParams {
-  symbol: string          // e.g. "RELIANCE.NS"
-  fromDate: string        // "YYYY-MM-DD"
-  toDate: string          // "YYYY-MM-DD"
-  initialCapital: number  // default 100000
-  // Strategy overrides (optional - defaults to DEFAULT_STRATEGY_CONFIG)
+  symbol: string
+  fromDate: string
+  toDate: string
+  initialCapital: number
+  allowShorts?: boolean
+  // Full bot config (from Bot Manager store). When provided, used in full.
+  // Individual overrides below are kept for backward compat with the simple form.
+  botConfig?: import('@/stores/trading-config-store').BotConfig
+  // Legacy individual overrides (ignored when botConfig is provided)
   confluenceThreshold?: number
   rsiOversold?: number
   rsiOverbought?: number
   emaFast?: number
   emaSlow?: number
-  // Risk overrides
   atrMultiplierStop?: number
   atrMultiplierTarget?: number
-  allowShorts?: boolean
 }
 
 // ── Run a backtest ────────────────────────────────────────────────────────────
@@ -51,19 +54,30 @@ export async function runBacktestAction(params: RunBacktestParams) {
 
   const normalizedSymbol = normalizeTradingSymbol(params.symbol)
 
-  // Build configs with any overrides
-  const strategyConfig: StrategyConfig = {
-    ...DEFAULT_STRATEGY_CONFIG,
-    ...(params.confluenceThreshold !== undefined && { confluenceThreshold: params.confluenceThreshold }),
-    ...(params.rsiOversold         !== undefined && { rsiOversold:         params.rsiOversold }),
-    ...(params.rsiOverbought       !== undefined && { rsiOverbought:       params.rsiOverbought }),
-    ...(params.emaFast             !== undefined && { emaFast:             params.emaFast }),
-    ...(params.emaSlow             !== undefined && { emaSlow:             params.emaSlow }),
-  }
-  const riskConfig: RiskConfig = {
-    ...DEFAULT_RISK_CONFIG,
-    ...(params.atrMultiplierStop   !== undefined && { atrMultiplierStop:   params.atrMultiplierStop }),
-    ...(params.atrMultiplierTarget !== undefined && { atrMultiplierTarget: params.atrMultiplierTarget }),
+  // Build configs: prefer full botConfig, fall back to individual overrides
+  let strategyConfig: StrategyConfig
+  let riskConfig: RiskConfig
+  let extConfig: SignalEngineExtConfig = {}
+
+  if (params.botConfig) {
+    const built = buildAllConfigs(params.botConfig)
+    strategyConfig = built.strategyConfig
+    riskConfig     = built.riskConfig
+    extConfig      = built.extConfig
+  } else {
+    strategyConfig = {
+      ...DEFAULT_STRATEGY_CONFIG,
+      ...(params.confluenceThreshold !== undefined && { confluenceThreshold: params.confluenceThreshold }),
+      ...(params.rsiOversold         !== undefined && { rsiOversold:         params.rsiOversold }),
+      ...(params.rsiOverbought       !== undefined && { rsiOverbought:       params.rsiOverbought }),
+      ...(params.emaFast             !== undefined && { emaFast:             params.emaFast }),
+      ...(params.emaSlow             !== undefined && { emaSlow:             params.emaSlow }),
+    }
+    riskConfig = {
+      ...DEFAULT_RISK_CONFIG,
+      ...(params.atrMultiplierStop   !== undefined && { atrMultiplierStop:   params.atrMultiplierStop }),
+      ...(params.atrMultiplierTarget !== undefined && { atrMultiplierTarget: params.atrMultiplierTarget }),
+    }
   }
 
   // Create a placeholder run row
@@ -73,7 +87,7 @@ export async function runBacktestAction(params: RunBacktestParams) {
     start_date:      params.fromDate,
     end_date:        params.toDate,
     initial_capital: params.initialCapital,
-    config:          { strategyConfig, riskConfig, ...DEFAULT_BACKTEST_CONFIG },
+    config:          { strategyConfig, riskConfig, extConfig, ...DEFAULT_BACKTEST_CONFIG },
     status:          'RUNNING',
   }).select('id').single()
 
@@ -104,7 +118,8 @@ export async function runBacktestAction(params: RunBacktestParams) {
       initialCapital: params.initialCapital,
       strategyConfig,
       riskConfig,
-      allowShorts: params.allowShorts ?? true,
+      extConfig,
+      allowShorts: params.allowShorts ?? params.botConfig?.allowShorts ?? true,
     })
 
     // Save individual trades

@@ -37,7 +37,7 @@ export interface VolumeConfig {
 
 export const DEFAULT_VOLUME_CONFIG: VolumeConfig = {
   maPeriod: 20,
-  multiplier: 1.2,
+  multiplier: 1.1,
 }
 
 /**

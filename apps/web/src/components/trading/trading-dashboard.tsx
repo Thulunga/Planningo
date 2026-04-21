@@ -83,6 +83,7 @@ export function TradingDashboard({
   const [focusMode, setFocusMode] = useState<FocusMode>('execution')
   const watchlistContainerRef = useRef<HTMLDivElement>(null)
   const [chartHeight, setChartHeight] = useState<number>(300)
+  const [commandBarIst, setCommandBarIst] = useState<string>('--:--:--')
   const [, startTransition] = useTransition()
 
   function refreshAll() {
@@ -190,6 +191,15 @@ export function TradingDashboard({
   }, [market.msUntilChange, market.status, openTradesCount, signals])
 
   useEffect(() => {
+    // Client-only clock avoids SSR/client text mismatch during hydration.
+    const updateClock = () => setCommandBarIst(getMarketInfo().currentIST)
+    updateClock()
+    const interval = setInterval(updateClock, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
     const el = watchlistContainerRef.current
     if (!el) return
 
@@ -236,7 +246,7 @@ export function TradingDashboard({
             <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">Last scan: {lastScanLabel}</span>
             <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">Open: {openTradesCount}</span>
             <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">Signals: {latestSignalsCount}</span>
-            <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground hidden md:inline">{market.currentIST} IST</span>
+            <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground hidden md:inline">{commandBarIst} IST</span>
           </div>
 
           <div className="inline-flex rounded-lg border border-border p-0.5 text-xs">

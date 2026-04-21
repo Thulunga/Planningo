@@ -67,6 +67,8 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
   const [hasMore, setHasMore] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [recentEntryIds, setRecentEntryIds] = useState<string[]>([])
+  const recentTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   // ── Realtime subscription + initial load ────────────────────────────────
   useEffect(() => {
@@ -97,11 +99,21 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
           const newLog = payload.new as ScanLog
           if (newLog.user_id !== userId) return
           setLogs((prev) => [...prev, newLog].slice(-200))
+          // mark as recent to animate briefly
+          setRecentEntryIds((prev) => (prev.includes(newLog.id) ? prev : [...prev, newLog.id]))
+          recentTimersRef.current[newLog.id] = setTimeout(() => {
+            setRecentEntryIds((prev) => prev.filter((id) => id !== newLog.id))
+            delete recentTimersRef.current[newLog.id]
+          }, 2000)
         }
       )
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+      // clear any pending animation timers
+      Object.values(recentTimersRef.current).forEach(clearTimeout)
+    }
   }, [userId])
 
   // ── Load older logs ──────────────────────────────────────────────────────
@@ -130,10 +142,16 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
   }, [logs, userId, loadingMore, hasMore])
 
   // Auto-scroll to bottom when new logs arrive
+  // Auto-scroll to bottom when new logs arrive — scroll the container only
   useEffect(() => {
-    if (autoScroll && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
+    if (!autoScroll) return
+    const el = containerRef.current
+    if (!el) return
+    // schedule on next frame to ensure DOM updated
+    const id = requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(id)
   }, [logs, autoScroll])
 
   function handleScroll() {
@@ -145,18 +163,18 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-zinc-900/60 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <Terminal className="h-4 w-4 text-emerald-400" />
-          <span className="font-semibold text-sm font-mono tracking-tight">Activity Log</span>
-          <span className="text-xs text-muted-foreground/60">({logs.length})</span>
+      {/* Header — low-contrast, theme-aware "hacker terminal" */}
+      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0 bg-white/60 border-zinc-200 dark:bg-zinc-900/60 dark:border-zinc-800">
+        <div className="flex items-center gap-3">
+          <div className="font-mono text-[12px] text-emerald-600/50 dark:text-green-400/60 select-none">root@planningo:~$</div>
+          <span className="font-semibold text-sm font-mono tracking-tight text-zinc-700 dark:text-green-200">activity.log</span>
+          <span className="text-xs text-zinc-500 dark:text-green-500/80 ml-2">({logs.length})</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
           {isConnected && (
-            <span className="flex items-center gap-1 text-emerald-500">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
+            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80">live</span>
             </span>
           )}
           <button
@@ -164,8 +182,8 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
             className={cn(
               'flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors',
               autoScroll
-                ? 'bg-emerald-500/15 text-emerald-400'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-600/10'
+                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800/10 dark:text-zinc-300 dark:hover:bg-zinc-800/20'
             )}
           >
             {autoScroll ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
@@ -178,7 +196,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto bg-zinc-950 font-mono text-xs"
+        className="min-h-0 flex-1 overflow-y-auto bg-white/60 text-zinc-900 font-mono text-xs dark:bg-zinc-950 dark:text-green-300"
         style={{ minHeight: '280px' }}
       >
         {logs.length === 0 ? (
@@ -188,14 +206,14 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
             <span className="text-[10px] opacity-60">Logs appear here as the Railway engine scans stocks</span>
           </div>
         ) : (
-          <div className="divide-y divide-zinc-800/50">
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800/50">
             {/* Load older button at top */}
             {hasMore && (
-              <div className="flex items-center justify-center py-2 bg-zinc-900/60">
+              <div className="flex items-center justify-center py-2 bg-zinc-50 dark:bg-zinc-900/60">
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="flex items-center gap-1.5 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1 rounded hover:bg-zinc-800/50 disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors px-3 py-1 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800/50 disabled:opacity-50"
                 >
                   {loadingMore
                     ? <><Loader2 className="h-3 w-3 animate-spin" />Loading...</>
@@ -204,7 +222,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
               </div>
             )}
             {logs.map((log) => (
-              <LogEntry key={log.id} log={log} />
+              <LogEntry key={log.id} log={log} isNew={recentEntryIds.includes(log.id)} />
             ))}
           </div>
         )}
@@ -214,8 +232,19 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
   )
 }
 
-function LogEntry({ log }: { log: ScanLog }) {
+function LogEntry({ log, isNew }: { log: ScanLog; isNew?: boolean }) {
   const [expanded, setExpanded] = useState(false)
+  const [animateIn, setAnimateIn] = useState(false)
+
+  useEffect(() => {
+    if (!isNew) return
+    // trigger enter animation on mount when flagged as new
+    const raf = requestAnimationFrame(() => setAnimateIn(true))
+    return () => {
+      cancelAnimationFrame(raf)
+      setAnimateIn(false)
+    }
+  }, [isNew])
 
   const time = new Date(log.scanned_at).toLocaleTimeString('en-IN', {
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
@@ -240,8 +269,10 @@ function LogEntry({ log }: { log: ScanLog }) {
   return (
     <div
       className={cn(
-        'group px-3 py-2 cursor-pointer hover:bg-zinc-900/60 transition-colors',
-        expanded && 'bg-zinc-900/40'
+        'group px-3 py-2 cursor-pointer transition-colors transform transition-all duration-300 ease-out',
+        'hover:bg-zinc-50 dark:hover:bg-zinc-900/60',
+        expanded && 'bg-zinc-50 dark:bg-zinc-900/40',
+        isNew ? (animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2') : 'opacity-100 translate-y-0'
       )}
       onClick={() => setExpanded(!expanded)}
     >
@@ -251,11 +282,11 @@ function LogEntry({ log }: { log: ScanLog }) {
         <span className="text-zinc-600 shrink-0 w-[72px]">{time}</span>
 
         {/* Symbol */}
-        <span className="text-zinc-300 font-bold w-[80px] shrink-0">{symbolShort}</span>
+        <span className="font-bold w-[80px] shrink-0 text-zinc-800 dark:text-green-200">{symbolShort}</span>
 
         {/* Price */}
         {log.price != null && (
-          <span className="text-zinc-400 w-[72px] shrink-0">₹{log.price.toFixed(1)}</span>
+          <span className="w-[72px] shrink-0 text-zinc-700 dark:text-green-300">₹{log.price.toFixed(1)}</span>
         )}
 
         {/* Indicator votes mini-badges */}
@@ -270,7 +301,7 @@ function LogEntry({ log }: { log: ScanLog }) {
 
         {/* Score */}
         {log.confluence_score != null && (
-          <span className="text-zinc-500 shrink-0">[{log.confluence_score}/6]</span>
+          <span className="text-zinc-700 dark:text-zinc-500 shrink-0">[{log.confluence_score}/6]</span>
         )}
 
         {/* Signal */}
@@ -287,32 +318,32 @@ function LogEntry({ log }: { log: ScanLog }) {
         )}
 
         {/* Expand chevron */}
-        <span className="ml-auto text-zinc-700 group-hover:text-zinc-500 shrink-0">
+        <span className="ml-auto text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-green-300 shrink-0">
           {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </span>
       </div>
 
       {/* ── Expanded breakdown ──────────────────────────────────────────────── */}
       {expanded && (
-        <div className="mt-2 ml-[88px] space-y-1.5 border-l border-zinc-700/50 pl-3">
+        <div className="mt-2 ml-[88px] space-y-1.5 border-l border-zinc-200 dark:border-zinc-700/50 pl-3">
           {/* Indicator reasons */}
           {log.reasons && Object.entries(log.reasons).map(([key, reason]) => (
             <div key={key} className="flex gap-2 text-[11px] leading-relaxed">
-              <span className="text-zinc-600 uppercase w-[52px] shrink-0">{INDICATOR_LABELS[key] ?? key}</span>
-              <span className="text-zinc-400">{reason}</span>
+              <span className="text-zinc-700 dark:text-zinc-400 uppercase w-[52px] shrink-0">{INDICATOR_LABELS[key] ?? key}</span>
+              <span className="text-zinc-700/80 dark:text-zinc-400">{reason}</span>
             </div>
           ))}
 
           {/* Trade outcome */}
           {log.trade_reason && (
-            <div className="mt-2 pt-1.5 border-t border-zinc-800 flex gap-2 text-[11px]">
-              <span className="text-zinc-600 w-[52px] shrink-0">TRADE</span>
+            <div className="mt-2 pt-1.5 border-t border-zinc-200 dark:border-zinc-800 flex gap-2 text-[11px]">
+              <span className="text-zinc-700 dark:text-zinc-400 w-[52px] shrink-0">TRADE</span>
               <span className={cn('font-medium', tradeColor)}>{log.trade_reason}</span>
             </div>
           )}
 
           {/* Raw values */}
-          <div className="mt-1.5 pt-1.5 border-t border-zinc-800 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] text-zinc-600">
+          <div className="mt-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] text-zinc-700 dark:text-zinc-400">
             {log.rsi    != null && <span>RSI {log.rsi.toFixed(1)}</span>}
             {log.ema9   != null && <span>EMA9 ₹{log.ema9.toFixed(1)}</span>}
             {log.ema21  != null && <span>EMA21 ₹{log.ema21.toFixed(1)}</span>}
@@ -327,9 +358,21 @@ function LogEntry({ log }: { log: ScanLog }) {
 }
 
 function VoteBadge({ label, vote }: { label: string; vote: number | undefined }) {
-  if (vote === 1)  return <span className="text-[9px] px-1 py-px rounded bg-emerald-500/20 text-emerald-400 font-bold">{label}</span>
-  if (vote === -1) return <span className="text-[9px] px-1 py-px rounded bg-red-500/20 text-red-400 font-bold">{label}</span>
-  return <span className="text-[9px] px-1 py-px rounded bg-zinc-800 text-zinc-600">{label}</span>
+  if (vote === 1)  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+      {label}
+    </span>
+  )
+  if (vote === -1) return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">
+      {label}
+    </span>
+  )
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+      {label}
+    </span>
+  )
 }
 
 function shortStrength(s: string): string {
