@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Plus, DollarSign, Users, ArrowRight, Loader2 } from 'lucide-react'
+import { Plus, DollarSign, Users, ArrowRight, Loader2, BarChart3, Shield } from 'lucide-react'
 import {
   Button,
   Card,
@@ -38,9 +38,10 @@ interface Group {
 interface ExpensesClientProps {
   groups: Group[]
   userId: string
+  isAdmin?: boolean
 }
 
-export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
+export function ExpensesClient({ groups, userId, isAdmin = false }: ExpensesClientProps) {
   const router = useRouter()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,15 +77,50 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-          <p className="text-sm text-muted-foreground">{groups.length} group(s)</p>
+          <p className="text-sm text-muted-foreground">Split expenses &amp; track your personal budget</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
           <Plus className="h-4 w-4" />
           New Group
         </Button>
+      </div>
+
+      {/* Navigation between Groups and Budget */}
+      <div className="flex gap-3">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors cursor-default">
+          <Users className="h-4 w-4 text-primary shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">Split Groups</p>
+            <p className="text-xs text-muted-foreground">{groups.length} active group(s)</p>
+          </div>
+        </div>
+        <Link
+          href="/expenses/budget"
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors group"
+        >
+          <BarChart3 className="h-4 w-4 text-emerald-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">My Budget</p>
+            <p className="text-xs text-muted-foreground">Income, expenses &amp; goals</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/expenses/admin"
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors group"
+          >
+            <Shield className="h-4 w-4 text-amber-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Expenses Admin</p>
+              <p className="text-xs text-muted-foreground">Global moderation & controls</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+        )}
       </div>
 
       {groups.length === 0 ? (

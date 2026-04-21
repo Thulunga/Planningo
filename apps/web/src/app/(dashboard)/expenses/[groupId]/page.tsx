@@ -1,10 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { format } from 'date-fns'
 import { createClient, getUserProfile } from '@/lib/supabase/server'
-import { Button, Badge, Card, CardContent, Separator } from '@planningo/ui'
-import { ArrowLeft, Plus, Users } from 'lucide-react'
+import { getCategories } from '@/lib/actions/budget'
 import { GroupExpensesClient } from '@/components/expenses/group-expenses-client'
 
 export const metadata: Metadata = { title: 'Group Expenses' }
@@ -23,18 +20,24 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
 
   if (!group) notFound()
 
-  const { data: expenses } = await supabase
-    .from('expenses')
-    .select('*, expense_splits(*), profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
-    .eq('group_id', groupId)
-    .is('deleted_at', null)
-    .order('expense_date', { ascending: false })
-
-  const { data: settlements } = await supabase
-    .from('settlements')
-    .select('*, paid_by_profile:profiles!settlements_paid_by_fkey(id, full_name), paid_to_profile:profiles!settlements_paid_to_fkey(id, full_name)')
-    .eq('group_id', groupId)
-    .order('settled_at', { ascending: false })
+  const [
+    { data: expenses },
+    { data: settlements },
+    { categories },
+  ] = await Promise.all([
+    supabase
+      .from('expenses')
+      .select('*, expense_splits(*), profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
+      .eq('group_id', groupId)
+      .is('deleted_at', null)
+      .order('expense_date', { ascending: false }),
+    supabase
+      .from('settlements')
+      .select('*, paid_by_profile:profiles!settlements_paid_by_fkey(id, full_name), paid_to_profile:profiles!settlements_paid_to_fkey(id, full_name)')
+      .eq('group_id', groupId)
+      .order('settled_at', { ascending: false }),
+    getCategories(),
+  ])
 
   return (
     <GroupExpensesClient
@@ -42,6 +45,7 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
       expenses={expenses ?? []}
       settlements={settlements ?? []}
       currentUserId={profile.id}
+      budgetCategories={categories}
     />
   )
 }

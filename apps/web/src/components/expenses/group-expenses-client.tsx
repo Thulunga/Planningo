@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2 } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, BookmarkPlus, CheckCircle2 } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -29,6 +29,7 @@ import {
 } from '@planningo/ui'
 import { createExpense, addGroupMember, createSettlement } from '@/lib/actions/expenses'
 import { useRouter } from 'next/navigation'
+import { AddTransactionDialog } from './budget/add-transaction-dialog'
 
 interface Member {
   user_id: string
@@ -36,11 +37,20 @@ interface Member {
   profiles: { id: string; full_name: string | null; email: string; avatar_url: string | null } | null
 }
 
+interface BudgetCategory {
+  id: string
+  name: string
+  icon: string
+  color: string
+  type: 'income' | 'expense' | 'both'
+}
+
 interface GroupExpensesClientProps {
   group: { id: string; name: string; currency: string; category: string; group_members: Member[] }
   expenses: any[]
   settlements: any[]
   currentUserId: string
+  budgetCategories: BudgetCategory[]
 }
 
 function calcBalances(expenses: any[], settlements: any[], currentUserId: string, members: Member[]) {
@@ -71,6 +81,7 @@ export function GroupExpensesClient({
   expenses: initialExpenses,
   settlements: initialSettlements,
   currentUserId,
+  budgetCategories,
 }: GroupExpensesClientProps) {
   const router = useRouter()
   const [expenses, setExpenses] = useState(initialExpenses)
@@ -78,6 +89,12 @@ export function GroupExpensesClient({
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [memberEmail, setMemberEmail] = useState('')
+  // Record to budget
+  const [recordingExpense, setRecordingExpense] = useState<{
+    id: string
+    title: string
+    splitAmount: number
+  } | null>(null)
 
   const [newExpense, setNewExpense] = useState({
     title: '',
@@ -264,12 +281,30 @@ export function GroupExpensesClient({
                         Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date), 'MMM d')}
                       </p>
                     </div>
-                    <div className="w-full text-left sm:w-auto sm:text-right">
-                      <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
+                        {yourSplit && (
+                          <p className="text-xs text-muted-foreground">
+                            Your share: {group.currency} {yourSplit.amount.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
                       {yourSplit && (
-                        <p className="text-xs text-muted-foreground">
-                          Your share: {group.currency} {yourSplit.amount.toFixed(2)}
-                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 shrink-0"
+                          title="Record to my budget"
+                          onClick={() => setRecordingExpense({
+                            id: exp.id,
+                            title: exp.title,
+                            splitAmount: yourSplit.amount,
+                          })}
+                        >
+                          <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
+                          Record
+                        </Button>
                       )}
                     </div>
                   </CardContent>
@@ -379,6 +414,27 @@ export function GroupExpensesClient({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Record group expense to personal budget */}
+      {recordingExpense && (
+        <AddTransactionDialog
+          open={!!recordingExpense}
+          onOpenChange={(v) => { if (!v) setRecordingExpense(null) }}
+          categories={budgetCategories}
+          groupExpenses={expenses.map((exp) => ({
+            id: exp.id,
+            title: exp.title,
+            expense_date: exp.expense_date,
+            currency: group.currency,
+            expense_groups: { name: group.name },
+            expense_splits: exp.expense_splits?.filter((s: any) => s.user_id === currentUserId) ?? [],
+          }))}
+          defaultType="expense"
+          prefilledGroupExpenseId={recordingExpense.id}
+          prefilledAmount={recordingExpense.splitAmount}
+          prefilledTitle={recordingExpense.title}
+        />
+      )}
     </div>
   )
 }
