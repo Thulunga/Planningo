@@ -13,6 +13,9 @@ import { calculateIndicators } from '@/lib/trading/indicators'
 import { generateSignal, isActionableSignal } from '@/lib/trading/signal-engine'
 import { executePaperTrade, initializePortfolio } from '@/lib/trading/paper-trader'
 import { isMarketOpen } from '@/lib/trading/market-hours'
+import { getTrendContext, DEFAULT_HTF_CONFIG, DEFAULT_STRATEGY_CONFIG } from '@planningo/trading-core'
+import type { SignalEngineExtConfig } from '@planningo/trading-core'
+import { buildAllConfigs } from '@/lib/trading/bot-config-utils'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -23,8 +26,49 @@ export async function POST(request: NextRequest) {
   }
 
   // Allow force-run outside market hours (for testing)
+  // Accept optional botConfig from the Bot Manager store (sent by the client scan trigger)
   const body = await request.json().catch(() => ({}))
   const forceRun = body?.force === true
+
+  // Build strategy/risk/ext configs.
+  // Priority: body.botConfig (manual trigger) → DB-saved config → defaults
+  let strategyConfig = DEFAULT_STRATEGY_CONFIG
+  let extConfig: SignalEngineExtConfig = {}
+
+  const rawBotConfig = body?.botConfig ?? null
+
+  if (rawBotConfig) {
+    // Client sent config explicitly (manual scan from UI)
+    try {
+      const built = buildAllConfigs(rawBotConfig)
+      strategyConfig = built.strategyConfig
+      extConfig      = built.extConfig
+    } catch {
+      // fall through to DB load
+    }
+  }
+
+  if (!rawBotConfig) {
+    // Cron path — load saved config from DB so the scheduled job honours Bot Manager settings
+    try {
+      const { data: cfgRow } = await (supabase as any)
+        .from('bot_config')
+        .select('config')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (cfgRow?.config) {
+        const { BOT_CONFIG_DEFAULTS } = await import('@/stores/trading-config-store')
+        const merged = { ...BOT_CONFIG_DEFAULTS, ...(cfgRow.config as object) }
+        const built  = buildAllConfigs(merged as any)
+        strategyConfig = built.strategyConfig
+        extConfig      = built.extConfig
+      }
+    } catch {
+      // DB read failed — continue with defaults, log for observability
+      console.warn('[signals] Could not load bot_config from DB, using defaults')
+    }
+  }
 
   if (!isMarketOpen() && !forceRun) {
     return NextResponse.json({ message: 'Market is closed', signals: [] })
@@ -63,8 +107,12 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        const indicators = calculateIndicators(candles)
-        const signal = generateSignal(indicators, candles)
+        const indicators = calculateIndicators(candles, strategyConfig)
+        const htfCfg = extConfig.htfConfig
+          ? { ...DEFAULT_HTF_CONFIG, ...extConfig.htfConfig }
+          : DEFAULT_HTF_CONFIG
+        const trendContext = getTrendContext(candles, htfCfg)
+        const signal = generateSignal(indicators, candles, strategyConfig, trendContext, extConfig)
 
         // Only persist actionable signals (not HOLD)
         if (signal.type === 'HOLD') return

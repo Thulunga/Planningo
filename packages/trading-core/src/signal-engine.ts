@@ -9,7 +9,7 @@
  *   EMA, RSI, MACD, Supertrend:         1 point each
  *   Bollinger Bands:                    0.5 points (lowest confidence)
  * 
- * Threshold: 6+ points to generate a signal (up from 4/6 equal votes)
+ * Threshold: configurable weighted points to generate a signal.
  * 
  * TREND FILTER (MANDATORY):
  * Only BUY signals are allowed in BULLISH trend (HTF price > EMA50, RSI > 40).
@@ -19,7 +19,7 @@
 
 import type {
   Candle, IndicatorValues, IndicatorVoteDetail,
-  Signal, SignalType, SignalStrength, StrategyConfig, TrendContext,
+  Signal, SignalType, SignalStrength, StrategyConfig, TrendContext, SignalEngineExtConfig,
 } from './types'
 import { DEFAULT_STRATEGY_CONFIG } from './config'
 import { evaluateThreeMABoundary } from './ma-boundary'
@@ -30,9 +30,11 @@ export function generateSignal(
   indicators: IndicatorValues,
   candles: Candle[],
   config: StrategyConfig = DEFAULT_STRATEGY_CONFIG,
-  trendContext: TrendContext | null = null
+  trendContext: TrendContext | null = null,
+  extConfig: SignalEngineExtConfig = {}
 ): Signal {
-  const preTradeFilter = evaluateThreeMABoundary(candles, indicators.atr)
+  const ext = extConfig
+  const preTradeFilter = evaluateThreeMABoundary(candles, indicators.atr, ext.maBoundary ?? {})
   const votes: IndicatorVoteDetail[] = []
 
   // ── 1. EMA Fast / Slow Cross ─────────────────────────────────────────────
@@ -47,10 +49,10 @@ export function generateSignal(
       reason: bullish
         ? `EMA${config.emaFast} above EMA${config.emaSlow} by ${pct}% - uptrend momentum`
         : `EMA${config.emaFast} below EMA${config.emaSlow} by ${pct}% - downtrend momentum`,
-      weight: 1,
+      weight: ext.enableEMA !== false ? 1 : 0,
     })
   } else {
-    votes.push({ name: 'EMA Cross', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: 1 })
+    votes.push({ name: 'EMA Cross', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: ext.enableEMA !== false ? 1 : 0 })
   }
 
   // ── 2. RSI ────────────────────────────────────────────────────────────────
@@ -70,9 +72,9 @@ export function generateSignal(
     } else {
       vote = 'SELL'; reason = `RSI ${r.toFixed(1)} - overbought, expect pullback`
     }
-    votes.push({ name: 'RSI(14)', vote, value: `${r.toFixed(1)}`, reason, weight: 1 })
+    votes.push({ name: 'RSI(14)', vote, value: `${r.toFixed(1)}`, reason, weight: ext.enableRSI !== false ? 1 : 0 })
   } else {
-    votes.push({ name: 'RSI(14)', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: 1 })
+    votes.push({ name: 'RSI(14)', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: ext.enableRSI !== false ? 1 : 0 })
   }
 
   // ── 3. MACD ───────────────────────────────────────────────────────────────
@@ -87,10 +89,10 @@ export function generateSignal(
       reason: bullish
         ? `MACD above signal (histogram ${hist} ${trend}) - bullish crossover`
         : `MACD below signal (histogram ${hist} ${trend}) - bearish crossover`,
-      weight: 1,
+      weight: ext.enableMACD !== false ? 1 : 0,
     })
   } else {
-    votes.push({ name: 'MACD', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: 1 })
+    votes.push({ name: 'MACD', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: ext.enableMACD !== false ? 1 : 0 })
   }
 
   // ── 4. Supertrend ─────────────────────────────────────────────────────────
@@ -104,10 +106,10 @@ export function generateSignal(
       reason: bullish
         ? `Price above Supertrend support at ₹${line} - uptrend intact`
         : `Price below Supertrend resistance at ₹${line} - downtrend active`,
-      weight: 1,
+      weight: ext.enableSupertrend !== false ? 1 : 0,
     })
   } else {
-    votes.push({ name: 'Supertrend', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: 1 })
+    votes.push({ name: 'Supertrend', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: ext.enableSupertrend !== false ? 1 : 0 })
   }
 
   // ── 5. Bollinger Bands ────────────────────────────────────────────────────
@@ -135,10 +137,10 @@ export function generateSignal(
       vote,
       value: `U: ₹${indicators.bbUpper.toFixed(1)}  M: ₹${indicators.bbMiddle.toFixed(1)}  L: ₹${indicators.bbLower.toFixed(1)}`,
       reason,
-      weight: 0.5,  // Lowest weight - rely on structure/volume instead
+      weight: ext.enableBB !== false ? 0.5 : 0,
     })
   } else {
-    votes.push({ name: 'BB Bands', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: 0.5 })
+    votes.push({ name: 'BB Bands', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient data', weight: ext.enableBB !== false ? 0.5 : 0 })
   }
 
   // ── 6. VWAP ───────────────────────────────────────────────────────────────
@@ -153,14 +155,17 @@ export function generateSignal(
       reason: bullish
         ? `Price ${diff}% above VWAP ₹${indicators.vwap.toFixed(1)} - institutional buying zone`
         : `Price ${diff}% below VWAP ₹${indicators.vwap.toFixed(1)} - distribution pressure`,
-      weight: 2,  // Increased weight - high institutional confirmation value
+      weight: ext.enableVWAP !== false ? 2 : 0,
     })
   } else {
-    votes.push({ name: 'VWAP', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient volume data for VWAP', weight: 2 })
+    votes.push({ name: 'VWAP', vote: 'NEUTRAL', value: 'n/a', reason: 'Insufficient volume data for VWAP', weight: ext.enableVWAP !== false ? 2 : 0 })
   }
 
   // ── 7. Structure Analysis (NEW) ──────────────────────────────────────────
   // Analyze bullish structures (swing breaks, pullbacks, strong candles)
+  const structCfg = ext.structure
+    ? { ...DEFAULT_STRUCTURE_CONFIG, ...ext.structure }
+    : DEFAULT_STRUCTURE_CONFIG
   const bullishStructure = analyzeBullishStructure(
     candles.slice(Math.max(0, candles.length - 20)),
     indicators.close,
@@ -168,7 +173,7 @@ export function generateSignal(
     indicators.ema21,
     indicators.atr,
     indicators.vwap,
-    DEFAULT_STRUCTURE_CONFIG
+    structCfg
   )
   const bearishStructure = analyzeBearishStructure(
     candles.slice(Math.max(0, candles.length - 20)),
@@ -177,12 +182,12 @@ export function generateSignal(
     indicators.ema21,
     indicators.atr,
     indicators.vwap,
-    DEFAULT_STRUCTURE_CONFIG
+    structCfg
   )
 
   const structureVote = bullishStructure.confidence > bearishStructure.confidence ? 'BUY' : 'SELL'
   const structureConfidence = Math.max(bullishStructure.confidence, bearishStructure.confidence)
-  const structureWeight = structureConfidence * 2  // Max 2 points
+  const structureWeight = (ext.enableStructure !== false ? structureConfidence : 0) * 2
   const structureDetail = structureVote === 'BUY'
     ? `${bullishStructure.pattern} (conf: ${structureConfidence.toFixed(2)})`
     : `${bearishStructure.pattern} (conf: ${structureConfidence.toFixed(2)})`
@@ -198,12 +203,14 @@ export function generateSignal(
   })
 
   // ── 8. Volume Analysis (NEW) ─────────────────────────────────────────────
+  const volumeCfg = ext.volume ? { ...DEFAULT_VOLUME_CONFIG, ...ext.volume } : DEFAULT_VOLUME_CONFIG
   const volumeAnalysis = analyzeVolume(
     candles.slice(0, candles.length),
-    DEFAULT_VOLUME_CONFIG
+    volumeCfg
   )
   const volumeVote = volumeAnalysis.isConfirmed ? 'BUY' : 'SELL'  // SELL = no volume
-  const volumeWeight = volumeAnalysis.isConfirmed ? 1 : 0  // Only 1 point if confirmed
+  const baseVolumeWeight = volumeAnalysis.isConfirmed ? 1 : 0
+  const volumeWeight = ext.enableVolume !== false ? baseVolumeWeight : 0
   const volumeReason = volumeAnalysis.isConfirmed
     ? `Volume ratio ${volumeAnalysis.volumeRatio?.toFixed(2)}x exceeds threshold`
     : `Volume ratio ${volumeAnalysis.volumeRatio?.toFixed(2)}x below ${DEFAULT_VOLUME_CONFIG.multiplier}x threshold`
@@ -230,13 +237,11 @@ export function generateSignal(
   let type: SignalType = 'HOLD'
   let confluenceScore  = 0
 
-  // Threshold: 5+ weighted points
-  // Traditional indicators alone max out at ~6.5pts; structure adds 0-2 more
-  // 5pts is achievable with VWAP(2) + 3 agreeing indicators
-  if (buyScore >= 5 && buyScore > sellScore) {
+  // Use configured weighted threshold (default from DEFAULT_STRATEGY_CONFIG).
+  if (buyScore >= config.confluenceThreshold && buyScore > sellScore) {
     type           = 'BUY'
     confluenceScore = buyScore
-  } else if (sellScore >= 5 && sellScore > buyScore) {
+  } else if (sellScore >= config.confluenceThreshold && sellScore > buyScore) {
     type           = 'SELL'
     confluenceScore = sellScore
   } else {
@@ -254,8 +259,10 @@ export function generateSignal(
     reasons[key] = `${v.vote === 'BUY' ? '✅' : v.vote === 'SELL' ? '❌' : '⚪'} ${v.reason}`
   }
 
-  // Apply pre-trade filter
-  if (type !== 'HOLD') {
+  // Apply pre-trade filter (can be disabled via extConfig)
+  if (ext.enableMABoundaryFilter === false) {
+    reasons.pre_trade_filter = `⚪ MA boundary filter disabled`
+  } else if (type !== 'HOLD') {
     if (preTradeFilter.signal === 'NO_TRADE') {
       type = 'HOLD'
       reasons.pre_trade_filter = `⛔ MA boundary rejected trade (${preTradeFilter.reason ?? 'filter_failed'})`
@@ -288,10 +295,20 @@ export function generateSignal(
     candleTime: lastCandle.time,
   }
 
-  // ── Apply Trend Filter (MANDATORY) ────────────────────────────────────────
-  // Only allow BUY in BULLISH trend, SELL in BEARISH trend, reject NEUTRAL
+  // ── Apply Trend Filter (can be disabled via extConfig) ─────────────────────
   let finalType = type
   let trendReason = ''
+
+  if (ext.enableTrendFilter === false) {
+    finalType = type
+    trendReason = `⚪ Trend filter disabled`
+    reasons.trend_filter = trendReason
+    return {
+      type: finalType, strength, confluenceScore, price: indicators.close,
+      indicators, votes, reasons, preTradeFilter, trendContext: trend,
+      candleTime: new Date(lastCandle.time * 1000),
+    }
+  }
 
   if (type !== 'HOLD') {
     if (trend.direction === 'NEUTRAL') {

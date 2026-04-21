@@ -5,5 +5,5 @@
  */
 export type { MarketStatus, MarketInfo } from '@planningo/trading-core'
 export {
-  getMarketInfo, isMarketOpen, formatDuration, getSession,
+  getMarketInfo, isMarketOpen, isEODCloseTime, formatDuration, getSession,
 } from '@planningo/trading-core'

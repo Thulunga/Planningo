@@ -2,7 +2,7 @@
 
 import type { BacktestResult } from '@planningo/trading-core'
 import { EquityCurveChart } from '@/components/trading/analytics/equity-curve-chart'
-import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, Download } from 'lucide-react'
 
 interface Props {
   result: BacktestResult
@@ -12,7 +12,96 @@ interface Props {
   runId: string
 }
 
-function Stat({
+function exportToCSV(result: BacktestResult) {
+  const { config, trades, metrics } = result
+  const sc = config.strategyConfig
+  const rc = config.riskConfig
+  const ext = (config as {extConfig?: Record<string, unknown>}).extConfig ?? {}
+
+  // ── Settings section ─────────────────────────────────────────────────────
+  const settingsRows = [
+    ['=== BOT CONFIGURATION USED ==='],
+    ['Setting', 'Value'],
+    ['Symbol',                      config.symbol],
+    ['Period',                      `${config.startDate.toLocaleDateString('en-IN')} – ${config.endDate.toLocaleDateString('en-IN')}`],
+    ['Initial Capital',             config.initialCapital],
+    ['Allow Shorts',                String(config.allowShorts)],
+    ['--- Strategy ---'],
+    ['Confluence Threshold',        sc.confluenceThreshold],
+    ['EMA Fast / Slow',             `${sc.emaFast} / ${sc.emaSlow}`],
+    ['RSI Period',                  sc.rsiPeriod],
+    ['RSI Oversold / Overbought',   `${sc.rsiOversold} / ${sc.rsiOverbought}`],
+    ['MACD (fast/slow/sig)',        `${sc.macdFast}/${sc.macdSlow}/${sc.macdSignalPeriod}`],
+    ['Supertrend (period×mult)',    `${sc.supertrendPeriod}×${sc.supertrendMultiplier}`],
+    ['BB Period / StdDev',          `${sc.bbPeriod} / ${sc.bbStdDev}`],
+    ['VWAP Hours',                  sc.vwapHours],
+    ['ATR Period',                  sc.atrPeriod],
+    ['--- Risk ---'],
+    ['Risk Per Trade',              `${(rc.riskPerTradePct * 100).toFixed(1)}%`],
+    ['Daily Loss Limit',            `${(rc.dailyLossLimitPct * 100).toFixed(1)}%`],
+    ['ATR Stop / Target Mult',      `${rc.atrMultiplierStop}× / ${rc.atrMultiplierTarget}×`],
+    ['Min R:R',                     rc.minRewardRiskRatio],
+    ['Cooldown (min)',               rc.cooldownMinutesAfterLoss],
+    ['Max Concurrent',              rc.maxConcurrentPositions],
+    ['--- Filters ---'],
+    ['MA Boundary Filter',          String((ext as {enableMABoundaryFilter?: boolean}).enableMABoundaryFilter !== false)],
+    ['Trend Filter (HTF)',          String((ext as {enableTrendFilter?: boolean}).enableTrendFilter !== false)],
+    ['Volume Filter',               String((ext as {enableVolume?: boolean}).enableVolume !== false)],
+    ['Structure Analysis',          String((ext as {enableStructure?: boolean}).enableStructure !== false)],
+    [''],
+    ['=== PERFORMANCE SUMMARY ==='],
+    ['Total Return %',   metrics.totalReturn.toFixed(2)],
+    ['Total Return ₹',  metrics.totalReturnAbs.toFixed(0)],
+    ['Win Rate %',       metrics.winRate.toFixed(1)],
+    ['Profit Factor',    metrics.profitFactor === Infinity ? 'Inf' : metrics.profitFactor.toFixed(2)],
+    ['Max Drawdown %',   metrics.maxDrawdown.toFixed(2)],
+    ['Sharpe Ratio',     metrics.sharpeRatio !== null ? metrics.sharpeRatio.toFixed(2) : 'N/A'],
+    ['Total Trades',     metrics.totalTrades],
+    ['Wins / Losses',    `${metrics.winningTrades} / ${metrics.losingTrades}`],
+    ['Avg Win ₹',        metrics.averageWin.toFixed(0)],
+    ['Avg Loss ₹',       metrics.averageLoss.toFixed(0)],
+    ['Avg Duration min', metrics.averageDurationMinutes],
+    [''],
+    ['=== TRADES ==='],
+    ['Entry Date', 'Exit Date', 'Side', 'Entry ₹', 'Exit ₹', 'Qty', 'Stop ₹', 'Target ₹', 'P&L ₹', 'P&L %', 'R Multiple', 'Duration min', 'Status', 'Confluence Score', 'Signal Strength'],
+  ]
+
+  const tradeRows = trades.map((t) => [
+    t.entryTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    t.exitTime?.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) ?? '',
+    t.side,
+    t.entryPrice.toFixed(2),
+    t.exitPrice?.toFixed(2) ?? '',
+    t.quantity,
+    t.stopLoss.toFixed(2),
+    t.target.toFixed(2),
+    (t.pnl ?? '').toString(),
+    (t.pnlPct != null ? (t.pnlPct * 100).toFixed(2) : ''),
+    (t.rMultiple?.toFixed(2)) ?? '',
+    t.durationMinutes ?? '',
+    t.status,
+    t.confluenceScore ?? '',
+    t.signalStrength ?? '',
+  ])
+
+  const allRows = [...settingsRows, ...tradeRows]
+  const csv = allRows
+    .map((row) => (Array.isArray(row) ? row : [row])
+      .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+      .join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `backtest_${config.symbol}_${config.startDate.toISOString().substring(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+
+function StatCard({
   label, value, sub, positive,
 }: { label: string; value: string; sub?: string; positive?: boolean }) {
   return (
@@ -33,22 +122,32 @@ export function BacktestResults({ result, interval, warning, candleCount }: Prop
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        {isProfit
-          ? <TrendingUp className="h-5 w-5 text-green-500" />
-          : <TrendingDown className="h-5 w-5 text-red-500" />
-        }
-        <div>
-          <p className="font-semibold">
-            {result.config.symbol} ·{' '}
-            {result.config.startDate.toLocaleDateString('en-IN')} –{' '}
-            {result.config.endDate.toLocaleDateString('en-IN')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {candleCount.toLocaleString()} {interval} candles · {m.totalTrades} trades ·
-            ₹{result.config.initialCapital.toLocaleString('en-IN')} starting capital
-          </p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          {isProfit
+            ? <TrendingUp className="h-5 w-5 text-green-500" />
+            : <TrendingDown className="h-5 w-5 text-red-500" />
+          }
+          <div>
+            <p className="font-semibold">
+              {result.config.symbol} &middot;{' '}
+              {result.config.startDate.toLocaleDateString('en-IN')} &ndash;{' '}
+              {result.config.endDate.toLocaleDateString('en-IN')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {candleCount.toLocaleString()} {interval} candles &middot; {m.totalTrades} trades &middot;
+              Rs.{result.config.initialCapital.toLocaleString('en-IN')} starting capital
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => exportToCSV(result)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </button>
       </div>
 
       {warning && (

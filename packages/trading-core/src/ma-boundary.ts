@@ -20,7 +20,7 @@ const DEFAULT_MA_CONFIG: Required<MABoundaryConfig> = {
   maType: 'EMA',
   noTradeSpreadThreshold: 0.002,
   slopeThreshold: 0.05,
-  maxDistanceFromMA2: 0.01,
+  maxDistanceFromMA2: 0.02,
   pullbackAtrMultiplier: 0.5,
 }
 

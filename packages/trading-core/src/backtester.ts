@@ -20,8 +20,9 @@
 import { randomUUID } from 'crypto'
 import type {
   Candle, BacktestConfig, BacktestResult, SimulatedTrade,
-  StrategyConfig, RiskConfig,
+  StrategyConfig, RiskConfig, SignalEngineExtConfig,
 } from './types'
+import type { HTFConfig } from './multi-timeframe-analyzer'
 import { DEFAULT_STRATEGY_CONFIG, DEFAULT_RISK_CONFIG, DEFAULT_BACKTEST_CONFIG } from './config'
 import { calculateIndicators } from './indicators'
 import { generateSignal, isActionableSignal } from './signal-engine'
@@ -171,11 +172,17 @@ export async function runBacktest(
 
     const history = inRange.slice(0, i + 1)
     const indicators = calculateIndicators(history, config.strategyConfig, candle.time)
-    
-    // Analyze HTF trend (15-min by default)
-    const trendContext = getTrendContext(history, DEFAULT_HTF_CONFIG)
-    
-    const signal     = generateSignal(indicators, history, config.strategyConfig, trendContext)
+
+    // Analyze HTF trend using custom config if provided
+    const htfCfg: HTFConfig = config.extConfig?.htfConfig
+      ? { ...DEFAULT_HTF_CONFIG, ...config.extConfig.htfConfig }
+      : DEFAULT_HTF_CONFIG
+    const trendContext = getTrendContext(history, htfCfg)
+
+    const signal = generateSignal(
+      indicators, history, config.strategyConfig, trendContext,
+      (config.extConfig ?? {}) as SignalEngineExtConfig
+    )
 
     if (!isActionableSignal(signal)) continue
 

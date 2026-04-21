@@ -10,6 +10,7 @@ export type {
   PerformanceMetrics, EquityPoint,
   BacktestConfig, BacktestResult,
   ParameterGrid, OptimizerConfig, ExperimentResult,
+  SignalEngineExtConfig,
 } from './types'
 
 // ─── Config defaults ────────────────────────────────────────────��─────────────

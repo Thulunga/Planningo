@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BarChart2, FlaskConical } from 'lucide-react'
+import { BarChart2, FlaskConical, Settings2 } from 'lucide-react'
 import { getUser } from '@/lib/supabase/server'
 import {
   getPortfolio,
@@ -59,6 +59,13 @@ export default async function TradingPage() {
           >
             <FlaskConical className="h-3.5 w-3.5" />
             Backtest
+          </Link>
+          <Link
+            href="/trading/manage"
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Manage Bot
           </Link>
         </div>
       </div>
