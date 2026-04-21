@@ -16,6 +16,8 @@ export interface Candle {
   volume: number
 }
 
+import { buildSymbolCandidates } from './symbol'
+
 const YF_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart'
 
 /**
@@ -24,40 +26,58 @@ const YF_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart'
  */
 export async function fetchCandles(symbol: string, count: number = 100): Promise<Candle[]> {
   try {
-    const url = `${YF_CHART_URL}/${encodeURIComponent(symbol)}?interval=5m&range=2d`
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-    })
+    const candidates = buildSymbolCandidates(symbol)
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`)
+    for (const candidate of candidates) {
+      // Use 5d (not 2d) so Monday/holiday sessions still include enough bars
+      // for indicator warmup and do not get incorrectly flagged as insufficient.
+      const url = `${YF_CHART_URL}/${encodeURIComponent(candidate)}?interval=5m&range=5d`
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      })
+
+      if (!res.ok) {
+        continue
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const json = await res.json() as any
+      const result = json?.chart?.result?.[0]
+
+      if (!result) {
+        continue
+      }
+
+      const timestamps: number[] = result.timestamp ?? []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ohlcv = result.indicators?.quote?.[0] as any
+
+      if (!timestamps.length || !ohlcv) {
+        continue
+      }
+
+      const candles: Candle[] = timestamps
+        .map((ts, i) => ({
+          time:   ts,
+          open:   ohlcv.open?.[i]   as number,
+          high:   ohlcv.high?.[i]   as number,
+          low:    ohlcv.low?.[i]    as number,
+          close:  ohlcv.close?.[i]  as number,
+          volume: (ohlcv.volume?.[i] as number) ?? 0,
+        }))
+        .filter((c) => c.open != null && c.high != null && c.low != null && c.close != null)
+        .sort((a, b) => a.time - b.time)
+
+      if (candles.length > 0) {
+        if (candidate !== symbol.trim().toUpperCase()) {
+          console.log(`[market-data] ${symbol} resolved via ${candidate} (${candles.length} candles)`)
+        }
+        return candles.slice(-count)
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const json = await res.json() as any
-    const result = json?.chart?.result?.[0]
-
-    if (!result) return []
-
-    const timestamps: number[] = result.timestamp ?? []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ohlcv = result.indicators?.quote?.[0] as any
-
-    if (!timestamps.length || !ohlcv) return []
-
-    const candles: Candle[] = timestamps
-      .map((ts, i) => ({
-        time:   ts,
-        open:   ohlcv.open?.[i]   as number,
-        high:   ohlcv.high?.[i]   as number,
-        low:    ohlcv.low?.[i]    as number,
-        close:  ohlcv.close?.[i]  as number,
-        volume: (ohlcv.volume?.[i] as number) ?? 0,
-      }))
-      .filter((c) => c.open != null && c.high != null && c.low != null && c.close != null)
-      .sort((a, b) => a.time - b.time)
-
-    return candles.slice(-count)
+    console.warn(`[market-data] No candles found for ${symbol}; tried: ${candidates.join(', ')}`)
+    return []
   } catch (err) {
     console.error(`[market-data] fetchCandles error for ${symbol}:`, err)
     return []
