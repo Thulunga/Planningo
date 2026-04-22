@@ -1,20 +1,13 @@
 import type { Metadata } from 'next'
 import { createClient, getUserProfile } from '@/lib/supabase/server'
 import { ExpensesClient } from '@/components/expenses/expenses-client'
-import { getUser } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Expenses' }
 
 export default async function ExpensesPage() {
   const supabase = await createClient()
-  const [profile, user] = await Promise.all([getUserProfile(), getUser()])
+  const profile = await getUserProfile()
   if (!profile) return null
-
-  const isAdmin = !!(
-    user?.email &&
-    process.env.ADMIN_EMAIL &&
-    user.email === process.env.ADMIN_EMAIL
-  )
 
   // Get groups where user is a member
   const { data: memberships } = await supabase
@@ -33,5 +26,5 @@ export default async function ExpensesPage() {
         .order('updated_at', { ascending: false })
     : { data: [] }
 
-  return <ExpensesClient groups={groups ?? []} userId={profile.id} isAdmin={isAdmin} />
+  return <ExpensesClient groups={groups ?? []} userId={profile.id} />
 }

@@ -138,6 +138,7 @@ export async function deleteExpense(id: string, groupId: string) {
 
 export async function createSettlement(data: {
   group_id: string
+  paid_by?: string  // defaults to current user if omitted
   paid_to: string
   amount: number
   currency: string
@@ -147,13 +148,294 @@ export async function createSettlement(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const paidBy = data.paid_by || user.id
+  if (paidBy === data.paid_to) return { error: 'Payer and payee cannot be the same person' }
+
   const { error } = await supabase.from('settlements').insert({
-    paid_by: user.id,
-    ...data,
+    paid_by: paidBy,
+    paid_to: data.paid_to,
+    group_id: data.group_id,
+    amount: data.amount,
+    currency: data.currency,
+    notes: data.notes,
   })
 
   if (error) return { error: error.message }
 
   revalidatePath(`/expenses/${data.group_id}`)
   return { success: true }
+}
+
+export async function updateSettlement(id: string, groupId: string, data: {
+  paid_by: string
+  paid_to: string
+  amount: number
+  notes?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  if (data.paid_by === data.paid_to) return { error: 'Payer and payee cannot be the same person' }
+
+  const { error } = await supabase
+    .from('settlements')
+    .update({ paid_by: data.paid_by, paid_to: data.paid_to, amount: data.amount, notes: data.notes })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/expenses/${groupId}`)
+  return { success: true }
+}
+
+export async function deleteSettlement(id: string, groupId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase.from('settlements').delete().eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/expenses/${groupId}`)
+  return { success: true }
+}
+
+/**
+ * Get group info from invite code (public, no auth required)
+ */
+export async function getInviteGroupInfo(inviteCode: string) {
+  const supabase = await createClient()
+
+  try {
+    // Find the invitation
+    const { data: invitation, error } = await supabase
+      .from('group_invitations')
+      .select('id, group_id, status, expires_at')
+      .eq('invite_code', inviteCode)
+      .single()
+
+    if (error || !invitation) {
+      return { error: 'Invalid invite code' }
+    }
+
+    // Check if expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      return { error: 'Invite code has expired' }
+    }
+
+    // Check if already used
+    if (invitation.status === 'accepted') {
+      return { error: 'This invite code has already been used' }
+    }
+
+    // Get group info separately
+    const { data: group, error: groupError } = await supabase
+      .from('expense_groups')
+      .select('id, name, currency')
+      .eq('id', invitation.group_id)
+      .single()
+
+    if (groupError || !group) {
+      return { error: 'Group not found' }
+    }
+
+    return { 
+      success: true, 
+      group,
+      groupId: invitation.group_id
+    }
+  } catch (err: any) {
+    console.error('Get invite info error:', err)
+    return { error: 'Failed to retrieve group information' }
+  }
+}
+
+/**
+ * Search for users by name or email (excluding current user and existing members)
+ */
+export async function searchGroupUsers(groupId: string, query: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', users: [] }
+
+  if (!query.trim()) return { users: [] }
+
+  // Get existing members in the group
+  const { data: existingMembers } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+
+  const existingMemberIds = existingMembers?.map((m) => m.user_id) || []
+
+  // Search profiles - get all users first, filter client-side
+  const { data: allUsers, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, avatar_url')
+    .neq('id', user.id)
+    .limit(100)
+
+  if (error) {
+    console.error('Search profiles error:', error)
+    console.error('Error details:', { code: error.code, message: error.message })
+    return { error: `Failed to search profiles: ${error.message}`, users: [] }
+  }
+
+  if (!allUsers) {
+    console.warn('No profiles data returned')
+    return { users: [] }
+  }
+
+  console.log(`Total profiles fetched: ${allUsers.length}`)
+
+  if (allUsers.length === 0) {
+    console.warn('Profiles table appears to be empty')
+    return { users: [] }
+  }
+
+  // Filter based on search query (client-side for better matching)
+  const q = query.toLowerCase().trim()
+  console.log(`Searching for: "${q}" among ${allUsers.length} profiles`)
+  
+  const filtered = allUsers.filter((u) => {
+    // Skip existing members
+    if (existingMemberIds.includes(u.id)) {
+      console.log(`Skipping ${u.email} - already in group`)
+      return false
+    }
+    
+    const name = (u.full_name || '').toLowerCase()
+    const email = (u.email || '').toLowerCase()
+    
+    const matches = name.includes(q) || email.includes(q)
+    if (matches) {
+      console.log(`Match found: ${u.full_name} (${u.email})`)
+    }
+    // Match name or email
+    return matches
+  }).slice(0, 10)
+
+  console.log(`Search complete: ${filtered.length} matches found`)
+
+  return { users: filtered }
+}
+
+/**
+ * Generate an invite code for the group
+ */
+export async function generateGroupInviteCode(groupId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  try {
+    // Check if user is admin of the group
+    const { data: member, error: memberError } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (memberError || !member || member.role !== 'admin') {
+      return { error: 'Only group admins can generate invites' }
+    }
+
+    // Generate a unique invite code
+    const inviteCode = Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
+
+    const { data: invitation, error } = await supabase
+      .from('group_invitations')
+      .insert({
+        group_id: groupId,
+        created_by: user.id,
+        invite_code: inviteCode,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+      })
+      .select('invite_code')
+      .single()
+
+    if (error) {
+      console.error('Invite creation error:', error)
+      return { error: error.message }
+    }
+
+    revalidatePath(`/expenses/${groupId}`)
+    return { success: true, inviteCode: invitation?.invite_code || inviteCode }
+  } catch (err: any) {
+    console.error('Generate invite error:', err)
+    return { error: 'Failed to generate invite code' }
+  }
+}
+
+/**
+ * Join a group using an invite code
+ */
+export async function joinGroupWithInviteCode(inviteCode: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Find the invitation
+  const { data: invitation } = await supabase
+    .from('group_invitations')
+    .select('id, group_id, status, expires_at')
+    .eq('invite_code', inviteCode)
+    .single()
+
+  if (!invitation) {
+    return { error: 'Invalid invite code' }
+  }
+
+  // Check if expired
+  if (new Date(invitation.expires_at) < new Date()) {
+    return { error: 'Invite code has expired' }
+  }
+
+  // Check if already used
+  if (invitation.status === 'accepted') {
+    return { error: 'This invite code has already been used' }
+  }
+
+  // Check if user is already in group
+  const { data: existingMember } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', invitation.group_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (existingMember) {
+    return { error: 'You are already a member of this group' }
+  }
+
+  // Add user to group
+  const { error: memberError } = await supabase.from('group_members').insert({
+    group_id: invitation.group_id,
+    user_id: user.id,
+    role: 'member',
+  })
+
+  if (memberError) {
+    return { error: memberError.message }
+  }
+
+  // Update invitation status
+  const { error: updateError } = await supabase
+    .from('group_invitations')
+    .update({
+      status: 'accepted',
+      accepted_by: user.id,
+    })
+    .eq('id', invitation.id)
+
+  if (updateError) {
+    return { error: updateError.message }
+  }
+
+  revalidatePath(`/expenses/${invitation.group_id}`)
+  revalidatePath('/expenses')
+  return { success: true, groupId: invitation.group_id }
 }

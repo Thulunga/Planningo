@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getUserProfile } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/supabase/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@planningo/ui'
-import { User, Bell, Globe, ArrowRight } from 'lucide-react'
+import { User, Bell, Globe, ArrowRight, MessageSquare, LayoutDashboard } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Settings' }
 
 export default async function SettingsPage() {
   const profile = await getUserProfile()
   if (!profile) return null
+
+  const admin = await isAdmin()
 
   const sections = [
     {
@@ -23,6 +26,22 @@ export default async function SettingsPage() {
       title: 'Notifications',
       description: 'Configure push notifications and reminder preferences',
     },
+    {
+      href: '/settings/feedback',
+      icon: MessageSquare,
+      title: 'Feedback & Bug Reports',
+      description: 'Share ideas, report bugs, and suggest improvements',
+    },
+    ...(admin
+      ? [
+          {
+            href: '/admin',
+            icon: LayoutDashboard,
+            title: 'Admin Dashboard',
+            description: 'Manage feedback, expenses, and platform settings',
+          },
+        ]
+      : []),
   ]
 
   return (

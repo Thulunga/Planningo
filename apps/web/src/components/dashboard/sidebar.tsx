@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  Shield,
 } from 'lucide-react'
 import { cn, Button, Tooltip, TooltipContent, TooltipTrigger } from '@planningo/ui'
 import { useUIStore } from '@/stores/ui-store'
@@ -66,12 +65,11 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
             ...(isAdmin
               ? [
                   { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
-                  { href: '/expenses/admin', icon: Shield, label: 'Expenses Admin' },
                 ]
               : []),
           ].map((item) => {
             const isActive = item.href === '/expenses'
-              ? pathname.startsWith('/expenses') && !pathname.startsWith('/expenses/admin')
+              ? pathname.startsWith('/expenses')
               : item.href === '/'
                 ? pathname === '/'
                 : pathname.startsWith(item.href)
