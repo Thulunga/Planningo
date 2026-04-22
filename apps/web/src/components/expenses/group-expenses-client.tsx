@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, BookmarkPlus, CheckCircle2 } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, BookmarkPlus, CheckCircle2, Pencil, Copy, Check } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -27,9 +27,10 @@ import {
   SelectValue,
   Separator,
 } from '@planningo/ui'
-import { createExpense, addGroupMember, createSettlement } from '@/lib/actions/expenses'
+import { createExpense, addGroupMember, createSettlement, updateSettlement, deleteSettlement, searchGroupUsers, generateGroupInviteCode } from '@/lib/actions/expenses'
 import { useRouter } from 'next/navigation'
 import { AddTransactionDialog } from './budget/add-transaction-dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@planningo/ui'
 
 interface Member {
   user_id: string
@@ -85,10 +86,22 @@ export function GroupExpensesClient({
 }: GroupExpensesClientProps) {
   const router = useRouter()
   const [expenses, setExpenses] = useState(initialExpenses)
+  
+  useEffect(() => { setExpenses(initialExpenses) }, [initialExpenses])
+
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [memberEmail, setMemberEmail] = useState('')
+  
+  // Settle up state
+  const [isSettleOpen, setIsSettleOpen] = useState(false)
+  const [settleTarget, setSettleTarget] = useState<{ userId: string; name: string; amount: number } | null>(null)
+  const [settleAmount, setSettleAmount] = useState('')
+  const [settleNote, setSettleNote] = useState('')
+  const [settlePaidBy, setSettlePaidBy] = useState<string>(currentUserId)
+  const [editingSettlement, setEditingSettlement] = useState<any | null>(null)
+  
   // Record to budget
   const [recordingExpense, setRecordingExpense] = useState<{
     id: string
@@ -157,6 +170,69 @@ export function GroupExpensesClient({
     }
   }
 
+  function openSettle(memberId: string, memberName: string) {
+    const theirBalance = balances[memberId] ?? 0
+    const myBal = balances[currentUserId] ?? 0
+    const suggested = Math.min(Math.abs(myBal < 0 ? myBal : 0), Math.abs(theirBalance > 0 ? theirBalance : 0))
+    setEditingSettlement(null)
+    setSettlePaidBy(currentUserId)
+    setSettleTarget({ userId: memberId, name: memberName, amount: suggested })
+    setSettleAmount(suggested > 0 ? suggested.toFixed(2) : '')
+    setSettleNote('')
+    setIsSettleOpen(true)
+  }
+
+  function openEditSettle(s: any) {
+    const payee = members.find((m) => m.user_id === s.paid_to)
+    setEditingSettlement(s)
+    setSettlePaidBy(s.paid_by)
+    setSettleTarget({
+      userId: s.paid_to,
+      name: payee?.profiles?.full_name ?? payee?.profiles?.email ?? 'Member',
+      amount: 0,
+    })
+    setSettleAmount(String(s.amount))
+    setSettleNote(s.notes ?? '')
+    setIsSettleOpen(true)
+  }
+
+  async function handleSettle() {
+    const amount = parseFloat(settleAmount)
+    if (!settleTarget || isNaN(amount) || amount <= 0) {
+      toast.error('Enter a valid amount')
+      return
+    }
+    setSaving(true)
+    const result = editingSettlement
+      ? await updateSettlement(editingSettlement.id, group.id, {
+          paid_by: settlePaidBy,
+          paid_to: settleTarget.userId,
+          amount,
+          notes: settleNote.trim() || undefined,
+        })
+      : await createSettlement({
+          group_id: group.id,
+          paid_by: settlePaidBy,
+          paid_to: settleTarget.userId,
+          amount,
+          currency: group.currency,
+          notes: settleNote.trim() || undefined,
+        })
+    setSaving(false)
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success(editingSettlement ? 'Payment updated!' : `Payment of ${group.currency} ${amount.toFixed(2)} recorded!`)
+      setIsSettleOpen(false)
+      setSettleTarget(null)
+      setSettleAmount('')
+      setSettleNote('')
+      setEditingSettlement(null)
+      setSettlePaidBy(currentUserId)
+      router.refresh()
+    }
+  }
+
   const myBalance = balances[currentUserId] ?? 0
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
 
@@ -181,6 +257,10 @@ export function GroupExpensesClient({
           <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="flex-1 sm:flex-none">
             <UserPlus className="mr-2 h-4 w-4" />
             Add Member
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsSettleOpen(true)} className="flex-1 sm:flex-none gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            Settle Up
           </Button>
           <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="flex-1 sm:flex-none">
             <Plus className="mr-2 h-4 w-4" />
@@ -241,9 +321,21 @@ export function GroupExpensesClient({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
                   </div>
-                  <p className={`text-sm font-semibold ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {balance >= 0 ? '+' : ''}{group.currency} {balance.toFixed(2)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm font-semibold ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {balance >= 0 ? '+' : ''}{group.currency} {balance.toFixed(2)}
+                    </p>
+                    {m.user_id !== currentUserId && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => openSettle(m.user_id, m.profiles?.full_name ?? m.profiles?.email ?? 'Member')}
+                        className="h-8 px-2"
+                      >
+                        Settle
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )
@@ -414,6 +506,192 @@ export function GroupExpensesClient({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Settle Up Dialog */}
+      <Dialog open={isSettleOpen} onOpenChange={setIsSettleOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editingSettlement ? 'Edit Payment' : 'Record a Payment'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase text-muted-foreground">Who Paid?</Label>
+              <div className="grid gap-2">
+                {members.map((m) => (
+                  <button
+                    key={m.user_id}
+                    onClick={() => setSettlePaidBy(m.user_id)}
+                    className={`flex items-center gap-2 rounded-lg border p-2 transition-all ${
+                      settlePaidBy === m.user_id ? 'border-blue-400 bg-blue-500/10' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={m.profiles?.avatar_url ?? ''} />
+                      <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase text-muted-foreground">Paid to?</Label>
+              <div className="grid gap-2">
+                {members
+                  .filter((m) => m.user_id !== settlePaidBy)
+                  .map((m) => {
+                    const bal = balances[m.user_id] ?? 0
+                    return (
+                      <button
+                        key={m.user_id}
+                        onClick={() => {
+                          const suggested = Math.min(
+                            Math.abs((balances[settlePaidBy] ?? 0) < 0 ? balances[settlePaidBy] : 0),
+                            Math.abs(bal > 0 ? bal : 0)
+                          )
+                          setSettleTarget({
+                            userId: m.user_id,
+                            name: m.profiles?.full_name ?? m.profiles?.email ?? 'Member',
+                            amount: suggested,
+                          })
+                          setSettleAmount(suggested > 0 ? suggested.toFixed(2) : '')
+                        }}
+                        className={`flex items-center gap-2 rounded-lg border p-2 transition-all ${
+                          settleTarget?.userId === m.user_id
+                            ? 'border-blue-400 bg-blue-500/10'
+                            : 'border-border hover:bg-accent'
+                        }`}
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={m.profiles?.avatar_url ?? ''} />
+                          <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 text-left">
+                          <p className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
+                          <p className="text-xs text-muted-foreground">{bal >= 0 ? 'owed' : 'owes'} {group.currency} {Math.abs(bal).toFixed(2)}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-1.5">
+              <Label htmlFor="settle-amount">Amount</Label>
+              <Input
+                id="settle-amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={settleAmount}
+                onChange={(e) => setSettleAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="settle-note">Note (optional)</Label>
+              <Input
+                id="settle-note"
+                placeholder="e.g., Cash payment"
+                value={settleNote}
+                onChange={(e) => setSettleNote(e.target.value)}
+              />
+            </div>
+
+            {settleTarget && (
+              <div className="rounded-lg bg-muted p-2 text-center text-sm">
+                <p className="font-semibold">
+                  {members.find((m) => m.user_id === settlePaidBy)?.profiles?.full_name || 'Payer'} → {settleTarget.name} · {group.currency} {settleAmount || '0.00'}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsSettleOpen(false)}>Cancel</Button>
+              <Button onClick={handleSettle} disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editingSettlement ? 'Update Payment' : 'Record Payment'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payments Section */}
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+          Payments ({initialSettlements.length})
+        </h2>
+        {initialSettlements.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <CheckCircle2 className="mb-2 h-8 w-8 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No payments recorded yet</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {initialSettlements.map((settlement: any) => {
+              const payer = members.find((m) => m.user_id === settlement.paid_by)
+              const payee = members.find((m) => m.user_id === settlement.paid_to)
+              const isMe = settlement.paid_by === currentUserId || settlement.paid_to === currentUserId
+              
+              return (
+                <Card key={settlement.id}>
+                  <CardContent className="flex items-center justify-between py-3 px-4">
+                    <div className="flex flex-1 items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
+                          <span className={isMe ? 'font-bold' : ''}>{payer?.profiles?.full_name ?? payer?.profiles?.email ?? 'Member'}</span>
+                          {' paid '}
+                          <span className={isMe ? 'font-bold' : ''}>{payee?.profiles?.full_name ?? payee?.profiles?.email ?? 'Member'}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(settlement.created_at), 'MMM d, yyyy')}
+                          {settlement.notes && ` · ${settlement.notes}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold">{group.currency} {settlement.amount.toFixed(2)}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditSettle(settlement)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          setSaving(true)
+                          const result = await deleteSettlement(settlement.id, group.id)
+                          setSaving(false)
+                          if (result.error) {
+                            toast.error(result.error)
+                          } else {
+                            toast.success('Payment deleted')
+                            router.refresh()
+                          }
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Record group expense to personal budget */}
       {recordingExpense && (

@@ -224,3 +224,30 @@ create policy "Members can create settlements"
       where group_id = settlements.group_id and user_id = auth.uid()
     )
   );
+
+create policy "Settlement creator can update settlements"
+  on public.settlements for update
+  using (
+    auth.uid() = paid_by and
+    exists (
+      select 1 from public.group_members
+      where group_id = settlements.group_id and user_id = auth.uid()
+    )
+  )
+  with check (
+    auth.uid() = paid_by and
+    exists (
+      select 1 from public.group_members
+      where group_id = settlements.group_id and user_id = auth.uid()
+    )
+  );
+
+create policy "Settlement creator can delete settlements"
+  on public.settlements for delete
+  using (
+    auth.uid() = paid_by and
+    exists (
+      select 1 from public.group_members
+      where group_id = settlements.group_id and user_id = auth.uid()
+    )
+  );

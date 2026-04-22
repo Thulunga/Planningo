@@ -13,7 +13,6 @@ import {
   DollarSign,
   Settings,
   TrendingUp,
-  Shield,
 } from 'lucide-react'
 import { cn, SheetClose } from '@planningo/ui'
 import { UserMenu } from './user-menu'
@@ -50,12 +49,11 @@ export function MobileNav({ profile, isAdmin = false }: { profile: Tables<'profi
             ...(isAdmin
               ? [
                   { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
-                  { href: '/expenses/admin', icon: Shield, label: 'Expenses Admin' },
                 ]
               : []),
           ].map(({ href, icon: Icon, label }) => {
             const isActive = href === '/expenses'
-              ? pathname.startsWith('/expenses') && !pathname.startsWith('/expenses/admin')
+              ? pathname.startsWith('/expenses')
               : href === '/'
                 ? pathname === '/'
                 : pathname.startsWith(href)

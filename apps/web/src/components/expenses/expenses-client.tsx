@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Plus, DollarSign, Users, ArrowRight, Loader2, BarChart3, Shield } from 'lucide-react'
+import { Plus, DollarSign, Users, ArrowRight, Loader2, BarChart3 } from 'lucide-react'
 import {
   Button,
   Card,
@@ -38,10 +38,9 @@ interface Group {
 interface ExpensesClientProps {
   groups: Group[]
   userId: string
-  isAdmin?: boolean
 }
 
-export function ExpensesClient({ groups, userId, isAdmin = false }: ExpensesClientProps) {
+export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
   const router = useRouter()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -88,13 +87,13 @@ export function ExpensesClient({ groups, userId, isAdmin = false }: ExpensesClie
         </Button>
       </div>
 
-      {/* Navigation between Groups and Budget */}
+      {/* Navigation shortcuts */}
       <div className="flex gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors cursor-default">
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
           <Users className="h-4 w-4 text-primary shrink-0" />
           <div>
             <p className="text-sm font-semibold">Split Groups</p>
-            <p className="text-xs text-muted-foreground">{groups.length} active group(s)</p>
+            <p className="text-xs text-muted-foreground">Current view · {groups.length} active group(s)</p>
           </div>
         </div>
         <Link
@@ -108,19 +107,6 @@ export function ExpensesClient({ groups, userId, isAdmin = false }: ExpensesClie
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
         </Link>
-        {isAdmin && (
-          <Link
-            href="/expenses/admin"
-            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors group"
-          >
-            <Shield className="h-4 w-4 text-amber-500 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Expenses Admin</p>
-              <p className="text-xs text-muted-foreground">Global moderation & controls</p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-          </Link>
-        )}
       </div>
 
       {groups.length === 0 ? (
@@ -139,28 +125,30 @@ export function ExpensesClient({ groups, userId, isAdmin = false }: ExpensesClie
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Card key={group.id} className="transition-shadow hover:shadow-md">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base">{group.name}</CardTitle>
-                  <span className="text-xs text-muted-foreground capitalize">{group.category}</span>
-                </div>
-                {group.description && (
-                  <p className="text-sm text-muted-foreground">{group.description}</p>
-                )}
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Users className="h-3.5 w-3.5" />
-                  {group.group_members.length} member(s) · {group.currency}
-                </div>
-                <Button variant="ghost" size="sm" asChild className="mt-2 h-7 gap-1 text-xs">
-                  <Link href={`/expenses/${group.id}`}>
-                    View expenses <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <Link key={group.id} href={`/expenses/${group.id}`} className="group block">
+              <Card className="h-full transition-shadow hover:shadow-md hover:border-primary/40">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base group-hover:text-primary transition-colors">{group.name}</CardTitle>
+                    <span className="text-xs text-muted-foreground capitalize">{group.category}</span>
+                  </div>
+                  {group.description && (
+                    <p className="text-sm text-muted-foreground">{group.description}</p>
+                  )}
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {group.group_members.length} member(s) · {group.currency}
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-foreground/80 group-hover:text-primary transition-colors">
+                      Open <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
