@@ -45,24 +45,46 @@ apps/web/src/
 - Mobile navigation: bottom tab bar on mobile, sidebar (collapsible) on desktop
 - All pages use server components where possible; client components marked `'use client'`
 
+## Domain & Branding Strategy
+
+**Primary Domain**: `planningo.mydailyworkspace.site`
+**Alternative Domain**: `app.mydailyworkspace.site`
+**Product Name**: Planningo (under My Daily Workspace company)
+
+Configuration:
+- `config/domains.ts` — Centralized domain config for multi-environment support
+- `next.config.mjs` — Updated allowedOrigins for prod/staging/dev domains
+- `.env.example` — Added NEXT_PUBLIC_MAIN_DOMAIN variable
+- See `DOMAIN_STRATEGY.md` for full architecture and migration plan
+
 ## Completed Tasks
 
-### Task: Landing Page + Mobile UI Enhancements (2026-04-23)
-**Summary**: Added a public marketing landing page and improved mobile responsiveness across the app.
+### Task: Domain & Branding Management (2026-04-23)
+**Summary**: Set up centralized domain management strategy for Planningo as service under mydailyworkspace.site.
 
 **Files Changed**:
-- `apps/web/src/app/landing/page.tsx` — NEW: Full public landing page
-- `apps/web/src/middleware.ts` — Added `/landing` as public route; unauthenticated `/` redirects to `/landing`
-- `apps/web/src/app/(auth)/layout.tsx` — Updated logo link to `/landing` instead of `/`
-- `apps/web/src/components/dashboard/dashboard-overview.tsx` — Enhanced mobile card layout, stats strip, responsive grid
+- `config/domains.ts` — NEW: Centralized config with environment-specific URLs
+- `apps/web/next.config.mjs` — Updated allowedOrigins for production/staging domains
+- `.env.example` — Added NEXT_PUBLIC_MAIN_DOMAIN for company domain
+- `DOMAIN_STRATEGY.md` — NEW: Complete guide for domain structure, branding, and migration
 
 **Key Decisions**:
-- Landing page lives at `/landing` (not `/`) to avoid conflicting with the dashboard route group
-- Middleware now redirects unauthenticated visitors of `/` to `/landing`
-- Landing page uses same CSS variables/Tailwind theme as the rest of the app — no extra dependencies
-- Features shown: Todos, Calendar, Day Planner, Reminders, Trips, Expenses (+ Budget)
-- Key messaging: "Manage from anywhere, ditch the spreadsheet"
+- Planningo as primary service: `planningo.mydailyworkspace.site`
+- Branding stays "Planningo" (not "My Daily Workspace")
+- Environment-specific subdomains: staging, production, local dev
+- Centralized config allows future services (budget.*, travel.*, etc.)
 
-**Assumptions**:
-- No backend changes needed for the landing page (it's purely static/marketing)
-- Landing page intentionally has no auth check — it's public
+### Task: Landing Page + Mobile UI Enhancements (2026-04-23)
+**Summary**: Added a public marketing landing page and improved mobile responsiveness.
+
+**Files Changed**:
+- `apps/web/src/app/landing/page.tsx` — Public landing page
+- `apps/web/src/middleware.ts` — Redirect unauthenticated `/` to `/landing`
+- `apps/web/src/app/(auth)/layout.tsx` — Logo link to `/landing`
+- `apps/web/src/components/dashboard/dashboard-overview.tsx` — Mobile responsiveness
+
+**Key Decisions**:
+- Landing at `/landing` (avoids conflict with dashboard route group)
+- Middleware redirects to landing for unauthenticated users
+- Uses existing CSS variables/Tailwind theme
+- Features: Todos, Calendar, Planner, Reminders, Trips, Expenses
