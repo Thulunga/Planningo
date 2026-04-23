@@ -9,9 +9,9 @@ import {
   ArrowRight,
   Circle,
   CheckCircle2,
-  AlertCircle,
   Plane,
   DollarSign,
+  Bell,
 } from 'lucide-react'
 import {
   Badge,
@@ -20,7 +20,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Separator,
 } from '@planningo/ui'
 import type { Tables } from '@planningo/database'
 import { AnalogClock } from '@/components/clock/analog-clock'
@@ -34,7 +33,7 @@ interface DashboardOverviewProps {
 
 const priorityConfig = {
   low: { label: 'Low', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
-  medium: { label: 'Medium', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  medium: { label: 'Med', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   high: { label: 'High', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   urgent: { label: 'Urgent', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
 }
@@ -45,6 +44,15 @@ function formatEventTime(startTime: string) {
   if (isTomorrow(date)) return `Tomorrow ${format(date, 'h:mm a')}`
   return format(date, 'EEE MMM d, h:mm a')
 }
+
+const quickActions = [
+  { href: '/todos', icon: CheckSquare, label: 'Add Todo' },
+  { href: '/calendar', icon: Calendar, label: 'New Event' },
+  { href: '/planner', icon: Clock3, label: 'Plan Today' },
+  { href: '/reminders', icon: Bell, label: 'Reminder' },
+  { href: '/trips', icon: Plane, label: 'Plan Trip' },
+  { href: '/expenses', icon: DollarSign, label: 'Expense' },
+]
 
 export function DashboardOverview({
   profile,
@@ -58,34 +66,71 @@ export function DashboardOverview({
   const firstName = profile.full_name?.split(' ')[0] ?? 'there'
 
   return (
-    <div className="space-y-6">
-      {/* Greeting hero - analog clock + gradient banner with date */}
-      <div className="flex flex-col sm:flex-row items-center gap-6 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:px-6">
-        {/* Analog clock */}
-        <div className="shrink-0">
-          <AnalogClock
-            timezone={profile.timezone ?? undefined}
-            size={130}
-          />
+    <div className="space-y-4 md:space-y-6">
+      {/* Greeting hero */}
+      <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
+        {/* Clock — centered on mobile, shrink-0 on desktop */}
+        <div className="flex justify-center sm:justify-start sm:shrink-0">
+          <AnalogClock timezone={profile.timezone ?? undefined} size={110} />
         </div>
 
-        {/* Divider - vertical on desktop, horizontal on mobile */}
         <div className="hidden sm:block w-px self-stretch bg-border/50" />
         <div className="block sm:hidden h-px w-full bg-border/50" />
 
-        {/* Greeting text + date */}
         <div className="text-center sm:text-left">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
             {greeting}, {firstName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {format(new Date(), 'EEEE, MMMM d')} · Here&apos;s what&apos;s on your plate today.
+          <p className="mt-1 text-sm text-muted-foreground">
+            {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
           </p>
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {/* Today's Todos */}
+      {/* Stats strip — mobile-friendly horizontal scroll */}
+      <div className="flex gap-3 overflow-x-auto pb-1 sm:overflow-visible">
+        {[
+          {
+            label: 'Open Todos',
+            value: todaysTodos.length,
+            icon: CheckSquare,
+            color: 'text-blue-400',
+            href: '/todos',
+          },
+          {
+            label: 'Events',
+            value: upcomingEvents.length,
+            icon: Calendar,
+            color: 'text-violet-400',
+            href: '/calendar',
+          },
+          {
+            label: "Today's Blocks",
+            value: todaysPlanner.length,
+            icon: Clock3,
+            color: 'text-emerald-400',
+            href: '/planner',
+          },
+        ].map(({ label, value, icon: Icon, color, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className="flex min-w-[130px] flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80 sm:min-w-0"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <Icon className={`h-4 w-4 ${color}`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold leading-none">{value}</p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{label}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Main cards — single col on mobile, 2-col on md, 3-col on xl */}
+      <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {/* Todos card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -131,7 +176,7 @@ export function DashboardOverview({
           </CardContent>
         </Card>
 
-        {/* Upcoming Events */}
+        {/* Events card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -171,8 +216,8 @@ export function DashboardOverview({
           </CardContent>
         </Card>
 
-        {/* Today's Planner */}
-        <Card>
+        {/* Planner card */}
+        <Card className="md:col-span-2 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Clock3 className="h-4 w-4 text-primary" />
@@ -215,42 +260,26 @@ export function DashboardOverview({
         </Card>
       </div>
 
-      {/* Quick actions */}
+      {/* Quick actions — scrollable chip row on mobile */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Quick Actions
         </h2>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/todos">
-              <CheckSquare className="mr-2 h-3.5 w-3.5" />
-              Add Todo
-            </Link>
-          </Button>
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/calendar">
-              <Calendar className="mr-2 h-3.5 w-3.5" />
-              New Event
-            </Link>
-          </Button>
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/planner">
-              <Clock3 className="mr-2 h-3.5 w-3.5" />
-              Plan Today
-            </Link>
-          </Button>
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/trips">
-              <Plane className="mr-2 h-3.5 w-3.5" />
-              Plan a Trip
-            </Link>
-          </Button>
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/expenses">
-              <DollarSign className="mr-2 h-3.5 w-3.5" />
-              Track Expense
-            </Link>
-          </Button>
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+          {quickActions.map(({ href, icon: Icon, label }) => (
+            <Button
+              key={href}
+              variant="secondary"
+              size="sm"
+              asChild
+              className="shrink-0 gap-1.5"
+            >
+              <Link href={href}>
+                <Icon className="h-3.5 w-3.5" />
+                <span className="whitespace-nowrap">{label}</span>
+              </Link>
+            </Button>
+          ))}
         </div>
       </div>
     </div>
