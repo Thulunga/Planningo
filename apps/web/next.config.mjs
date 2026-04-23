@@ -9,7 +9,13 @@ const nextConfig = {
   },
   transpilePackages: ['@planningo/ui', '@planningo/database'],
   serverActions: {
-    allowedOrigins: ['localhost:3000'],
+    allowedOrigins: [
+      'localhost:3000',
+      'localhost:3001',
+      'planningo.mydailyworkspace.site',
+      'app.mydailyworkspace.site',
+      'planningo-staging.mydailyworkspace.site',
+    ],
   },
   images: {
     remotePatterns: [
