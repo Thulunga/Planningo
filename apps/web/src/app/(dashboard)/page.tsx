@@ -1,13 +1,10 @@
 import type { Metadata } from 'next'
-import { generateMetadata } from '@/lib/seo'
 import { createClient, getUserProfile } from '@/lib/supabase/server'
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview'
 
-export const metadata: Metadata = generateMetadata(
-  'Dashboard',
-  'Your Planningo dashboard - Overview of your tasks, events, and schedule.',
-  '/dashboard'
-)
+export const metadata: Metadata = {
+  title: 'Dashboard',
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
