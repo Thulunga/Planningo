@@ -237,35 +237,18 @@ export function GroupExpensesClient({
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/expenses">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Expenses
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="space-y-4 pb-28 sm:pb-4">
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
         <div>
+          <Button variant="ghost" size="sm" asChild className="mb-2">
+            <Link href="/expenses">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Groups
+            </Link>
+          </Button>
           <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
-          <p className="text-sm text-muted-foreground capitalize">{group.category} · {group.currency}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="sm:flex-none gap-2">
-            <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Member</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsSettleOpen(true)} className="sm:flex-none gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <span className="hidden sm:inline">Settle Up</span>
-          </Button>
-          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="col-span-2 sm:col-auto gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Expense</span>
-          </Button>
+          <p className="text-sm text-muted-foreground capitalize mt-1">{group.category} · {group.currency}</p>
         </div>
       </div>
 
@@ -719,6 +702,65 @@ export function GroupExpensesClient({
           prefilledTitle={recordingExpense.title}
         />
       )}
+
+      {/* Sticky bottom action bar - Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background border-t border-border p-3 space-y-2">
+        <Button 
+          size="lg"
+          onClick={() => setIsAddExpenseOpen(true)} 
+          className="w-full text-base font-semibold gap-3"
+        >
+          <Plus className="h-5 w-5" />
+          Add Expense
+        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="outline"
+            size="lg"
+            onClick={() => setIsSettleOpen(true)} 
+            className="text-base font-semibold gap-2"
+          >
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <span className="hidden xs:inline">Settle</span>
+          </Button>
+          <Button 
+            variant="outline"
+            size="lg"
+            onClick={() => setIsAddMemberOpen(true)} 
+            className="text-base font-semibold gap-2"
+          >
+            <UserPlus className="h-5 w-5" />
+            <span className="hidden xs:inline">Add</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Desktop action buttons - visible only on sm and up */}
+      <div className="hidden sm:flex gap-3 sticky top-0 z-10 bg-background/95 backdrop-blur py-3 -mx-4 px-4">
+        <Button 
+          variant="outline"
+          onClick={() => setIsAddMemberOpen(true)} 
+          className="gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add Member
+        </Button>
+        <Button 
+          variant="outline"
+          onClick={() => setIsSettleOpen(true)} 
+          className="gap-2"
+        >
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          Settle Up
+        </Button>
+        <Button 
+          onClick={() => setIsAddExpenseOpen(true)} 
+          className="gap-2 ml-auto"
+        >
+          <Plus className="h-4 w-4" />
+          Add Expense
+        </Button>
+      </div>
     </div>
   )
 }

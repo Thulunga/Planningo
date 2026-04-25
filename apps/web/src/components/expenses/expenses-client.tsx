@@ -75,16 +75,10 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Split expenses &amp; track your personal budget</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="w-full gap-2 sm:w-auto">
-          <Plus className="h-4 w-4" />
-          New Group
-        </Button>
+    <div className="space-y-4 pb-28 sm:pb-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+        <p className="text-sm text-muted-foreground">Split expenses &amp; track your personal budget</p>
       </div>
 
       {/* Navigation shortcuts */}
@@ -221,6 +215,29 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Sticky bottom action bar - Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background border-t border-border p-3">
+        <Button 
+          size="lg"
+          onClick={() => setIsCreateOpen(true)} 
+          className="w-full text-base font-semibold gap-3"
+        >
+          <Plus className="h-5 w-5" />
+          Create New Group
+        </Button>
+      </div>
+
+      {/* Desktop action button - visible only on sm and up */}
+      <div className="hidden sm:flex justify-end gap-3 sticky top-0 z-10 bg-background/95 backdrop-blur py-3 -mx-4 px-4">
+        <Button 
+          onClick={() => setIsCreateOpen(true)} 
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create New Group
+        </Button>
+      </div>
     </div>
   )
 }
