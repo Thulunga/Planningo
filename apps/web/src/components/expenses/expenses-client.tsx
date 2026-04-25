@@ -76,9 +76,22 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
 
   return (
     <div className="space-y-4 pb-28 sm:pb-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-        <p className="text-sm text-muted-foreground">Split expenses &amp; track your personal budget</p>
+      {/* Sticky top bar — title + desktop action button */}
+      <div className="sticky top-0 z-20 -mx-4 bg-background/95 backdrop-blur px-4 pt-2 pb-3 border-b border-border/50">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight">Expenses</h1>
+            <p className="text-xs text-muted-foreground">Split expenses &amp; track your personal budget</p>
+          </div>
+          {/* Create button — desktop only; mobile uses sticky bottom bar */}
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="hidden sm:flex gap-2 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            New Group
+          </Button>
+        </div>
       </div>
 
       {/* Navigation shortcuts */}
@@ -216,25 +229,14 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Sticky bottom action bar - Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background border-t border-border p-3">
-        <Button 
+      {/* Sticky bottom bar — mobile only, sits above the bottom tab nav (h-16) */}
+      <div className="fixed bottom-16 left-0 right-0 z-50 sm:hidden bg-background border-t border-border px-3 py-2.5">
+        <Button
           size="lg"
-          onClick={() => setIsCreateOpen(true)} 
+          onClick={() => setIsCreateOpen(true)}
           className="w-full text-base font-semibold gap-3"
         >
           <Plus className="h-5 w-5" />
-          Create New Group
-        </Button>
-      </div>
-
-      {/* Desktop action button - visible only on sm and up */}
-      <div className="hidden sm:flex justify-end gap-3 sticky top-0 z-10 bg-background/95 backdrop-blur py-3 -mx-4 px-4">
-        <Button 
-          onClick={() => setIsCreateOpen(true)} 
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
           Create New Group
         </Button>
       </div>

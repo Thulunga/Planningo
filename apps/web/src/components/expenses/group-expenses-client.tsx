@@ -238,37 +238,49 @@ export function GroupExpensesClient({
 
   return (
     <div className="space-y-4 pb-28 sm:pb-4">
-      {/* Header with back button */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1">
-          <Button variant="ghost" size="sm" asChild className="mb-2">
-            <Link href="/expenses">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Groups
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
-          <p className="text-sm text-muted-foreground capitalize mt-1">{group.category} · {group.currency}</p>
-        </div>
-        <div className="flex flex-col gap-2 sm:hidden">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAddMemberOpen(true)} 
-            className="gap-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span className="text-xs">Add Member</span>
-          </Button>
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => setIsSettleOpen(true)} 
-            className="gap-2"
-          >
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <span className="text-xs">Settle Up</span>
-          </Button>
+      {/* Sticky top bar — back link + title + action buttons */}
+      <div className="sticky top-0 z-20 -mx-4 bg-background/95 backdrop-blur px-4 pt-2 pb-3 border-b border-border/50">
+        <Button variant="ghost" size="sm" asChild className="mb-1 -ml-2">
+          <Link href="/expenses">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Groups
+          </Link>
+        </Button>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight truncate">{group.name}</h1>
+            <p className="text-xs text-muted-foreground capitalize">{group.category} · {group.currency}</p>
+          </div>
+          {/* Action buttons — all screen sizes */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddMemberOpen(true)}
+              className="gap-1.5"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span className="text-xs font-medium">Add Member</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSettleOpen(true)}
+              className="gap-1.5"
+            >
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span className="text-xs font-medium">Settle Up</span>
+            </Button>
+            {/* Add Expense button — desktop only */}
+            <Button
+              size="sm"
+              onClick={() => setIsAddExpenseOpen(true)}
+              className="hidden sm:flex gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-xs font-medium">Add Expense</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -723,41 +735,14 @@ export function GroupExpensesClient({
         />
       )}
 
-      {/* Sticky bottom action bar - Mobile (Add Expense only) */}
-      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background border-t border-border p-3">
-        <Button 
+      {/* Sticky bottom bar — mobile only, sits above the bottom tab nav (h-16) */}
+      <div className="fixed bottom-16 left-0 right-0 z-50 sm:hidden bg-background border-t border-border px-3 py-2.5">
+        <Button
           size="lg"
-          onClick={() => setIsAddExpenseOpen(true)} 
+          onClick={() => setIsAddExpenseOpen(true)}
           className="w-full text-base font-semibold gap-3"
         >
           <Plus className="h-5 w-5" />
-          Add Expense
-        </Button>
-      </div>
-
-      {/* Desktop action buttons - visible only on sm and up */}
-      <div className="hidden sm:flex gap-3 sticky top-0 z-10 bg-background/95 backdrop-blur py-3 -mx-4 px-4">
-        <Button 
-          variant="outline"
-          onClick={() => setIsAddMemberOpen(true)} 
-          className="gap-2"
-        >
-          <UserPlus className="h-4 w-4" />
-          Add Member
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={() => setIsSettleOpen(true)} 
-          className="gap-2"
-        >
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          Settle Up
-        </Button>
-        <Button 
-          onClick={() => setIsAddExpenseOpen(true)} 
-          className="gap-2 ml-auto"
-        >
-          <Plus className="h-4 w-4" />
           Add Expense
         </Button>
       </div>
