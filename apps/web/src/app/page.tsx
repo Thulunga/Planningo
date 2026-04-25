@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { generateMetadata, generateWebApplicationSchema } from '@/lib/seo'
+import { getUser } from '@/lib/supabase/server'
 import { Button } from '@planningo/ui'
 import { CalendarDays, CheckSquare, TrendingUp, Users } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = generateMetadata(
   undefined,
@@ -10,7 +12,13 @@ export const metadata: Metadata = generateMetadata(
   '/'
 )
 
-export default function LandingPage() {
+async function LandingPage() {
+  // If user is already logged in, redirect to dashboard
+  const user = await getUser()
+  if (user) {
+    redirect('/dashboard')
+  }
+
   const webAppSchema = generateWebApplicationSchema()
 
   return (
@@ -222,3 +230,5 @@ export default function LandingPage() {
     </div>
   )
 }
+
+export default LandingPage
