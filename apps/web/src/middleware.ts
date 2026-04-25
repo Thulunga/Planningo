@@ -39,12 +39,19 @@ export async function middleware(request: NextRequest) {
 
   const isPublicRoute =
     isAuthRoute ||
-    pathname === '/' ||
+    pathname === '/landing' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico' ||
     pathname === '/sitemap.xml' ||
     pathname === '/robots.txt'
+
+  // Unauthenticated users visiting the root get the landing page
+  if (!user && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/landing'
+    return NextResponse.redirect(url)
+  }
 
   // Redirect unauthenticated users to login (with redirect-back) for all other protected routes
   if (!user && !isPublicRoute) {
@@ -55,9 +62,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages and landing
-  if (user && isAuthRoute && !pathname.startsWith('/auth/')) {
+  if (user && (isAuthRoute || pathname === '/landing') && !pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/'
     url.searchParams.delete('redirectTo')
     return NextResponse.redirect(url)
   }
