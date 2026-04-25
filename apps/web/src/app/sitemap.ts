@@ -15,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: 'https://www.mydailyworkspace.site/signup',
+      url: 'https://www.mydailyworkspace.site/register',
       lastModified: new Date('2026-04-24'),
       changeFrequency: 'monthly',
       priority: 0.9,

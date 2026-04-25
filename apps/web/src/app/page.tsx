@@ -41,7 +41,7 @@ export default function LandingPage() {
               Sign In
             </Link>
             <Button asChild size="sm">
-              <Link href="/signup">Get Started</Link>
+              <Link href="/register">Get Started</Link>
             </Button>
           </nav>
         </div>
@@ -58,7 +58,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" asChild>
-              <Link href="/signup">Start Free Today</Link>
+              <Link href="/register">Start Free Today</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/login">Sign In</Link>
@@ -183,7 +183,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" asChild>
-              <Link href="/signup">Create Free Account</Link>
+              <Link href="/register">Create Free Account</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/login">Sign In</Link>
