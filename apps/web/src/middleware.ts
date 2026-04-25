@@ -42,7 +42,9 @@ export async function middleware(request: NextRequest) {
     pathname === '/landing' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt'
 
   // Unauthenticated users visiting the root get the landing page
   if (!user && pathname === '/') {
@@ -92,7 +94,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico
+     * - public static assets (svg/png/jpg/jpeg/gif/webp/xml/txt)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|xml|txt)$).*)',
   ],
 }
