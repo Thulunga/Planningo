@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CalendarDays } from 'lucide-react'
+import { generateMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Auth',
-}
+export const metadata: Metadata = generateMetadata(
+  'Authentication',
+  'Sign in or create an account to access your Planningo dashboard',
+  '/login'
+)
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

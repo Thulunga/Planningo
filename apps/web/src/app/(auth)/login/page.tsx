@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
+import { generateMetadata } from '@/lib/seo'
 import { LoginForm } from '@/components/auth/login-form'
 
-export const metadata: Metadata = {
-  title: 'Sign In',
-}
+export const metadata: Metadata = generateMetadata(
+  'Sign In',
+  'Sign in to your Planningo account to access your tasks, calendar, and productivity tools.',
+  '/login'
+)
 
 export default async function LoginPage({
   searchParams,
