@@ -88,21 +88,21 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
       </div>
 
       {/* Navigation shortcuts */}
-      <div className="flex gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 sm:px-4">
           <Users className="h-4 w-4 text-primary shrink-0" />
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold">Split Groups</p>
-            <p className="text-xs text-muted-foreground">Current view · {groups.length} active group(s)</p>
+            <p className="text-xs text-muted-foreground truncate">Current view · {groups.length} active group(s)</p>
           </div>
         </div>
         <Link
           href="/expenses/budget"
-          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 flex-1 hover:bg-muted/40 transition-colors group"
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-3 sm:px-4 hover:bg-muted/40 transition-colors group"
         >
           <BarChart3 className="h-4 w-4 text-emerald-500 shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold">My Budget</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">My Budget</p>
             <p className="text-xs text-muted-foreground">Income, expenses &amp; goals</p>
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
@@ -123,26 +123,26 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
             <Link key={group.id} href={`/expenses/${group.id}`} className="group block">
               <Card className="h-full transition-shadow hover:shadow-md hover:border-primary/40">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base group-hover:text-primary transition-colors">{group.name}</CardTitle>
-                    <span className="text-xs text-muted-foreground capitalize">{group.category}</span>
+                    <CardTitle className="text-base group-hover:text-primary transition-colors truncate">{group.name}</CardTitle>
+                    <span className="text-xs text-muted-foreground capitalize shrink-0">{group.category}</span>
                   </div>
                   {group.description && (
-                    <p className="text-sm text-muted-foreground">{group.description}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{group.description}</p>
                   )}
                 </CardHeader>
                 <CardContent className="pb-3">
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {group.group_members.length} member(s) · {group.currency}
+                    <div className="flex items-center gap-1 min-w-0">
+                      <Users className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{group.group_members.length} member(s)</span>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-foreground/80 group-hover:text-primary transition-colors">
+                    <span className="inline-flex items-center gap-1 text-foreground/80 group-hover:text-primary transition-colors shrink-0">
                       Open <ArrowRight className="h-3.5 w-3.5" />
                     </span>
                   </div>

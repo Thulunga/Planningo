@@ -253,45 +253,45 @@ export function GroupExpensesClient({
           <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
           <p className="text-sm text-muted-foreground capitalize">{group.category} · {group.currency}</p>
         </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="flex-1 sm:flex-none">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Member
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="sm:flex-none gap-2">
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Member</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsSettleOpen(true)} className="flex-1 sm:flex-none gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsSettleOpen(true)} className="sm:flex-none gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Settle Up
+            <span className="hidden sm:inline">Settle Up</span>
           </Button>
-          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="flex-1 sm:flex-none">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Expense
+          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="col-span-2 sm:col-auto gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Expense</span>
           </Button>
         </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-3">
             <p className="text-xs text-muted-foreground">Total Expenses</p>
-            <p className="text-xl font-bold">{group.currency} {totalExpenses.toFixed(2)}</p>
+            <p className="text-lg font-bold mt-1">{group.currency} {totalExpenses.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-3">
             <p className="text-xs text-muted-foreground">Your Balance</p>
-            <p className={`text-xl font-bold ${myBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p className={`text-lg font-bold mt-1 ${myBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {myBalance >= 0 ? '+' : ''}{group.currency} {myBalance.toFixed(2)}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {myBalance >= 0 ? 'You are owed' : 'You owe'}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-3">
             <p className="text-xs text-muted-foreground">Members</p>
-            <div className="mt-1 flex -space-x-2">
+            <div className="mt-1.5 flex -space-x-2">
               {members.slice(0, 5).map((m) => (
                 <Avatar key={m.user_id} className="h-7 w-7 border-2 border-background">
                   <AvatarImage src={m.profiles?.avatar_url ?? undefined} />
@@ -308,29 +308,31 @@ export function GroupExpensesClient({
       {/* Balances */}
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">Balances</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="space-y-2">
           {members.map((m) => {
             const balance = balances[m.user_id] ?? 0
             return (
               <Card key={m.user_id}>
-                <CardContent className="flex items-center gap-3 py-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={m.profiles?.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? '?'}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
+                <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={m.profiles?.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? '?'}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2 sm:justify-end">
                     <p className={`text-sm font-semibold ${balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {balance >= 0 ? '+' : ''}{group.currency} {balance.toFixed(2)}
                     </p>
                     {m.user_id !== currentUserId && (
                       <Button 
                         size="sm" 
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => openSettle(m.user_id, m.profiles?.full_name ?? m.profiles?.email ?? 'Member')}
-                        className="h-8 px-2"
+                        className="h-8 px-3 shrink-0"
                       >
                         Settle
                       </Button>
@@ -363,17 +365,19 @@ export function GroupExpensesClient({
 
               return (
                 <Card key={exp.id}>
-                  <CardContent className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <DollarSign className="h-4 w-4 text-primary" />
+                  <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{exp.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date), 'MMM d')}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{exp.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date), 'MMM d')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                       <div className="text-right">
                         <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
                         {yourSplit && (
@@ -386,7 +390,7 @@ export function GroupExpensesClient({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 shrink-0"
+                          className="h-8 px-2 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 shrink-0 whitespace-nowrap"
                           title="Record to my budget"
                           onClick={() => setRecordingExpense({
                             id: exp.id,
@@ -395,7 +399,7 @@ export function GroupExpensesClient({
                           })}
                         >
                           <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
-                          Record
+                          <span className="hidden sm:inline">Record</span>
                         </Button>
                       )}
                     </div>
@@ -521,15 +525,15 @@ export function GroupExpensesClient({
                   <button
                     key={m.user_id}
                     onClick={() => setSettlePaidBy(m.user_id)}
-                    className={`flex items-center gap-2 rounded-lg border p-2 transition-all ${
+                    className={`flex items-center gap-2 rounded-lg border p-2.5 transition-all ${
                       settlePaidBy === m.user_id ? 'border-blue-400 bg-blue-500/10' : 'border-border hover:bg-accent'
                     }`}
                   >
-                    <Avatar className="h-6 w-6">
+                    <Avatar className="h-6 w-6 shrink-0">
                       <AvatarImage src={m.profiles?.avatar_url ?? ''} />
                       <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0]}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</span>
+                    <span className="text-sm font-medium truncate">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</span>
                   </button>
                 ))}
               </div>
@@ -557,18 +561,18 @@ export function GroupExpensesClient({
                           })
                           setSettleAmount(suggested > 0 ? suggested.toFixed(2) : '')
                         }}
-                        className={`flex items-center gap-2 rounded-lg border p-2 transition-all ${
+                        className={`flex items-center gap-2 rounded-lg border p-2.5 transition-all ${
                           settleTarget?.userId === m.user_id
                             ? 'border-blue-400 bg-blue-500/10'
                             : 'border-border hover:bg-accent'
                         }`}
                       >
-                        <Avatar className="h-6 w-6">
+                        <Avatar className="h-6 w-6 shrink-0">
                           <AvatarImage src={m.profiles?.avatar_url ?? ''} />
                           <AvatarFallback className="text-xs">{m.profiles?.full_name?.[0] ?? m.profiles?.email?.[0]}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 text-left">
-                          <p className="text-sm font-medium">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm font-medium truncate">{m.profiles?.full_name ?? m.profiles?.email ?? 'Member'}</p>
                           <p className="text-xs text-muted-foreground">{bal >= 0 ? 'owed' : 'owes'} {group.currency} {Math.abs(bal).toFixed(2)}</p>
                         </div>
                       </button>
@@ -641,28 +645,29 @@ export function GroupExpensesClient({
               
               return (
                 <Card key={settlement.id}>
-                  <CardContent className="flex items-center justify-between py-3 px-4">
-                    <div className="flex flex-1 items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                  <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-1 items-start gap-3 min-w-0">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">
                           <span className={isMe ? 'font-bold' : ''}>{payer?.profiles?.full_name ?? payer?.profiles?.email ?? 'Member'}</span>
                           {' paid '}
                           <span className={isMe ? 'font-bold' : ''}>{payee?.profiles?.full_name ?? payee?.profiles?.email ?? 'Member'}</span>
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {format(new Date(settlement.created_at), 'MMM d, yyyy')}
                           {settlement.notes && ` · ${settlement.notes}`}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold">{group.currency} {settlement.amount.toFixed(2)}</span>
+                    <div className="flex items-center justify-between gap-1 sm:justify-end">
+                      <span className="text-sm font-bold shrink-0">{group.currency} {settlement.amount.toFixed(2)}</span>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => openEditSettle(settlement)}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 shrink-0"
+                        title="Edit payment"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -680,7 +685,8 @@ export function GroupExpensesClient({
                             router.refresh()
                           }
                         }}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 shrink-0"
+                        title="Delete payment"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
