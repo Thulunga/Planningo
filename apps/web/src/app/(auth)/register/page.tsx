@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
+import { generateMetadata } from '@/lib/seo'
 import { RegisterForm } from '@/components/auth/register-form'
 
-export const metadata: Metadata = {
-  title: 'Create Account',
-}
+export const metadata: Metadata = generateMetadata(
+  'Create Account',
+  'Sign up for Planningo - your all-in-one productivity platform. Manage tasks, calendar, and expenses in one place.',
+  '/signup'
+)
 
 export default function RegisterPage() {
   return <RegisterForm />
