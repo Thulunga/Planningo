@@ -81,6 +81,7 @@ const expenseSchema = z.object({
   category: z.string().default('general'),
   split_type: z.enum(['equal', 'exact', 'percentage', 'shares']).default('equal'),
   expense_date: z.string().default(() => new Date().toISOString().split('T')[0]!),
+  paid_by_override: z.string().uuid().optional(), // allow specifying who paid
   splits: z.array(z.object({
     user_id: z.string().uuid(),
     amount: z.number(),
@@ -94,11 +95,12 @@ export async function createExpense(data: z.infer<typeof expenseSchema>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { splits, ...expenseData } = data
+  const { splits, paid_by_override, ...expenseData } = data
+  const paidBy = paid_by_override ?? user.id
 
   const { data: expense, error } = await supabase
     .from('expenses')
-    .insert({ paid_by: user.id, ...expenseData })
+    .insert({ paid_by: paidBy, ...expenseData })
     .select()
     .single()
 
@@ -124,13 +126,73 @@ export async function deleteExpense(id: string, groupId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // Verify user is a group member before allowing delete
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single()
+  if (!membership) return { error: 'Not a member of this group' }
+
   const { error } = await supabase
     .from('expenses')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('paid_by', user.id)
+    .eq('group_id', groupId)
 
   if (error) return { error: error.message }
+
+  revalidatePath(`/expenses/${groupId}`)
+  return { success: true }
+}
+
+export async function updateExpense(
+  id: string,
+  groupId: string,
+  data: {
+    title: string
+    amount: number
+    category: string
+    expense_date: string
+    paid_by: string
+  },
+  splits: { user_id: string; amount: number }[],
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Verify user is a group member
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single()
+  if (!membership) return { error: 'Not a member of this group' }
+
+  const { error } = await supabase
+    .from('expenses')
+    .update({
+      title: data.title,
+      amount: data.amount,
+      category: data.category,
+      expense_date: data.expense_date,
+      paid_by: data.paid_by,
+    })
+    .eq('id', id)
+    .eq('group_id', groupId)
+
+  if (error) return { error: error.message }
+
+  const { error: deleteErr } = await supabase.from('expense_splits').delete().eq('expense_id', id)
+  if (deleteErr) return { error: deleteErr.message }
+
+  const { error: insertErr } = await supabase.from('expense_splits').insert(
+    splits.map((s) => ({ expense_id: id, user_id: s.user_id, amount: s.amount }))
+  )
+  if (insertErr) return { error: insertErr.message }
 
   revalidatePath(`/expenses/${groupId}`)
   return { success: true }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, BookmarkPlus, CheckCircle2, Pencil, Copy, Check } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -12,25 +12,19 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
 } from '@planningo/ui'
-import { createExpense, addGroupMember, createSettlement, updateSettlement, deleteSettlement, searchGroupUsers, generateGroupInviteCode } from '@/lib/actions/expenses'
+import { deleteExpense, addGroupMember, createSettlement, updateSettlement, deleteSettlement, searchGroupUsers, generateGroupInviteCode } from '@/lib/actions/expenses'
 import { useRouter } from 'next/navigation'
 import { AddTransactionDialog } from './budget/add-transaction-dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@planningo/ui'
+import { ExpenseFormDialog } from './expense-form-dialog'
+import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface Member {
   user_id: string
@@ -89,7 +83,21 @@ export function GroupExpensesClient({
   
   useEffect(() => { setExpenses(initialExpenses) }, [initialExpenses])
 
+  // Realtime: refresh when expenses or settlements change for this group
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    const channel = supabase
+      .channel(`group-expenses-${group.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${group.id}` }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_splits' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${group.id}` }, () => router.refresh())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [group.id, router])
+
+  // Dialog state
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any | null>(null)
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [memberEmail, setMemberEmail] = useState('')
@@ -102,57 +110,15 @@ export function GroupExpensesClient({
   const [settlePaidBy, setSettlePaidBy] = useState<string>(currentUserId)
   const [editingSettlement, setEditingSettlement] = useState<any | null>(null)
   
-  // Record to budget
+  // Record to budget (kept for future use)
   const [recordingExpense, setRecordingExpense] = useState<{
     id: string
     title: string
     splitAmount: number
   } | null>(null)
 
-  const [newExpense, setNewExpense] = useState({
-    title: '',
-    amount: '',
-    category: 'general',
-    split_type: 'equal' as const,
-    expense_date: format(new Date(), 'yyyy-MM-dd'),
-  })
-
   const members = group.group_members
   const balances = calcBalances(expenses, initialSettlements, currentUserId, members)
-
-  async function handleAddExpense() {
-    if (!newExpense.title.trim() || !newExpense.amount) {
-      toast.error('Title and amount are required')
-      return
-    }
-
-    const amount = parseFloat(newExpense.amount)
-    const splitAmount = amount / members.length
-
-    setSaving(true)
-    const result = await createExpense({
-      group_id: group.id,
-      title: newExpense.title.trim(),
-      amount,
-      currency: group.currency,
-      category: newExpense.category,
-      split_type: newExpense.split_type,
-      expense_date: newExpense.expense_date,
-      splits: members.map((m) => ({
-        user_id: m.user_id,
-        amount: Math.round(splitAmount * 100) / 100,
-      })),
-    })
-    setSaving(false)
-
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success('Expense added')
-      setIsAddExpenseOpen(false)
-      router.refresh()
-    }
-  }
 
   async function handleAddMember() {
     if (!memberEmail.trim()) return
@@ -166,6 +132,18 @@ export function GroupExpensesClient({
       toast.success('Member added')
       setIsAddMemberOpen(false)
       setMemberEmail('')
+      router.refresh()
+    }
+  }
+
+  async function handleDeleteExpense(id: string) {
+    setSaving(true)
+    const result = await deleteExpense(id, group.id)
+    setSaving(false)
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Expense deleted')
       router.refresh()
     }
   }
@@ -238,49 +216,36 @@ export function GroupExpensesClient({
 
   return (
     <div className="space-y-4 pb-28 sm:pb-4">
-      {/* Sticky top bar — back link + title + action buttons */}
-      <div className="sticky top-0 z-20 -mx-4 bg-background/95 backdrop-blur px-4 pt-2 pb-3 border-b border-border/50">
-        <Button variant="ghost" size="sm" asChild className="mb-1 -ml-2">
+      {/* Sticky back button — minimal, always visible */}
+      <div className="sticky top-0 z-20 -mx-4 bg-background/95 backdrop-blur px-4 py-2 border-b border-border/40">
+        <Button variant="ghost" size="sm" asChild className="-ml-2">
           <Link href="/expenses">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Groups
+            Back
           </Link>
         </Button>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight truncate">{group.name}</h1>
-            <p className="text-xs text-muted-foreground capitalize">{group.category} · {group.currency}</p>
-          </div>
-          {/* Action buttons — all screen sizes */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddMemberOpen(true)}
-              className="gap-1.5"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span className="text-xs font-medium">Add Member</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSettleOpen(true)}
-              className="gap-1.5"
-            >
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs font-medium">Settle Up</span>
-            </Button>
-            {/* Add Expense button — desktop only */}
-            <Button
-              size="sm"
-              onClick={() => setIsAddExpenseOpen(true)}
-              className="hidden sm:flex gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-xs font-medium">Add Expense</span>
-            </Button>
-          </div>
+      </div>
+
+      {/* Group header + action buttons (non-sticky) */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">{group.name}</h1>
+          <p className="text-xs text-muted-foreground capitalize mt-0.5">{group.category} · {group.currency}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => setIsAddMemberOpen(true)} className="gap-1.5">
+            <UserPlus className="h-4 w-4" />
+            <span className="text-xs">Add Member</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsSettleOpen(true)} className="gap-1.5">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="text-xs">Settle Up</span>
+          </Button>
+          {/* Add Expense — desktop only; mobile uses sticky bottom bar */}
+          <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="hidden sm:flex gap-1.5">
+            <Plus className="h-4 w-4" />
+            <span className="text-xs">Add Expense</span>
+          </Button>
         </div>
       </div>
 
@@ -401,22 +366,27 @@ export function GroupExpensesClient({
                           </p>
                         )}
                       </div>
-                      {yourSplit && (
+                      {/* Show edit/delete to the payer or any group member */}
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-2 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 shrink-0 whitespace-nowrap"
-                          title="Record to my budget"
-                          onClick={() => setRecordingExpense({
-                            id: exp.id,
-                            title: exp.title,
-                            splitAmount: yourSplit.amount,
-                          })}
+                          className="h-8 w-8 p-0"
+                          title="Edit expense"
+                          onClick={() => setEditingExpense(exp)}
                         >
-                          <BookmarkPlus className="h-3.5 w-3.5 mr-1" />
-                          <span className="hidden sm:inline">Record</span>
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Delete expense"
+                          onClick={() => handleDeleteExpense(exp.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -426,74 +396,26 @@ export function GroupExpensesClient({
         )}
       </div>
 
-      {/* Add Expense Dialog */}
-      <Dialog open={isAddExpenseOpen} onOpenChange={setIsAddExpenseOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Expense</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>What was it for? *</Label>
-              <Input
-                placeholder="Dinner, taxi, hotel..."
-                value={newExpense.title}
-                onChange={(e) => setNewExpense((p) => ({ ...p, title: e.target.value }))}
-                autoFocus
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Amount ({group.currency}) *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense((p) => ({ ...p, amount: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Date</Label>
-                <Input
-                  type="date"
-                  value={newExpense.expense_date}
-                  onChange={(e) => setNewExpense((p) => ({ ...p, expense_date: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Category</Label>
-                <Select
-                  value={newExpense.category}
-                  onValueChange={(v) => setNewExpense((p) => ({ ...p, category: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['general', 'food', 'transport', 'accommodation', 'entertainment', 'shopping'].map((c) => (
-                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Split equally among {members.length} members: {group.currency}{' '}
-              {newExpense.amount
-                ? (parseFloat(newExpense.amount) / members.length).toFixed(2)
-                : '0.00'} each
-            </p>
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setIsAddExpenseOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddExpense} disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Expense
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Add / Edit Expense Dialog — new advanced form */}
+      <ExpenseFormDialog
+        open={isAddExpenseOpen}
+        onOpenChange={setIsAddExpenseOpen}
+        mode="add"
+        group={group}
+        members={members}
+        currentUserId={currentUserId}
+        onSuccess={() => router.refresh()}
+      />
+      <ExpenseFormDialog
+        open={!!editingExpense}
+        onOpenChange={(v) => { if (!v) setEditingExpense(null) }}
+        mode="edit"
+        group={group}
+        members={members}
+        currentUserId={currentUserId}
+        expense={editingExpense}
+        onSuccess={() => { setEditingExpense(null); router.refresh() }}
+      />
 
       {/* Add Member Dialog */}
       <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
