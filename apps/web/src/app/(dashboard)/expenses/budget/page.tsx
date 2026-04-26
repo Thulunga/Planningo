@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/supabase/server'
 import { getBudgetDashboard } from '@/lib/actions/budget'
 import { BudgetDashboard } from '@/components/expenses/budget/budget-dashboard'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 export const metadata: Metadata = { title: 'My Budget' }
 
@@ -88,6 +89,10 @@ export default async function BudgetPage({ searchParams }: Props) {
         categories={data.categories as any}
         budgets={data.budgets as any}
         groupExpenses={groupExpenses}
+      />
+      <FeedbackCta
+        heading="How can we improve Personal Budget?"
+        description="Report budget-tracking bugs, request analytics ideas, or suggest better money-planning features."
       />
     </div>
   )

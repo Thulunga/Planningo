@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Menu, CalendarDays } from 'lucide-react'
+import { Menu, CalendarDays, MessageSquare } from 'lucide-react'
 import {
   Button,
   Sheet,
@@ -49,8 +49,16 @@ export function Header({ profile, isAdmin = false }: HeaderProps) {
       {/* Desktop: empty left side - logo lives in sidebar */}
       <div className="hidden md:flex" />
 
-      {/* Right side: clock + theme toggle */}
+      {/* Right side: feedback quick action + clock + theme toggle */}
       <div className="flex items-center gap-2">
+        <Link
+          href="/feedback"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          aria-label="Open feedback"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Feedback</span>
+        </Link>
         <RealTimeClock
           timezone={profile?.timezone ?? 'UTC'}
           className="hidden sm:flex flex-col items-end"

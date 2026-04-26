@@ -28,6 +28,7 @@ import {
 import { createTrip } from '@/lib/actions/trips'
 import type { Tables } from '@planningo/database'
 import { useRouter } from 'next/navigation'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 const statusConfig = {
   planning: { label: 'Planning', variant: 'secondary' as const },
@@ -156,6 +157,11 @@ export function TripsClient({ trips }: TripsClientProps) {
           })}
         </div>
       )}
+
+      <FeedbackCta
+        heading="Feedback for Trips."
+        description="Share trip-planning ideas, report itinerary issues, or request new travel tools."
+      />
 
       {/* Create Trip Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

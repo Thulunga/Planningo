@@ -24,6 +24,7 @@ import {
 } from '@planningo/ui'
 import { createExpenseGroup } from '@/lib/actions/expenses'
 import { useRouter } from 'next/navigation'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 interface Group {
   id: string
@@ -228,6 +229,12 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <FeedbackCta
+        heading="Help improve Expenses."
+        description="Report split-calculation bugs, request expense features, or suggest UX improvements."
+        className="mb-20 sm:mb-0"
+      />
 
       {/* Sticky bottom bar - mobile only, sits above the bottom tab nav (h-16) */}
       <div className="fixed bottom-16 left-0 right-0 z-50 sm:hidden bg-background border-t border-border px-3 py-2.5">

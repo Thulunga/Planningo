@@ -23,6 +23,7 @@ import {
 } from '@planningo/ui'
 import type { Tables } from '@planningo/database'
 import { AnalogClock } from '@/components/clock/analog-clock'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 interface DashboardOverviewProps {
   profile: Tables<'profiles'>
@@ -282,6 +283,11 @@ export function DashboardOverview({
           ))}
         </div>
       </div>
+
+      <FeedbackCta
+        heading="How is your Dashboard experience?"
+        description="Share what is working, report dashboard issues, or request improvements to your home view."
+      />
     </div>
   )
 }

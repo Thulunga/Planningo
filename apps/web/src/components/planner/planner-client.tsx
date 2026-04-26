@@ -19,6 +19,7 @@ import {
 } from '@planningo/ui'
 import { createPlannerEntry, deletePlannerEntry } from '@/lib/actions/planner'
 import type { Tables } from '@planningo/database'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const BLOCK_COLORS = [
@@ -221,6 +222,11 @@ export function PlannerClient({ initialEntries, initialDate }: PlannerClientProp
           </button>
         </div>
       )}
+
+      <FeedbackCta
+        heading="Tell us about Day Planner."
+        description="Report timeline bugs, suggest planning features, or share ideas for better daily flow."
+      />
 
       {/* Create Block Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

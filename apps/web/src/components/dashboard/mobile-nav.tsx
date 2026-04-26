@@ -9,6 +9,7 @@ import {
   Calendar,
   Clock3,
   Bell,
+  MessageSquare,
   Plane,
   DollarSign,
   Settings,
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/planner', icon: Clock3, label: 'Day Planner' },
   { href: '/calendar', icon: Calendar, label: 'Calendar' },
   { href: '/reminders', icon: Bell, label: 'Reminders' },
+  { href: '/feedback', icon: MessageSquare, label: 'Feedback' },
   { href: '/trips', icon: Plane, label: 'Trips' },
   { href: '/expenses', icon: DollarSign, label: 'Expenses' },
 ]

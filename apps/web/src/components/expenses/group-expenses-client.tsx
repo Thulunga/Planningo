@@ -28,6 +28,7 @@ import { GroupSummarySheet } from './group-summary-sheet'
 import { GroupAnalytics } from './group-analytics'
 import { ConfirmDialog } from './confirm-dialog'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 interface Member {
   user_id: string
@@ -724,6 +725,12 @@ export function GroupExpensesClient({
           prefilledTitle={recordingExpense.title}
         />
       )}
+
+      <FeedbackCta
+        heading="Feedback for this Group Expense."
+        description="Report split or settlement issues, suggest group features, or share improvements for this page."
+        className="mb-20 sm:mb-0"
+      />
 
       {/* Sticky bottom bar - mobile only, sits above the bottom tab nav (h-16) */}
       <div className="fixed bottom-16 left-0 right-0 z-50 sm:hidden bg-background border-t border-border px-3 py-2.5">

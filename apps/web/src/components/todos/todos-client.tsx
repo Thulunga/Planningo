@@ -35,6 +35,7 @@ import {
 } from '@planningo/ui'
 import { createTodo, updateTodo, deleteTodo, toggleTodoStatus } from '@/lib/actions/todos'
 import type { Tables } from '@planningo/database'
+import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
 const priorityConfig = {
   low: { label: 'Low', className: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
@@ -250,6 +251,11 @@ export function TodosClient({ todos }: TodosClientProps) {
           ))}
         </div>
       )}
+
+      <FeedbackCta
+        heading="How can we improve Todos?"
+        description="Log a bug, request a new workflow, or share ideas to make task tracking easier in this section."
+      />
 
       {/* Create Todo Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
