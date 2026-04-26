@@ -249,7 +249,7 @@ export function DashboardOverview({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm">{entry.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {entry.start_time} – {entry.end_time}
+                        {entry.start_time}-{entry.end_time}
                       </p>
                     </div>
                   </li>

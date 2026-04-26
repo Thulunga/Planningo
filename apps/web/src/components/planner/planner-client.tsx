@@ -191,7 +191,7 @@ export function PlannerClient({ initialEntries, initialDate }: PlannerClientProp
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{entry.title}</p>
                         <p className="text-xs opacity-75">
-                          {entry.start_time} – {entry.end_time}
+                          {entry.start_time}-{entry.end_time}
                         </p>
                       </div>
                       <button

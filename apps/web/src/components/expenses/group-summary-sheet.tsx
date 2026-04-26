@@ -168,7 +168,7 @@ function buildTextSummary(
 
   const lines: string[] = []
   lines.push(`📊 *${group.name} — Expense Summary*`)
-  if (dateRange) lines.push(`📅 ${format(dateRange.start, 'MMM d')} – ${format(dateRange.end, 'MMM d, yyyy')}`)
+  if (dateRange) lines.push(`📅 ${format(dateRange.start, 'MMM d')}-${format(dateRange.end, 'MMM d, yyyy')}`)
   lines.push(``)
   lines.push(`💰 *Total Expenses:* ${group.currency} ${total.toFixed(2)}`)
   lines.push(`🧾 *Expenses:* ${expenses.length}  💳 *Payments:* ${settlements.length}  👥 *Members:* ${members.length}`)
@@ -315,7 +315,7 @@ export function GroupSummarySheet({ open, onOpenChange, group, expenses, settlem
           </DialogTitle>
           <p className="text-violet-200 text-sm mt-0.5">
             {dateRange
-              ? `${format(dateRange.start, 'MMM d')} – ${format(dateRange.end, 'MMM d, yyyy')}`
+              ? `${format(dateRange.start, 'MMM d')}-${format(dateRange.end, 'MMM d, yyyy')}`
               : 'No expenses yet'}
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2">

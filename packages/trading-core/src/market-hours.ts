@@ -1,5 +1,5 @@
 /**
- * NSE market hours: 9:15 AM – 3:30 PM IST, Monday–Friday (IST = UTC+5:30).
+ * NSE market hours: 9:15 AM-3:30 PM IST, Monday–Friday (IST = UTC+5:30).
  *
  * Critical fix vs. the original service implementation:
  *   The service used `now.getUTCDay()` to determine day-of-week which is
@@ -115,7 +115,7 @@ export function isEngineStartTime(now: Date = new Date()): boolean {
   return istMinuteOfDay(now) >= ENGINE_START
 }
 
-/** Active scan window: 9:15 AM – 3:45 PM IST on weekdays. */
+/** Active scan window: 9:15 AM-3:45 PM IST on weekdays. */
 export function isScanWindow(now: Date = new Date()): boolean {
   if (!isISTWeekday(now)) return false
   const m = istMinuteOfDay(now)
@@ -154,7 +154,7 @@ export function formatDuration(ms: number): string {
 /** Returns 'MORNING' | 'MIDDAY' | 'AFTERNOON' for a given time. */
 export function getSession(now: Date = new Date()): 'MORNING' | 'MIDDAY' | 'AFTERNOON' {
   const m = istMinuteOfDay(now)
-  if (m < 11 * 60 + 30) return 'MORNING'     // 9:15 AM – 11:30 AM
-  if (m < 13 * 60)      return 'MIDDAY'       // 11:30 AM – 1:00 PM
-  return 'AFTERNOON'                           // 1:00 PM – 3:30 PM
+  if (m < 11 * 60 + 30) return 'MORNING'     // 9:15 AM-11:30 AM
+  if (m < 13 * 60)      return 'MIDDAY'       // 11:30 AM-1:00 PM
+  return 'AFTERNOON'                           // 1:00 PM-3:30 PM
 }

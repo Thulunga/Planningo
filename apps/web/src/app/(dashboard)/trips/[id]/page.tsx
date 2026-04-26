@@ -56,7 +56,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
             <div>
               <p className="text-xs text-muted-foreground">Dates</p>
               <p className="text-sm font-medium">
-                {format(new Date(trip.start_date), 'MMM d')} – {format(new Date(trip.end_date), 'MMM d, yyyy')}
+                {format(new Date(trip.start_date), 'MMM d')}-{format(new Date(trip.end_date), 'MMM d, yyyy')}
               </p>
               <p className="text-xs text-muted-foreground">{duration} days</p>
             </div>

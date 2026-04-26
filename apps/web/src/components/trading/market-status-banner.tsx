@@ -51,7 +51,7 @@ export function MarketStatusBanner() {
             {isOpen ? 'NSE OPEN' : isPreOpen ? 'PRE-OPEN' : 'MARKET CLOSED'}
           </span>
           <span className="text-muted-foreground text-sm hidden sm:inline">
-            · {info?.openTime} – {info?.closeTime} IST
+            · {info?.openTime}-{info?.closeTime} IST
           </span>
         </div>
       </div>

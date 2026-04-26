@@ -158,7 +158,7 @@ export function BacktestHistory({ runs, onSelect, onDelete, selectedRunId }: Pro
                 )}
                 <span className="font-medium text-sm truncate">{run.symbol}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {run.start_date} – {run.end_date}
+                  {run.start_date}-{run.end_date}
                 </span>
               </div>
 

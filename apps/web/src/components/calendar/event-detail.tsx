@@ -16,8 +16,8 @@ export function EventDetail({ event, onClose, onDelete }: EventDetailProps) {
   const end = new Date(event.end_time)
 
   const timeDisplay = event.all_day
-    ? `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
-    : `${format(start, 'MMM d, yyyy h:mm a')} – ${format(end, 'h:mm a')}`
+    ? `${format(start, 'MMM d')}-${format(end, 'MMM d, yyyy')}`
+    : `${format(start, 'MMM d, yyyy h:mm a')}-${format(end, 'h:mm a')}`
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
