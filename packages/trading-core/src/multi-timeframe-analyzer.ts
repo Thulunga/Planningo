@@ -59,13 +59,13 @@ export interface HTFConfig {
 
   /**
    * Minimum RSI (on HTF) to consider trend BULLISH.
-   * Default 52 — requires clear upward momentum, not just "not oversold".
+   * Default 52 - requires clear upward momentum, not just "not oversold".
    */
   htfRsiBullishThreshold: number
 
   /**
    * Maximum RSI (on HTF) to consider trend BEARISH.
-   * Default 48 — requires clear downward momentum, not just "not overbought".
+   * Default 48 - requires clear downward momentum, not just "not overbought".
    */
   htfRsiBearishThreshold: number
 
@@ -82,7 +82,7 @@ export interface HTFConfig {
  * Key changes from v1:
  *  - 30-min bars (was 15-min): wider view catches broader intraday trend
  *  - Dual EMA: price > EMA9 > EMA20 required for BULLISH (not just price > EMA50)
- *  - RSI thresholds tightened: 52/48 instead of 40/60 — eliminates choppy-range false signals
+ *  - RSI thresholds tightened: 52/48 instead of 40/60 - eliminates choppy-range false signals
  */
 export const DEFAULT_HTF_CONFIG: HTFConfig = {
   htfPeriodSec: 1800,          // 30 minutes
@@ -192,7 +192,7 @@ export function analyzeTrend(
   // Slow EMA (trend baseline)
   const slowEma = calculateEMA(closes, config.htfEmaTrendPeriod)
 
-  // Fast EMA (momentum direction) — dual-EMA confirmation
+  // Fast EMA (momentum direction) - dual-EMA confirmation
   const fastEmaPeriod = config.htfFastEmaPeriod ?? config.htfEmaTrendPeriod
   const fastEma = calculateEMA(closes, fastEmaPeriod)
 

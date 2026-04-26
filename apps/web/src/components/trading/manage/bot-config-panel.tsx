@@ -496,7 +496,7 @@ export function BotConfigPanel() {
           value={config.ma2Length}
           onChange={set('ma2Length')}
           min={10} max={60} unit="periods"
-          info="Middle MA — price must be near this to enter. Acts as the pullback zone reference. Default 21."
+          info="Middle MA - price must be near this to enter. Acts as the pullback zone reference. Default 21."
         />
         <NumberField
           label="MA3 (Slow)"

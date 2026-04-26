@@ -226,7 +226,7 @@ function buildTextSummary(
   } : null
 
   const lines: string[] = []
-  lines.push(`📊 *${group.name} — Expense Summary*`)
+  lines.push(`📊 *${group.name} - Expense Summary*`)
   if (dateRange) lines.push(`📅 ${format(dateRange.start, 'MMM d')} – ${format(dateRange.end, 'MMM d, yyyy')}`)
   lines.push('')
   lines.push(`💰 *Total Expenses:* ${group.currency} ${total.toFixed(2)}`)
@@ -311,7 +311,7 @@ export function GroupSummarySheet({ open, onOpenChange, group, expenses, settlem
 
   function handleWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(getText())}`, '_blank', 'noopener,noreferrer') }
   function handleTelegram() { window.open(`https://t.me/share/url?url=${encodeURIComponent('https://planningo.app')}&text=${encodeURIComponent(getText())}`, '_blank', 'noopener,noreferrer') }
-  function handleEmail() { window.open(`mailto:?subject=${encodeURIComponent(`${group.name} — Expense Summary`)}&body=${encodeURIComponent(getText())}`, '_blank', 'noopener,noreferrer') }
+  function handleEmail() { window.open(`mailto:?subject=${encodeURIComponent(`${group.name} - Expense Summary`)}&body=${encodeURIComponent(getText())}`, '_blank', 'noopener,noreferrer') }
 
   async function handleSaveImage() {
     const el = captureRef.current
@@ -340,7 +340,7 @@ export function GroupSummarySheet({ open, onOpenChange, group, expenses, settlem
         if (!blob) { toast.error('Could not generate image'); setExporting(false); return }
         const file = new File([blob], `${group.name}-summary.png`, { type: 'image/png' })
         if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: `${group.name} — Expense Summary` })
+          await navigator.share({ files: [file], title: `${group.name} - Expense Summary` })
         } else {
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
@@ -352,7 +352,7 @@ export function GroupSummarySheet({ open, onOpenChange, group, expenses, settlem
       }, 'image/png')
     } catch (err) {
       console.error(err)
-      toast.error('Image export failed — try copying text instead')
+      toast.error('Image export failed - try copying text instead')
       setExporting(false)
     }
   }

@@ -18,11 +18,15 @@ import {
   X,
   Check,
 } from 'lucide-react'
+import { LandingNavCta, LandingHeroCta, LandingBottomCta } from './landing-nav-cta'
+import { PersonalBudgetShowcase } from './personal-budget-showcase'
+import { GroupExpenseShowcase } from './group-expense-showcase'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export const metadata: Metadata = {
-  title: 'Planningo — Your life, organized from anywhere',
+  title: 'Planningo - Your life, organized from anywhere',
   description:
-    'Replace scattered spreadsheets with one smart platform. Todos, calendar, day planner, reminders, trips, and expenses — all in your pocket.',
+    'Replace scattered spreadsheets with one smart platform. Todos, calendar, day planner, reminders, trips, and expenses - all in your pocket.',
 }
 
 const features = [
@@ -59,7 +63,7 @@ const features = [
     label: 'Trip Planner',
     color: 'text-cyan-400',
     bg: 'bg-cyan-500/10',
-    desc: 'Plan multi-day itineraries with stops, notes, and budgets — all in one place.',
+    desc: 'Plan multi-day itineraries with stops, notes, and budgets - all in one place.',
   },
   {
     icon: DollarSign,
@@ -91,7 +95,7 @@ const whyItems = [
   {
     icon: Globe,
     title: 'Manage from anywhere',
-    desc: 'Your data lives in the cloud. Open Planningo on your phone, tablet, or laptop — always up to date, always in sync.',
+    desc: 'Your data lives in the cloud. Open Planningo on your phone, tablet, or laptop - always up to date, always in sync.',
   },
   {
     icon: Zap,
@@ -101,7 +105,7 @@ const whyItems = [
   {
     icon: ShieldCheck,
     title: 'Private & secure',
-    desc: 'Powered by Supabase — enterprise-grade auth and row-level security. Your data is yours alone.',
+    desc: 'Powered by Supabase - enterprise-grade auth and row-level security. Your data is yours alone.',
   },
   {
     icon: Users,
@@ -122,19 +126,11 @@ export default function LandingPage() {
             </div>
             <span className="font-bold tracking-tight">Planningo</span>
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/login"
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-md bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              Get Started
-            </Link>
+          <nav className="flex items-center gap-1.5 sm:gap-2.5">
+            <div className="rounded-lg border border-border/60 bg-card/70 shadow-sm">
+              <ThemeToggle />
+            </div>
+            <LandingNavCta />
           </nav>
         </div>
       </header>
@@ -152,7 +148,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-3xl text-center">
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Zap className="h-3 w-3" />
-            All-in-one productivity — no spreadsheets needed
+            All-in-one productivity - no spreadsheets needed
           </span>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
             Your life, organized.
@@ -163,24 +159,10 @@ export default function LandingPage() {
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
             Ditch the Excel chaos. Planningo keeps your todos, calendar, day
-            planner, reminders, trips, and expenses in perfect sync — on every
+            planner, reminders, trips, and expenses in perfect sync - on every
             device you own.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/register"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
-            >
-              Start for free
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-semibold transition-colors hover:bg-accent sm:w-auto"
-            >
-              Sign in to your account
-            </Link>
-          </div>
+          <LandingHeroCta />
           {/* Device badges */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {devices.map(({ icon: Icon, label }) => (
@@ -231,7 +213,7 @@ export default function LandingPage() {
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Upcoming
               </p>
-              {['Team standup — 10:00 AM', 'Dentist — 2:30 PM', 'Gym — 6:00 PM'].map((e) => (
+              {['Team standup - 10:00 AM', 'Dentist - 2:30 PM', 'Gym - 6:00 PM'].map((e) => (
                 <div key={e} className="flex items-center gap-2 py-1.5">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-violet-400" />
                   <span className="text-sm">{e}</span>
@@ -257,6 +239,10 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <GroupExpenseShowcase />
+
+      <PersonalBudgetShowcase />
+
       {/* ── Features grid ── */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <div className="mb-12 text-center">
@@ -264,7 +250,7 @@ export default function LandingPage() {
             Six tools. One home.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Everything you track in separate apps or spreadsheets — unified.
+            Everything you track in separate apps or spreadsheets - unified.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -291,7 +277,7 @@ export default function LandingPage() {
               Why Planningo?
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Built for the way you actually work — mobile-first, real-time, and always with you.
+              Built for the way you actually work - mobile-first, real-time, and always with you.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -375,15 +361,7 @@ export default function LandingPage() {
             No more emailing yourself spreadsheets. No more &quot;which version is the
             latest?&quot;. Planningo lives in the cloud and works on every device.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/register"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
-            >
-              Create your free account
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <LandingBottomCta />
           <p className="mt-3 text-xs text-muted-foreground">
             Free to use. No credit card required.
           </p>

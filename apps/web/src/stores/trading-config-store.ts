@@ -1,5 +1,5 @@
 /**
- * Bot Configuration Store — persisted to localStorage.
+ * Bot Configuration Store - persisted to localStorage.
  *
  * Stores every tunable setting for the 6-indicator confluence strategy.
  * Both the Backtest and the live signal scan read from this store so that
@@ -67,7 +67,7 @@ export interface BotConfig {
   // ── MA Boundary Filter ────────────────────────────────────────────────────
   enableMABoundaryFilter: boolean
   ma1Length: number             // Fast MA (default 9)
-  ma2Length: number             // Mid MA — price must be near this (default 21)
+  ma2Length: number             // Mid MA - price must be near this (default 21)
   ma3Length: number             // Slow MA (default 50)
   noTradeSpreadThreshold: number // MAs too tight = no trade (default 0.002)
   slopeThreshold: number        // MA slope must exceed this (default 0.05)

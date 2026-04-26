@@ -11,6 +11,7 @@ import { Button, Progress } from '@planningo/ui'
 import { AddTransactionDialog } from './add-transaction-dialog'
 import { BudgetCategoryManager } from './budget-category-manager'
 import { TransactionList } from './transaction-list'
+import { BudgetAnalytics } from './budget-analytics'
 
 interface Category {
   id: string
@@ -226,118 +227,32 @@ export function BudgetDashboard({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-5">
-        {/* Left column: Budget progress + Category breakdown */}
-        <div className="space-y-5 lg:col-span-2">
-          {/* Budget Progress */}
-          {budgetProgress.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Budget Progress</h2>
-                <button
-                  type="button"
-                  onClick={() => setIsManagerOpen(true)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Edit budgets
-                </button>
-              </div>
-              <div className="space-y-3">
-                {budgetProgress.map(({ cat, budget, spent, pct, over }) => (
-                  <div key={cat.id}>
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-base">{cat.icon}</span>
-                        <span className="text-xs font-medium truncate">{cat.name}</span>
-                        {over && <AlertTriangle className="h-3 w-3 shrink-0 text-red-500" />}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className={`text-xs font-semibold tabular-nums ${over ? 'text-red-500' : ''}`}>
-                          ₹{spent.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {' '}/ ₹{budget.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <Progress
-                        value={pct}
-                        className="h-1.5"
-                        style={{
-                          '--progress-color': over ? '#ef4444' : pct > 80 ? '#f59e0b' : cat.color,
-                        } as React.CSSProperties}
-                      />
-                    </div>
-                    <p className="mt-0.5 text-right text-[10px] text-muted-foreground">
-                      {pct.toFixed(0)}% used · ₹{Math.max(0, budget.amount - spent).toLocaleString('en-IN', { maximumFractionDigits: 0 })} left
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* No budgets set CTA */}
-          {budgetProgress.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center">
-              <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-              <p className="text-sm font-medium">No budgets set</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Set monthly limits per category to track your spending goals
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => setIsManagerOpen(true)}
-              >
-                Set budgets
-              </Button>
-            </div>
-          )}
-
-          {/* Category Breakdown */}
-          {categoryBreakdown.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold">Spending by Category</h2>
-              <div className="space-y-2">
-                {categoryBreakdown.map(({ cat, amount }) => {
-                  const pct = totalExpense > 0 ? (amount / totalExpense) * 100 : 0
-                  return (
-                    <div key={cat.id} className="flex items-center gap-2">
-                      <div
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs"
-                        style={{ backgroundColor: cat.color + '22', color: cat.color }}
-                      >
-                        {cat.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs truncate">{cat.name}</span>
-                          <span className="text-xs font-medium tabular-nums ml-2 shrink-0">
-                            ₹{amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-                        <div className="h-1 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${pct}%`, backgroundColor: cat.color }}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">
-                        {pct.toFixed(0)}%
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+        {/* Analytics - full width */}
+        <div className="lg:col-span-5">
+          <BudgetAnalytics
+            transactions={transactions}
+            categories={categories}
+            budgets={budgets}
+            currency="INR"
+          />
         </div>
 
-        {/* Right column: Transactions */}
-        <div className="lg:col-span-3">
+        {/* No budgets CTA when none set */}
+        {budgets.length === 0 && (
+          <div className="lg:col-span-5 rounded-xl border border-dashed border-border p-6 text-center">
+            <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+            <p className="text-sm font-medium">No budgets set</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Set monthly limits per category to track your spending goals
+            </p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setIsManagerOpen(true)}>
+              Set budgets
+            </Button>
+          </div>
+        )}
+
+        {/* Transactions list */}
+        <div className="lg:col-span-5">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">

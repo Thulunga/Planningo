@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!rawBotConfig) {
-    // Cron path — load saved config from DB so the scheduled job honours Bot Manager settings
+    // Cron path - load saved config from DB so the scheduled job honours Bot Manager settings
     try {
       const { data: cfgRow } = await (supabase as any)
         .from('bot_config')
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         extConfig      = built.extConfig
       }
     } catch {
-      // DB read failed — continue with defaults, log for observability
+      // DB read failed - continue with defaults, log for observability
       console.warn('[signals] Could not load bot_config from DB, using defaults')
     }
   }

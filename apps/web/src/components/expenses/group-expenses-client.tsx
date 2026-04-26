@@ -26,6 +26,7 @@ import { AddTransactionDialog } from './budget/add-transaction-dialog'
 import { ExpenseFormDialog } from './expense-form-dialog'
 import { GroupSummarySheet } from './group-summary-sheet'
 import { GroupAnalytics } from './group-analytics'
+import { ConfirmDialog } from './confirm-dialog'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface Member {
@@ -114,6 +115,11 @@ export function GroupExpensesClient({
   
   const [isShareOpen, setIsShareOpen] = useState(false)
 
+  // Confirm delete state
+  const [confirmExpenseId, setConfirmExpenseId] = useState<string | null>(null)
+  const [confirmSettlementId, setConfirmSettlementId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   // Record to budget (kept for future use)
   const [recordingExpense, setRecordingExpense] = useState<{
     id: string
@@ -141,9 +147,10 @@ export function GroupExpensesClient({
   }
 
   async function handleDeleteExpense(id: string) {
-    setSaving(true)
+    setDeleting(true)
     const result = await deleteExpense(id, group.id)
-    setSaving(false)
+    setDeleting(false)
+    setConfirmExpenseId(null)
     if (result.error) {
       toast.error(result.error)
     } else {
@@ -220,7 +227,7 @@ export function GroupExpensesClient({
 
   return (
     <div className="space-y-4 pb-28 sm:pb-4">
-      {/* Sticky back button — minimal, always visible */}
+      {/* Sticky back button - minimal, always visible */}
       <div className="sticky top-0 z-20 -mx-4 bg-background/95 backdrop-blur px-4 py-2 border-b border-border/40">
         <Button variant="ghost" size="sm" asChild className="-ml-2">
           <Link href="/expenses">
@@ -245,7 +252,7 @@ export function GroupExpensesClient({
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span className="text-xs">Settle Up</span>
           </Button>
-          {/* Add Expense — desktop only; mobile uses sticky bottom bar */}
+          {/* Add Expense - desktop only; mobile uses sticky bottom bar */}
           <Button size="sm" onClick={() => setIsAddExpenseOpen(true)} className="hidden sm:flex gap-1.5">
             <Plus className="h-4 w-4" />
             <span className="text-xs">Add Expense</span>
@@ -393,7 +400,7 @@ export function GroupExpensesClient({
                           size="sm"
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           title="Delete expense"
-                          onClick={() => handleDeleteExpense(exp.id)}
+                          onClick={() => setConfirmExpenseId(exp.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -407,7 +414,7 @@ export function GroupExpensesClient({
         )}
       </div>
 
-      {/* Add / Edit Expense Dialog — new advanced form */}
+      {/* Add / Edit Expense Dialog - new advanced form */}
       <ExpenseFormDialog
         open={isAddExpenseOpen}
         onOpenChange={setIsAddExpenseOpen}
@@ -622,17 +629,7 @@ export function GroupExpensesClient({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={async () => {
-                          setSaving(true)
-                          const result = await deleteSettlement(settlement.id, group.id)
-                          setSaving(false)
-                          if (result.error) {
-                            toast.error(result.error)
-                          } else {
-                            toast.success('Payment deleted')
-                            router.refresh()
-                          }
-                        }}
+                        onClick={() => setConfirmSettlementId(settlement.id)}
                         className="h-8 w-8 p-0 shrink-0"
                         title="Delete payment"
                       >
@@ -677,6 +674,36 @@ export function GroupExpensesClient({
         balances={balances}
       />
 
+      {/* Confirm delete expense */}
+      <ConfirmDialog
+        open={!!confirmExpenseId}
+        onOpenChange={(v) => { if (!v) setConfirmExpenseId(null) }}
+        title="Delete this expense?"
+        description="This will permanently remove the expense and all its split records. This action cannot be undone."
+        confirmLabel="Yes, delete expense"
+        loading={deleting}
+        onConfirm={() => { if (confirmExpenseId) handleDeleteExpense(confirmExpenseId) }}
+      />
+
+      {/* Confirm delete settlement */}
+      <ConfirmDialog
+        open={!!confirmSettlementId}
+        onOpenChange={(v) => { if (!v) setConfirmSettlementId(null) }}
+        title="Delete this payment?"
+        description="This will remove the payment record and affect the group balances. This action cannot be undone."
+        confirmLabel="Yes, delete payment"
+        loading={deleting}
+        onConfirm={async () => {
+          if (!confirmSettlementId) return
+          setDeleting(true)
+          const result = await deleteSettlement(confirmSettlementId, group.id)
+          setDeleting(false)
+          setConfirmSettlementId(null)
+          if (result.error) { toast.error(result.error) }
+          else { toast.success('Payment deleted'); router.refresh() }
+        }}
+      />
+
       {/* Record group expense to personal budget */}
       {recordingExpense && (
         <AddTransactionDialog
@@ -698,7 +725,7 @@ export function GroupExpensesClient({
         />
       )}
 
-      {/* Sticky bottom bar — mobile only, sits above the bottom tab nav (h-16) */}
+      {/* Sticky bottom bar - mobile only, sits above the bottom tab nav (h-16) */}
       <div className="fixed bottom-16 left-0 right-0 z-50 sm:hidden bg-background border-t border-border px-3 py-2.5">
         <Button
           size="lg"

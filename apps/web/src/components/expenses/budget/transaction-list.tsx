@@ -7,6 +7,7 @@ import { Search, Filter, Pencil, Trash2, Link2, TrendingUp, TrendingDown } from 
 import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@planningo/ui'
 import { deleteTransaction } from '@/lib/actions/budget'
 import { AddTransactionDialog } from './add-transaction-dialog'
+import { ConfirmDialog } from '../confirm-dialog'
 
 interface Category {
   id: string
@@ -60,6 +61,8 @@ export function TransactionList({
   const [filterCategory, setFilterCategory] = useState('all')
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [confirmDeleteTitle, setConfirmDeleteTitle] = useState('')
 
   const filtered = transactions.filter((t) => {
     if (filterType !== 'all' && t.type !== filterType) return false
@@ -75,6 +78,7 @@ export function TransactionList({
       if (result.error) toast.error(result.error)
       else toast.success('Transaction deleted')
       setDeletingId(null)
+      setConfirmDeleteId(null)
     })
   }
 
@@ -143,7 +147,7 @@ export function TransactionList({
                     transaction={t}
                     currency={currency}
                     onEdit={() => setEditingTx(t)}
-                    onDelete={() => handleDelete(t.id)}
+                    onDelete={() => { setConfirmDeleteId(t.id); setConfirmDeleteTitle(t.title) }}
                     isDeleting={deletingId === t.id}
                   />
                 ))}
@@ -165,6 +169,16 @@ export function TransactionList({
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        onOpenChange={(v) => { if (!v) setConfirmDeleteId(null) }}
+        title="Delete this transaction?"
+        description={`"${confirmDeleteTitle}" will be permanently removed from your budget records. This cannot be undone.`}
+        confirmLabel="Yes, delete"
+        loading={isPending && deletingId === confirmDeleteId}
+        onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId) }}
+      />
     </div>
   )
 }

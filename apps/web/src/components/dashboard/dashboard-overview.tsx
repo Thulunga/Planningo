@@ -69,7 +69,7 @@ export function DashboardOverview({
     <div className="space-y-4 md:space-y-6">
       {/* Greeting hero */}
       <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
-        {/* Clock — centered on mobile, shrink-0 on desktop */}
+        {/* Clock - centered on mobile, shrink-0 on desktop */}
         <div className="flex justify-center sm:justify-start sm:shrink-0">
           <AnalogClock timezone={profile.timezone ?? undefined} size={110} />
         </div>
@@ -87,7 +87,7 @@ export function DashboardOverview({
         </div>
       </div>
 
-      {/* Stats strip — mobile-friendly horizontal scroll */}
+      {/* Stats strip - mobile-friendly horizontal scroll */}
       <div className="flex gap-3 overflow-x-auto pb-1 sm:overflow-visible">
         {[
           {
@@ -128,7 +128,7 @@ export function DashboardOverview({
         ))}
       </div>
 
-      {/* Main cards — single col on mobile, 2-col on md, 3-col on xl */}
+      {/* Main cards - single col on mobile, 2-col on md, 3-col on xl */}
       <div className="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {/* Todos card */}
         <Card>
@@ -260,7 +260,7 @@ export function DashboardOverview({
         </Card>
       </div>
 
-      {/* Quick actions — scrollable chip row on mobile */}
+      {/* Quick actions - scrollable chip row on mobile */}
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Quick Actions

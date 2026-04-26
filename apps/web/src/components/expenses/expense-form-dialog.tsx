@@ -560,7 +560,7 @@ export function ExpenseFormDialog({
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  Split equally — {group.currency} {totalNum > 0 ? (totalNum / members.length).toFixed(2) : '0.00'} per person
+                  Split equally - {group.currency} {totalNum > 0 ? (totalNum / members.length).toFixed(2) : '0.00'} per person
                 </p>
               </TabsContent>
 

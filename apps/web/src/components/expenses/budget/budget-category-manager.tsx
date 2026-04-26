@@ -25,6 +25,7 @@ import {
   upsertBudget,
   deleteBudget,
 } from '@/lib/actions/budget'
+import { ConfirmDialog } from '../confirm-dialog'
 
 interface Category {
   id: string
@@ -77,6 +78,10 @@ export function BudgetCategoryManager({
   const [activeTab, setActiveTab] = useState<'categories' | 'budgets'>('budgets')
   const [editBudgetId, setEditBudgetId] = useState<string | null>(null)
 
+  // Confirm dialogs
+  const [confirmBudgetDelete, setConfirmBudgetDelete] = useState<{ budgetId: string; categoryId: string; name: string } | null>(null)
+  const [confirmCategoryArchive, setConfirmCategoryArchive] = useState<{ id: string; name: string } | null>(null)
+
   // New category form
   const [newCat, setNewCat] = useState({
     name: '',
@@ -112,6 +117,7 @@ export function BudgetCategoryManager({
       const result = await archiveCategory(id)
       if (result.error) toast.error(result.error)
       else toast.success('Category removed')
+      setConfirmCategoryArchive(null)
     })
   }
 
@@ -144,6 +150,7 @@ export function BudgetCategoryManager({
         toast.success('Budget removed')
         setBudgetAmounts((p) => { const n = { ...p }; delete n[categoryId]; return n })
       }
+      setConfirmBudgetDelete(null)
     })
   }
 
@@ -233,8 +240,7 @@ export function BudgetCategoryManager({
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteBudget(budget!.id, cat.id)}
-                        disabled={isPending}
+                        onClick={() => setConfirmBudgetDelete({ budgetId: budget!.id, categoryId: cat.id, name: cat.name })}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -267,7 +273,7 @@ export function BudgetCategoryManager({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleArchiveCategory(cat.id)}
+                    onClick={() => setConfirmCategoryArchive({ id: cat.id, name: cat.name })}
                     disabled={isPending}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -362,6 +368,32 @@ export function BudgetCategoryManager({
           </div>
         )}
       </SheetContent>
+
+      {/* Confirm delete budget */}
+      <ConfirmDialog
+        open={!!confirmBudgetDelete}
+        onOpenChange={(v) => { if (!v) setConfirmBudgetDelete(null) }}
+        title="Remove budget limit?"
+        description={`The budget limit for "${confirmBudgetDelete?.name ?? ''}" will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Yes, remove"
+        loading={isPending}
+        onConfirm={() => {
+          if (confirmBudgetDelete) handleDeleteBudget(confirmBudgetDelete.budgetId, confirmBudgetDelete.categoryId)
+        }}
+      />
+
+      {/* Confirm archive category */}
+      <ConfirmDialog
+        open={!!confirmCategoryArchive}
+        onOpenChange={(v) => { if (!v) setConfirmCategoryArchive(null) }}
+        title="Remove this category?"
+        description={`"${confirmCategoryArchive?.name ?? ''}" will be archived and hidden from your budget. This cannot be undone.`}
+        confirmLabel="Yes, remove"
+        loading={isPending}
+        onConfirm={() => {
+          if (confirmCategoryArchive) handleArchiveCategory(confirmCategoryArchive.id)
+        }}
+      />
     </Sheet>
   )
 }

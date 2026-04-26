@@ -59,8 +59,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages and landing
-  if (user && (isAuthRoute || pathname === '/landing') && !pathname.startsWith('/auth/')) {
+  // Redirect authenticated users away from auth pages (login, register, etc.)
+  // but NOT from /landing - everyone should be able to visit the landing page
+  if (user && isAuthRoute && !pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     url.searchParams.delete('redirectTo')

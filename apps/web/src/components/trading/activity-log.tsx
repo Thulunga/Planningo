@@ -142,7 +142,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
   }, [logs, userId, loadingMore, hasMore])
 
   // Auto-scroll to bottom when new logs arrive
-  // Auto-scroll to bottom when new logs arrive — scroll the container only
+  // Auto-scroll to bottom when new logs arrive - scroll the container only
   useEffect(() => {
     if (!autoScroll) return
     const el = containerRef.current
@@ -163,7 +163,7 @@ export function ActivityLog({ userId, initialLogs = [] }: ActivityLogProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card flex h-full min-h-0 flex-col overflow-hidden">
-      {/* Header — low-contrast, theme-aware "hacker terminal" */}
+      {/* Header - low-contrast, theme-aware "hacker terminal" */}
       <div className="flex items-center justify-between border-b px-4 py-3 shrink-0 bg-white/60 border-zinc-200 dark:bg-zinc-900/60 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <div className="font-mono text-[12px] text-emerald-600/50 dark:text-green-400/60 select-none">root@planningo:~$</div>

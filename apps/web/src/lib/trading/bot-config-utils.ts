@@ -1,7 +1,7 @@
 /**
- * bot-config-utils.ts — pure conversion helpers.
+ * bot-config-utils.ts - pure conversion helpers.
  * Used server-side (route.ts, backtest action) and client-side.
- * No Zustand dependency — safe to import anywhere.
+ * No Zustand dependency - safe to import anywhere.
  */
 import type { StrategyConfig, RiskConfig, SignalEngineExtConfig } from '@planningo/trading-core'
 import type { BotConfig } from '@/stores/trading-config-store'

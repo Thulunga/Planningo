@@ -342,7 +342,7 @@ export function GroupAnalytics({
   const kpis = [
     { label: 'Total Spent', value: `${currency} ${totalSpent >= 10000 ? (totalSpent / 1000).toFixed(1) + 'k' : totalSpent.toFixed(2)}`, sub: `${expenses.length} expense${expenses.length !== 1 ? 's' : ''}`, accent: '#7c3aed', icon: '💰' },
     { label: 'Avg / Expense', value: `${currency} ${avgPerExpense.toFixed(2)}`, sub: 'per transaction', accent: '#0891b2', icon: '📊' },
-    { label: 'Top Category', value: topCatDef ? topCatDef.label : '—', sub: topCategory ? `${Math.round((topCategory[1].amount / totalSpent) * 100)}% of total` : '', accent: '#d97706', icon: topCatDef?.emoji ?? '📦' },
+    { label: 'Top Category', value: topCatDef ? topCatDef.label : '-', sub: topCategory ? `${Math.round((topCategory[1].amount / totalSpent) * 100)}% of total` : '', accent: '#d97706', icon: topCatDef?.emoji ?? '📦' },
     { label: 'Your Balance', value: `${myBalance >= 0 ? '+' : ''}${currency} ${Math.abs(myBalance).toFixed(2)}`, sub: myBalance > 0.01 ? 'owed to you' : myBalance < -0.01 ? 'you owe' : 'all settled', accent: myBalance > 0.01 ? '#10b981' : myBalance < -0.01 ? '#ef4444' : '#94a3b8', icon: myBalance > 0.01 ? '📈' : myBalance < -0.01 ? '📉' : '✅' },
   ]
 
@@ -355,7 +355,7 @@ export function GroupAnalytics({
         <span className="text-[10px] text-muted-foreground">{members.length} members · {numOwing} owe</span>
       </div>
 
-      {/* KPI cards — 2×2 on mobile, 4-across on sm+ */}
+      {/* KPI cards - 2×2 on mobile, 4-across on sm+ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {kpis.map((kpi) => (
           <div
@@ -373,7 +373,7 @@ export function GroupAnalytics({
         ))}
       </div>
 
-      {/* Timeline — full width */}
+      {/* Timeline - full width */}
       <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
         <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
           <div>
