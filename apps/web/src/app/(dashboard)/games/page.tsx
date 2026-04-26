@@ -12,7 +12,8 @@ type GameCard = {
   subtitle: string
   players: string
   duration: string
-  status: 'Coming Soon' | 'In Design'
+  status: 'Coming Soon' | 'In Design' | 'Playable'
+  href?: string
   icon: React.ComponentType<{ className?: string }>
   gradient: string
 }
@@ -30,9 +31,10 @@ const games: GameCard[] = [
   {
     name: 'UNO Clash',
     subtitle: 'Fast card battles with custom house rules',
-    players: '2-6 players',
+    players: '2-8 players',
     duration: '8-15 min',
-    status: 'Coming Soon',
+    status: 'Playable',
+    href: '/games/uno',
     icon: Sparkles,
     gradient: 'from-rose-500/25 via-orange-500/15 to-transparent',
   },
@@ -82,11 +84,8 @@ export default function GamesPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {games.map((game) => {
           const Icon = game.icon
-          return (
-            <article
-              key={game.name}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
-            >
+          const inner = (
+            <>
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${game.gradient} opacity-0 transition-opacity group-hover:opacity-100`} />
 
               <div className="relative">
@@ -96,9 +95,11 @@ export default function GamesPage() {
                   </div>
                   <span
                     className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                      game.status === 'Coming Soon'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      game.status === 'Playable'
+                        ? 'bg-primary/20 text-primary'
+                        : game.status === 'Coming Soon'
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                     }`}
                   >
                     {game.status}
@@ -121,8 +122,17 @@ export default function GamesPage() {
                     </p>
                   </div>
                 </div>
+                {game.href && (
+                  <p className="mt-3 text-xs font-semibold text-primary">Play now →</p>
+                )}
               </div>
-            </article>
+            </>
+          )
+          const className = 'group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg block'
+          return game.href ? (
+            <Link key={game.name} href={game.href} className={className}>{inner}</Link>
+          ) : (
+            <article key={game.name} className={className}>{inner}</article>
           )
         })}
       </section>
