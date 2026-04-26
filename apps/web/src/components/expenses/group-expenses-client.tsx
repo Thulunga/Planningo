@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2 } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -24,6 +24,7 @@ import { deleteExpense, addGroupMember, createSettlement, updateSettlement, dele
 import { useRouter } from 'next/navigation'
 import { AddTransactionDialog } from './budget/add-transaction-dialog'
 import { ExpenseFormDialog } from './expense-form-dialog'
+import { GroupSummarySheet } from './group-summary-sheet'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface Member {
@@ -110,6 +111,8 @@ export function GroupExpensesClient({
   const [settlePaidBy, setSettlePaidBy] = useState<string>(currentUserId)
   const [editingSettlement, setEditingSettlement] = useState<any | null>(null)
   
+  const [isShareOpen, setIsShareOpen] = useState(false)
+
   // Record to budget (kept for future use)
   const [recordingExpense, setRecordingExpense] = useState<{
     id: string
@@ -635,6 +638,36 @@ export function GroupExpensesClient({
           </div>
         )}
       </div>
+
+      {/* ── Share & Export Summary ── */}
+      <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/8 via-purple-500/8 to-indigo-500/8 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600">
+            <Share2 className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Share Group Summary</p>
+            <p className="text-xs text-muted-foreground">Charts · Balances · Settle-up guide</p>
+          </div>
+        </div>
+        <Button
+          onClick={() => setIsShareOpen(true)}
+          className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white border-0 font-semibold"
+        >
+          <Share2 className="h-4 w-4" />
+          Generate &amp; Share Summary
+        </Button>
+      </div>
+
+      <GroupSummarySheet
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        group={group}
+        expenses={expenses}
+        settlements={initialSettlements}
+        members={members}
+        balances={balances}
+      />
 
       {/* Record group expense to personal budget */}
       {recordingExpense && (

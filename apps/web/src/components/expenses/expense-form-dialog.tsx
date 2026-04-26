@@ -139,7 +139,12 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
             autoFocus
           />
         </div>
-        <div className="max-h-60 overflow-y-auto p-1" onWheel={(e) => e.stopPropagation()}>
+        <div
+          className="max-h-60 overflow-y-scroll overscroll-contain p-1 [touch-action:pan-y]"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {groups.map((group) => (
             <div key={group}>
               <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
