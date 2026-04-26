@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { AddTransactionDialog } from './budget/add-transaction-dialog'
 import { ExpenseFormDialog } from './expense-form-dialog'
 import { GroupSummarySheet } from './group-summary-sheet'
+import { GroupAnalytics } from './group-analytics'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface Member {
@@ -252,46 +253,53 @@ export function GroupExpensesClient({
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardContent className="py-3">
-            <p className="text-xs text-muted-foreground">Total Expenses</p>
-            <p className="text-lg font-bold mt-1">{group.currency} {totalExpenses.toFixed(2)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3">
-            <p className="text-xs text-muted-foreground">Your Balance</p>
-            <p className={`text-lg font-bold mt-1 ${myBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {myBalance >= 0 ? '+' : ''}{group.currency} {myBalance.toFixed(2)}
+      {/* Hero Stats Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-purple-500/8 to-indigo-500/10">
+        <div className="flex items-start justify-between gap-4 px-4 pt-4 pb-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total Spent</p>
+            <p className="text-3xl font-black tracking-tight tabular-nums mt-0.5">{group.currency} {totalExpenses.toFixed(2)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{expenses.length} expense{expenses.length !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Balance</p>
+            <p className={`text-2xl font-black tabular-nums mt-0.5 ${myBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {myBalance >= 0 ? '+' : ''}{group.currency} {Math.abs(myBalance).toFixed(2)}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {myBalance >= 0 ? 'You are owed' : 'You owe'}
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              {myBalance > 0.01 ? 'owed to you' : myBalance < -0.01 ? 'you owe' : 'all settled ✓'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3">
-            <p className="text-xs text-muted-foreground">Members</p>
-            <div className="mt-1.5 flex -space-x-2">
-              {members.slice(0, 5).map((m) => (
-                <Avatar key={m.user_id} className="h-7 w-7 border-2 border-background">
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {members.slice(0, 7).map((m) => (
+                <Avatar key={m.user_id} className="h-6 w-6 border-2 border-background">
                   <AvatarImage src={m.profiles?.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-xs">
-                    {m.profiles?.full_name?.[0] ?? '?'}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-[9px]">{m.profiles?.full_name?.[0] ?? '?'}</AvatarFallback>
                 </Avatar>
               ))}
             </div>
-          </CardContent>
-        </Card>
+            {members.length > 7 && <span className="text-xs text-muted-foreground">+{members.length - 7}</span>}
+          </div>
+          <p className="text-xs text-muted-foreground shrink-0">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+        </div>
       </div>
+
+      {/* ── Analytics Dashboard ── */}
+      <GroupAnalytics
+        expenses={expenses}
+        members={members}
+        balances={balances}
+        currency={group.currency}
+        currentUserId={currentUserId}
+      />
 
       {/* Balances */}
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">Balances</h2>
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {members.map((m) => {
             const balance = balances[m.user_id] ?? 0
             return (
@@ -341,7 +349,7 @@ export function GroupExpensesClient({
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {expenses.map((exp) => {
               const paidByMember = members.find((m) => m.user_id === exp.paid_by)
               const yourSplit = exp.expense_splits?.find((s: any) => s.user_id === currentUserId)

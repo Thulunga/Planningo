@@ -44,6 +44,26 @@ export interface ExpenseFormDialogProps {
   onSuccess?: () => void
 }
 
+// ─── Shared chart constants (also consumed by analytics & summary components) ──
+export const CHART_COLORS = [
+  '#6366f1', '#ec4899', '#f59e0b', '#10b981',
+  '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6',
+  '#f97316', '#84cc16',
+]
+
+export const CATEGORY_GROUP_COLORS: Record<string, string> = {
+  'Food & Drink':      '#f59e0b',
+  'Transport':         '#3b82f6',
+  'Accommodation':     '#8b5cf6',
+  'Entertainment':     '#ec4899',
+  'Shopping':          '#10b981',
+  'Health & Wellness': '#ef4444',
+  'Bills & Utilities': '#6366f1',
+  'Travel':            '#14b8a6',
+  'Work & Education':  '#f97316',
+  'Other':             '#94a3b8',
+}
+
 // ─── Categories ───────────────────────────────────────────────────────────────
 export const EXPENSE_CATEGORIES = [
   { value: 'food', label: 'Food', emoji: '🍽️', group: 'Food & Drink' },
@@ -65,6 +85,7 @@ export const EXPENSE_CATEGORIES = [
   { value: 'airbnb', label: 'Airbnb / Homestay', emoji: '🏡', group: 'Accommodation' },
   { value: 'rent', label: 'Rent', emoji: '🔑', group: 'Accommodation' },
   { value: 'accommodation', label: 'Accommodation (other)', emoji: '🏠', group: 'Accommodation' },
+  { value: 'maintenance', label: 'Maintenance & Repairs', emoji: '🛠️', group: 'Accommodation' },
   { value: 'movies', label: 'Movies / Cinema', emoji: '🎬', group: 'Entertainment' },
   { value: 'sports', label: 'Sports & Activities', emoji: '⚽', group: 'Entertainment' },
   { value: 'games', label: 'Games', emoji: '🎮', group: 'Entertainment' },
