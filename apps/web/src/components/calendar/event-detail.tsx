@@ -1,23 +1,34 @@
 'use client'
 
 import { format } from 'date-fns'
-import { Calendar, MapPin, AlignLeft, Trash2, X } from 'lucide-react'
+import { Calendar, MapPin, AlignLeft, Trash2, Pencil } from 'lucide-react'
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@planningo/ui'
 import type { Tables } from '@planningo/database'
+import { useState } from 'react'
 
 interface EventDetailProps {
   event: Tables<'calendar_events'>
   onClose: () => void
+  onEdit: () => void
   onDelete: (id: string) => void
 }
 
-export function EventDetail({ event, onClose, onDelete }: EventDetailProps) {
+export function EventDetail({ event, onClose, onEdit, onDelete }: EventDetailProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const start = new Date(event.start_time)
   const end = new Date(event.end_time)
 
   const timeDisplay = event.all_day
-    ? `${format(start, 'MMM d')}-${format(end, 'MMM d, yyyy')}`
-    : `${format(start, 'MMM d, yyyy h:mm a')}-${format(end, 'h:mm a')}`
+    ? (() => {
+        // End is stored exclusive — show inclusive end date
+        const inclusiveEnd = new Date(end)
+        inclusiveEnd.setDate(inclusiveEnd.getDate() - 1)
+        const sameDay = format(start, 'yyyy-MM-dd') === format(inclusiveEnd, 'yyyy-MM-dd')
+        return sameDay
+          ? `${format(start, 'EEE, MMM d, yyyy')} · All day`
+          : `${format(start, 'MMM d')} – ${format(inclusiveEnd, 'MMM d, yyyy')} · All day`
+      })()
+    : `${format(start, 'EEE, MMM d, yyyy')} · ${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
@@ -48,23 +59,61 @@ export function EventDetail({ event, onClose, onDelete }: EventDetailProps) {
           {event.description && (
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
               <AlignLeft className="mt-0.5 h-4 w-4 shrink-0" />
-              <p className="leading-relaxed">{event.description}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{event.description}</p>
             </div>
           )}
 
-          <div className="flex justify-end gap-2 border-t border-border pt-3">
-            <Button
-              variant="destructive"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => onDelete(event.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Delete
-            </Button>
-            <Button variant="outline" size="sm" onClick={onClose}>
-              Close
-            </Button>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
+            {confirmDelete ? (
+              <>
+                <span className="mr-auto self-center text-xs text-muted-foreground">
+                  Delete this event?
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => onDelete(event.id)}
+                  aria-label="Confirm delete event"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setConfirmDelete(true)}
+                  aria-label="Delete event"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onEdit}
+                  aria-label="Edit event"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  Close
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

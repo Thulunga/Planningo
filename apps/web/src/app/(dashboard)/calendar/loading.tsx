@@ -4,9 +4,12 @@ export default function CalendarLoading() {
   return (
     <div className="space-y-4">
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-7 w-24" />
-        <Skeleton className="h-9 w-32 rounded-md" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Skeleton className="h-7 w-32" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-full rounded-md sm:w-64" />
+          <Skeleton className="h-9 w-32 rounded-md" />
+        </div>
       </div>
 
       {/* Calendar toolbar */}

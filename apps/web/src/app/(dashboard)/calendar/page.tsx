@@ -6,26 +6,31 @@ export const metadata: Metadata = { title: 'Calendar' }
 
 export default async function CalendarPage() {
   const supabase = await createClient()
-  const profile = await getUserProfile()
+
+  // Wider initial window so users can navigate ±2 months without a refetch.
+  const now = new Date()
+  const rangeStart = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+  const rangeEnd = new Date(now.getFullYear(), now.getMonth() + 3, 0)
+
+  const [profile, eventsRes] = await Promise.all([
+    getUserProfile(),
+    supabase
+      .from('calendar_events')
+      .select('*')
+      .gte('start_time', rangeStart.toISOString())
+      .lte('end_time', rangeEnd.toISOString())
+      .is('deleted_at', null)
+      .order('start_time', { ascending: true }),
+  ])
+
   if (!profile) return null
 
-  // Fetch events for the current month ± 1 month buffer
-  const rangeStart = new Date()
-  rangeStart.setMonth(rangeStart.getMonth() - 1)
-  rangeStart.setDate(1)
-
-  const rangeEnd = new Date()
-  rangeEnd.setMonth(rangeEnd.getMonth() + 2)
-  rangeEnd.setDate(0)
-
-  const { data: events } = await supabase
-    .from('calendar_events')
-    .select('*')
-    .eq('user_id', profile.id)
-    .gte('start_time', rangeStart.toISOString())
-    .lte('end_time', rangeEnd.toISOString())
-    .is('deleted_at', null)
-    .order('start_time', { ascending: true })
-
-  return <CalendarClient initialEvents={events ?? []} />
+  return (
+    <CalendarClient
+      initialEvents={eventsRes.data ?? []}
+      initialRangeStart={rangeStart.toISOString()}
+      initialRangeEnd={rangeEnd.toISOString()}
+      timezone={profile.timezone ?? undefined}
+    />
+  )
 }
