@@ -1,13 +1,14 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Search, Filter, Pencil, Trash2, Link2, TrendingUp, TrendingDown } from 'lucide-react'
-import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@planningo/ui'
+import { Search, Pencil, Trash2, Link2, TrendingUp, TrendingDown, Calendar, Tag, FileText, X } from 'lucide-react'
+import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetHeader, SheetTitle } from '@planningo/ui'
 import { deleteTransaction } from '@/lib/actions/budget'
 import { AddTransactionDialog } from './add-transaction-dialog'
 import { ConfirmDialog } from '../confirm-dialog'
+import { EXPENSE_CATEGORIES } from '@/components/expenses/expense-form-dialog'
 
 interface Category {
   id: string
@@ -25,6 +26,7 @@ interface Transaction {
   title: string
   notes: string | null
   category_id: string | null
+  expense_category: string | null
   tags: string[]
   transaction_date: string
   linked_group_expense_id: string | null
@@ -66,7 +68,7 @@ export function TransactionList({
 
   const filtered = transactions.filter((t) => {
     if (filterType !== 'all' && t.type !== filterType) return false
-    if (filterCategory !== 'all' && t.category_id !== filterCategory) return false
+    if (filterCategory !== 'all' && t.expense_category !== filterCategory) return false
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -95,37 +97,41 @@ export function TransactionList({
   return (
     <div className="space-y-3">
       {showFilters && (
-        <div className="flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-[160px]">
+        <div className="space-y-2">
+          <div className="relative w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search transactions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-sm"
+              className="pl-8 h-8 text-sm w-full"
             />
           </div>
-          <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-            <SelectTrigger className="h-8 w-[120px] text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expense</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="h-8 w-[150px] text-sm">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+              <SelectTrigger className="h-8 flex-1 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="h-8 flex-1 text-sm">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.emoji} {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
 
@@ -196,80 +202,198 @@ function TransactionRow({
   onDelete: () => void
   isDeleting: boolean
 }) {
-  const [showActions, setShowActions] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const cat = t.budget_categories
+  const expCat = t.expense_category ? EXPENSE_CATEGORIES.find((c) => c.value === t.expense_category) : null
+  const isIncome = t.type === 'income'
+  const iconBg  = cat ? cat.color + '22' : isIncome ? '#10b98120' : '#f43f5e18'
+  const iconColor = cat ? cat.color : isIncome ? '#10b981' : '#f43f5e'
 
   return (
-    <div
-      className="group flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 hover:border-border/80 hover:bg-card/80 transition-all"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      {/* Category icon or type icon */}
+    <>
+      {/* ── Compact single-line row ─────────────────────────────────────── */}
       <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
-        style={cat ? { backgroundColor: cat.color + '22', color: cat.color } : {}}
+        className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 cursor-pointer hover:bg-accent/40 active:bg-accent/60 transition-colors"
+        onClick={() => setDetailOpen(true)}
       >
-        {cat ? (
-          <span>{cat.icon}</span>
-        ) : t.type === 'income' ? (
-          <TrendingUp className="h-4 w-4 text-emerald-500" />
-        ) : (
-          <TrendingDown className="h-4 w-4 text-red-400" />
-        )}
-      </div>
-
-      {/* Main content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium truncate">{t.title}</span>
-          {t.linked_group_expense_id && (
-            <span className="inline-flex items-center gap-0.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-500">
-              <Link2 className="h-2.5 w-2.5" />
-              Group
-            </span>
-          )}
-        </div>
-        <div className="mt-0.5 flex items-center gap-2 flex-wrap">
-          {cat && (
-            <span
-              className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-              style={{ backgroundColor: cat.color + '22', color: cat.color }}
-            >
-              {cat.name}
-            </span>
-          )}
-          {t.tags.map((tag) => (
-            <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
-          ))}
-          {t.notes && (
-            <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{t.notes}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Amount */}
-      <div className="text-right shrink-0">
-        <p className={`text-sm font-semibold tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
-          {t.type === 'income' ? '+' : '-'}{currency} {t.amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${showActions ? 'opacity-100' : 'opacity-0'}`}>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onEdit}>
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-          onClick={onDelete}
-          disabled={isDeleting}
+        {/* Icon */}
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
+          style={{ backgroundColor: iconBg, color: iconColor }}
         >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+          {expCat ? <span>{expCat.emoji}</span>
+            : cat  ? <span>{cat.icon}</span>
+            : isIncome ? <TrendingUp className="h-3.5 w-3.5" />
+            : <TrendingDown className="h-3.5 w-3.5" />}
+        </div>
+
+        {/* Middle: title + sub-label */}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-tight truncate">{t.title}</p>
+          <div className="flex items-center gap-1.5 mt-px">
+            {expCat ? (
+              <span className="text-[10px] text-muted-foreground">{expCat.emoji} {expCat.label}</span>
+            ) : cat ? (
+              <span className="text-[10px] font-medium" style={{ color: cat.color }}>{cat.icon} {cat.name}</span>
+            ) : null}
+            {t.linked_group_expense_id && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-1.5 py-px text-[9px] text-blue-500 font-medium">
+                <Link2 className="h-2 w-2" />Group
+              </span>
+            )}
+            {t.tags.slice(0, 1).map((tag) => (
+              <span key={tag} className="text-[10px] text-muted-foreground/60">#{tag}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Amount */}
+        <span className={`text-sm font-bold tabular-nums shrink-0 ${isIncome ? 'text-emerald-500' : 'text-foreground'}`}>
+          {isIncome ? '+' : '-'}{currency}&nbsp;{t.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+        </span>
+
+        {/* Action buttons — stop propagation so row click doesn't fire */}
+        <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            onClick={onEdit}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+            onClick={onDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
-    </div>
+
+      {/* ── Detail bottom sheet ─────────────────────────────────────────── */}
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl pb-8 max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="mb-5">
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl"
+                style={{ backgroundColor: iconBg, color: iconColor }}
+              >
+                {expCat ? <span>{expCat.emoji}</span>
+                  : cat  ? <span>{cat.icon}</span>
+                  : isIncome ? <TrendingUp className="h-5 w-5" />
+                  : <TrendingDown className="h-5 w-5" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="text-base font-bold leading-tight text-left pr-8">{t.title}</SheetTitle>
+                <p className={`text-2xl font-black tabular-nums mt-1 ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {isIncome ? '+' : '-'}{currency}&nbsp;{t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </SheetHeader>
+
+          <div className="space-y-0 divide-y divide-border/50 rounded-xl border border-border overflow-hidden mb-4">
+            {/* Type */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-muted-foreground">Type</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                isIncome ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+              }`}>
+                {isIncome ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {isIncome ? 'Income' : 'Expense'}
+              </span>
+            </div>
+
+            {/* Date */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-4 w-4" />Date
+              </span>
+              <span className="text-sm font-medium">
+                {format(new Date(t.transaction_date + 'T00:00:00'), 'MMM d, yyyy')}
+              </span>
+            </div>
+
+            {/* Category */}
+            {(expCat || cat) && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted-foreground">Category</span>
+                {expCat ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium">
+                    {expCat.emoji} {expCat.label}
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                    style={{ backgroundColor: cat!.color + '22', color: cat!.color }}
+                  >
+                    {cat!.icon} {cat!.name}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Tags */}
+            {t.tags.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Tag className="h-4 w-4" />Tags
+                </span>
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {t.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">#{tag}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Group link */}
+            {t.linked_group_expense_id && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />Source
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
+                  Linked group expense
+                </span>
+              </div>
+            )}
+
+            {/* Notes */}
+            {t.notes && (
+              <div className="px-4 py-3 space-y-1.5">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <FileText className="h-4 w-4" />Notes
+                </span>
+                <p className="text-sm leading-relaxed text-foreground/80">{t.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 h-11 gap-2 text-sm"
+              onClick={() => { setDetailOpen(false); onEdit() }}
+            >
+              <Pencil className="h-4 w-4" />Edit
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-11 gap-2 text-sm text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive"
+              onClick={() => { setDetailOpen(false); onDelete() }}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />Delete
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
+

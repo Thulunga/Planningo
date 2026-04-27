@@ -149,8 +149,8 @@ function CashFlowTimeline({
   }
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full overflow-visible">
+    <div className="relative overflow-hidden">
+      <svg viewBox={`0 0 ${W} ${H + 24}`} className="w-full">
         <defs>
           <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
@@ -536,55 +536,43 @@ function BudgetArcGauge({
 }) {
   const pct = Math.min(spent / limit, 1)
   const over = spent > limit
-  const R = 28
-  const cx = 36
-  const cy = 36
-  const startAngle = -Math.PI * 0.75
-  const sweepAngle = Math.PI * 1.5
-  const circumference = R * sweepAngle
+  const activeColor = over ? '#ef4444' : pct > 0.8 ? '#f59e0b' : color
 
-  const trackPath = describeArc(cx, cy, R, startAngle, startAngle + sweepAngle)
-  const fillPath = describeArc(cx, cy, R, startAngle, startAngle + sweepAngle * pct)
+  // Dome gauge: SVG Y-axis is down, so sweep=1 (CW on screen) from left goes UPWARD = dome.
+  // cx=32, cy=28, R=24 → peak at (32,4), base at y=28. large-arc always 0 (arc ≤ 180°).
+  const cx = 32, cy = 28, R = 24
+  const fillAngle = Math.PI + pct * Math.PI   // 0%→π(left), 50%→3π/2(top), 100%→2π(right)
+  const fillX = (cx + R * Math.cos(fillAngle)).toFixed(2)
+  const fillY = (cy + R * Math.sin(fillAngle)).toFixed(2)
 
   return (
-    <svg viewBox="0 0 72 56" className="w-16 h-14">
-      {/* Track */}
+    <svg viewBox="0 0 64 44" className="w-14 h-9 shrink-0">
+      {/* Track: sweep=1 CW on screen = dome (left→top→right) */}
       <path
-        d={trackPath}
+        d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`}
         fill="none"
         stroke="currentColor"
-        strokeOpacity={0.1}
-        strokeWidth={6}
+        strokeOpacity={0.15}
+        strokeWidth={5}
         strokeLinecap="round"
       />
-      {/* Fill */}
-      <path
-        d={fillPath}
-        fill="none"
-        stroke={over ? '#ef4444' : pct > 0.8 ? '#f59e0b' : color}
-        strokeWidth={6}
-        strokeLinecap="round"
-        style={{ transition: 'all 0.5s ease' }}
-      />
-      {/* Center text */}
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize={9} fontWeight="700" fill={over ? '#ef4444' : color}>
+      {/* Fill: same sweep=1, large-arc always 0 (fill ≤ 180°) */}
+      {pct > 0 && (
+        <path
+          d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${fillX} ${fillY}`}
+          fill="none"
+          stroke={activeColor}
+          strokeWidth={5}
+          strokeLinecap="round"
+          style={{ transition: 'all 0.4s ease' }}
+        />
+      )}
+      {/* Label */}
+      <text x={cx} y={cy + 12} textAnchor="middle" fontSize={9} fontWeight="800" fill={activeColor}>
         {Math.round(pct * 100)}%
-      </text>
-      <text x={cx} y={cx + 8} textAnchor="middle" fontSize={5.5} fill="currentColor" fillOpacity={0.45}>
-        used
       </text>
     </svg>
   )
-}
-
-function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-  const clampedEnd = Math.min(endAngle, startAngle + Math.PI * 1.5 - 0.001)
-  const x1 = cx + r * Math.cos(startAngle)
-  const y1 = cy + r * Math.sin(startAngle)
-  const x2 = cx + r * Math.cos(clampedEnd)
-  const y2 = cy + r * Math.sin(clampedEnd)
-  const lg = clampedEnd - startAngle > Math.PI ? 1 : 0
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${lg} 1 ${x2} ${y2}`
 }
 
 // ─── Budget Progress Cards ────────────────────────────────────────────────────
@@ -646,7 +634,7 @@ function BudgetProgressCards({
 
   return (
     <div className="relative">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
         {items.map((item) => (
           <div
             key={item.cat.id}
@@ -658,18 +646,21 @@ function BudgetProgressCards({
             }}
             onTouchStart={(e) => showTip(e, item)}
           >
-            <div className="flex items-start justify-between gap-1 mb-1">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <span className="text-base leading-none">{item.cat.icon}</span>
-                  <span className="text-[11px] font-semibold truncate">{item.cat.name}</span>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-base leading-none shrink-0">{item.cat.icon}</span>
+                  <span className="text-xs font-semibold truncate">{item.cat.name}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground tabular-nums">
-                  ₹{item.spent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} /{' '}
+                  ₹{item.spent.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  {' / '}
                   ₹{item.budget.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </p>
               </div>
-              <BudgetArcGauge spent={item.spent} limit={item.budget.amount} color={item.cat.color} />
+              <div className="shrink-0">
+                <BudgetArcGauge spent={item.spent} limit={item.budget.amount} color={item.cat.color} />
+              </div>
             </div>
 
             {/* Bar */}
@@ -683,7 +674,7 @@ function BudgetProgressCards({
               />
             </div>
             {item.over && (
-              <p className="mt-1 text-[9px] font-semibold text-red-500">
+              <p className="mt-1.5 text-[10px] font-semibold text-red-500">
                 ₹{(item.spent - item.budget.amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })} over budget
               </p>
             )}
@@ -898,7 +889,7 @@ function SpendingInsights({
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
       {insights.map((ins) => (
         <div
           key={ins.label}
@@ -999,7 +990,7 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
   ]
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full min-w-0">
       {/* Section header */}
       <div className="flex items-center gap-2">
         <Target className="h-4 w-4 text-primary" />
@@ -1013,9 +1004,7 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {kpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="relative overflow-hidden rounded-2xl border border-border/50 bg-card px-3.5 py-3"
+          <div key={kpi.label} className="relative overflow-hidden rounded-2xl border border-border/50 bg-card px-3.5 py-3"
             style={{ borderLeftWidth: '3px', borderLeftColor: kpi.accent }}
           >
             <div className="mb-1.5 flex items-start justify-between gap-1">
@@ -1036,14 +1025,14 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
       </div>
 
       {/* Cash flow timeline - full width */}
-      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
-        <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
-          <div>
+      <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-1 gap-2">
+          <div className="min-w-0 flex-1">
             <h3 className="text-xs font-semibold text-foreground">Cash Flow</h3>
-            <p className="text-[10px] text-muted-foreground">Income & expenses over time</p>
+            <p className="text-[10px] text-muted-foreground">Income &amp; expenses over time</p>
           </div>
-          <div className="text-right">
-            <p className={`text-sm font-bold tabular-nums ${netSavings >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          <div className="text-right shrink-0 max-w-[130px]">
+            <p className={`text-sm font-bold tabular-nums truncate ${netSavings >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {netSavings >= 0 ? '+' : '-'}{currency} {Math.abs(netSavings).toFixed(2)}
             </p>
             <p className="text-[9px] text-muted-foreground">net savings</p>

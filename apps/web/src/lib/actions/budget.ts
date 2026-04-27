@@ -165,6 +165,7 @@ const transactionSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().optional().nullable(),
   category_id: z.string().uuid().optional().nullable(),
+  expense_category: z.string().optional().nullable(),
   tags: z.array(z.string()).default([]),
   transaction_date: z.string(),
   linked_group_expense_id: z.string().uuid().optional().nullable(),

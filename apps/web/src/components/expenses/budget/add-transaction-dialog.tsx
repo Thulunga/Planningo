@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { X, Link2, Loader2 } from 'lucide-react'
+import { X, Link2, Loader2, Search, Check, ChevronDown } from 'lucide-react'
 import {
   Button,
   Dialog,
@@ -12,6 +12,9 @@ import {
   DialogTitle,
   Input,
   Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Select,
   SelectContent,
   SelectItem,
@@ -19,7 +22,9 @@ import {
   SelectValue,
   Textarea,
 } from '@planningo/ui'
+import { cn } from '@planningo/ui'
 import { createTransaction, updateTransaction } from '@/lib/actions/budget'
+import { EXPENSE_CATEGORIES } from '@/components/expenses/expense-form-dialog'
 
 interface Category {
   id: string
@@ -49,6 +54,83 @@ interface Transaction {
   tags: string[]
   transaction_date: string
   linked_group_expense_id: string | null
+}
+
+// ── Searchable category picker (same pattern as group expenses) ──────────────
+function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const filtered = EXPENSE_CATEGORIES.filter(
+    (c) =>
+      c.label.toLowerCase().includes(search.toLowerCase()) ||
+      c.group.toLowerCase().includes(search.toLowerCase()) ||
+      c.value.toLowerCase().includes(search.toLowerCase()),
+  )
+  const selected = EXPENSE_CATEGORIES.find((c) => c.value === value)
+  const groups = Array.from(new Set(filtered.map((c) => c.group)))
+
+  return (
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch('') }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-accent/40 transition-colors"
+        >
+          <span className="truncate">
+            {selected ? `${selected.emoji} ${selected.label}` : 'Select category'}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <div className="flex items-center border-b px-3">
+          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <input
+            className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div
+          className="max-h-60 overflow-y-scroll overscroll-contain p-1 [touch-action:pan-y]"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          {groups.map((group) => (
+            <div key={group}>
+              <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group}
+              </p>
+              {filtered
+                .filter((c) => c.group === group)
+                .map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => { onChange(cat.value); setOpen(false); setSearch('') }}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors',
+                      value === cat.value && 'bg-accent font-medium',
+                    )}
+                  >
+                    <span className="text-base leading-none">{cat.emoji}</span>
+                    <span className="truncate">{cat.label}</span>
+                    {value === cat.value && <Check className="ml-auto h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                ))}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">No categories found</p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 interface Props {
@@ -83,6 +165,7 @@ export function AddTransactionDialog({
     title: editTransaction?.title ?? prefilledTitle ?? '',
     notes: editTransaction?.notes ?? '',
     category_id: editTransaction?.category_id ?? '',
+    expense_category: (editTransaction as any)?.expense_category ?? '',
     tags: editTransaction?.tags?.join(', ') ?? '',
     transaction_date: editTransaction?.transaction_date ?? format(new Date(), 'yyyy-MM-dd'),
     linked_group_expense_id: editTransaction?.linked_group_expense_id ?? prefilledGroupExpenseId ?? '',
@@ -127,6 +210,7 @@ export function AddTransactionDialog({
       title: form.title.trim(),
       notes: form.notes.trim() || null,
       category_id: form.category_id || null,
+      expense_category: form.expense_category || null,
       tags: form.tags
         .split(',')
         .map((t) => t.trim())
@@ -154,6 +238,7 @@ export function AddTransactionDialog({
             title: '',
             notes: '',
             category_id: '',
+            expense_category: '',
             tags: '',
             transaction_date: format(new Date(), 'yyyy-MM-dd'),
             linked_group_expense_id: '',
@@ -239,22 +324,12 @@ export function AddTransactionDialog({
           {/* Category */}
           <div>
             <Label className="text-xs">Category</Label>
-            <Select
-              value={form.category_id || '__none__'}
-              onValueChange={(v) => setForm((p) => ({ ...p, category_id: v === '__none__' ? '' : v }))}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">No category</SelectItem>
-                {filteredCategories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.icon} {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="mt-1">
+              <CategoryPicker
+                value={form.expense_category}
+                onChange={(v) => setForm((p) => ({ ...p, expense_category: v }))}
+              />
+            </div>
           </div>
 
           {/* Date */}
@@ -264,7 +339,7 @@ export function AddTransactionDialog({
               type="date"
               value={form.transaction_date}
               onChange={(e) => setForm((p) => ({ ...p, transaction_date: e.target.value }))}
-              className="mt-1"
+              className="mt-1 dark:[color-scheme:dark]"
             />
           </div>
 

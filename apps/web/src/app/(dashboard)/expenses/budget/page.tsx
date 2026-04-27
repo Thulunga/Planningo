@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@planningo/ui'
@@ -69,19 +69,25 @@ export default async function BudgetPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
+    <div className="pb-28 sm:pb-6 overflow-x-hidden">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-30 -mx-4 flex items-center gap-3 border-b border-border/50 bg-background/95 backdrop-blur px-4 py-2.5 mb-4">
+        <Button variant="ghost" size="sm" asChild className="-ml-1.5 h-8 w-8 p-0 shrink-0">
           <Link href="/expenses">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to Expenses
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">My Budget</h1>
-        <p className="text-sm text-muted-foreground">
-          Personal income, expenses &amp; budget tracking
-        </p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-bold tracking-tight leading-tight">My Budget</h1>
+          <p className="text-[11px] text-muted-foreground leading-tight hidden sm:block">Personal income, expenses &amp; goals</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild className="text-xs">
+            <Link href="/expenses">Groups</Link>
+          </Button>
+        </div>
       </div>
+
       <BudgetDashboard
         month={month}
         year={year}
@@ -93,7 +99,9 @@ export default async function BudgetPage({ searchParams }: Props) {
       <FeedbackCta
         heading="How can we improve Personal Budget?"
         description="Report budget-tracking bugs, request analytics ideas, or suggest better money-planning features."
+        className="mt-4"
       />
     </div>
   )
 }
+

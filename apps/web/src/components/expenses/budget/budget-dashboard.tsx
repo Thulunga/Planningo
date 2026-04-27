@@ -38,6 +38,7 @@ interface Transaction {
   title: string
   notes: string | null
   category_id: string | null
+  expense_category: string | null
   tags: string[]
   transaction_date: string
   linked_group_expense_id: string | null
@@ -142,58 +143,53 @@ export function BudgetDashboard({
   const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear()
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+    <div className="space-y-4 min-w-0 w-full">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {/* Month navigator */}
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="rounded-md p-1 hover:bg-muted transition-colors"
+            className="rounded-md p-1.5 hover:bg-muted transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <div className="text-center min-w-[140px]">
-            <p className="font-semibold">{MONTH_NAMES[month - 1]} {year}</p>
+          <div className="text-center min-w-[110px]">
+            <p className="font-semibold text-sm">{MONTH_NAMES[month - 1]} {year}</p>
             {isCurrentMonth && (
-              <p className="text-xs text-muted-foreground">Current month</p>
+              <p className="text-[10px] text-muted-foreground">Current month</p>
             )}
           </div>
           <button
             type="button"
             onClick={() => navigate(1)}
-            className="rounded-md p-1 hover:bg-muted transition-colors"
+            className="rounded-md p-1.5 hover:bg-muted transition-colors"
             disabled={isCurrentMonth}
           >
             <ChevronRight className={`h-4 w-4 ${isCurrentMonth ? 'text-muted-foreground/40' : ''}`} />
           </button>
         </div>
+
+        {/* Quick actions */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsManagerOpen(true)}>
-            <Settings2 className="mr-2 h-3.5 w-3.5" />
-            Budgets & Categories
+          <Button variant="outline" size="sm" onClick={() => setIsManagerOpen(true)} className="text-xs gap-1.5">
+            <Settings2 className="h-3.5 w-3.5" />
+            Budgets
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => { setAddType('income'); setIsAddOpen(true) }}
-            className="text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10"
-          >
-            <TrendingUp className="mr-1.5 h-3.5 w-3.5" />
-            Income
-          </Button>
+          {/* Add Transaction — desktop only; mobile uses sticky bottom bar */}
           <Button
             size="sm"
             onClick={() => { setAddType('expense'); setIsAddOpen(true) }}
+            className="hidden sm:flex text-xs gap-1"
           >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Expense
+            <Plus className="h-3.5 w-3.5" />
+            Add Transaction
           </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <SummaryCard
           label="Total Income"
           value={totalIncome}
@@ -226,9 +222,9 @@ export function BudgetDashboard({
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         {/* Analytics - full width */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 min-w-0">
           <BudgetAnalytics
             transactions={transactions}
             categories={categories}
@@ -239,7 +235,7 @@ export function BudgetDashboard({
 
         {/* No budgets CTA when none set */}
         {budgets.length === 0 && (
-          <div className="lg:col-span-5 rounded-xl border border-dashed border-border p-6 text-center">
+          <div className="lg:col-span-5 min-w-0 rounded-xl border border-dashed border-border p-6 text-center">
             <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
             <p className="text-sm font-medium">No budgets set</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -252,7 +248,7 @@ export function BudgetDashboard({
         )}
 
         {/* Transactions list */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 min-w-0">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold">
@@ -308,6 +304,18 @@ export function BudgetDashboard({
         currentMonth={month}
         currentYear={year}
       />
+
+      {/* Sticky bottom bar — mobile only */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 sm:hidden border-t border-border bg-background/95 backdrop-blur px-3 py-2.5">
+        <Button
+          size="lg"
+          onClick={() => { setAddType('expense'); setIsAddOpen(true) }}
+          className="w-full text-sm font-semibold gap-2"
+        >
+          <Plus className="h-5 w-5" />
+          Add Transaction
+        </Button>
+      </div>
     </div>
   )
 }
@@ -341,13 +349,13 @@ function SummaryCard({
     : `${prefix ?? ''}₹${Math.abs(value).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2 mb-2">
+    <div className="rounded-xl border border-border bg-card p-3 overflow-hidden">
+      <div className="flex items-center gap-2 mb-1.5">
         {icon}
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-[10px] text-muted-foreground truncate">{label}</span>
       </div>
-      <p className={`text-xl font-bold tabular-nums ${colorMap[color]}`}>{displayValue}</p>
-      {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+      <p className={`text-base font-bold tabular-nums truncate ${colorMap[color]}`}>{displayValue}</p>
+      {sub && <p className="mt-0.5 text-[10px] text-muted-foreground truncate">{sub}</p>}
     </div>
   )
 }
