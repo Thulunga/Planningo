@@ -6,12 +6,14 @@ import TodosLoading from './loading'
 
 export const metadata: Metadata = { title: 'Todos' }
 
+const VALID_STATUSES = new Set(['todo', 'in_progress', 'done', 'cancelled'])
+
 async function TodosList({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string; tag?: string }>
+  searchParams: Promise<{ view?: string; priority?: string; tag?: string }>
 }) {
-  const { status, priority, tag } = await searchParams
+  const { view, priority, tag } = await searchParams
   const supabase = await createClient()
   const profile = await getUserProfile()
   if (!profile) return null
@@ -26,19 +28,21 @@ async function TodosList({
     .order('created_at', { ascending: false })
     .limit(200)
 
-  if (status) query = query.eq('status', status)
+  if (view && VALID_STATUSES.has(view)) {
+    query = query.eq('status', view)
+  }
   if (priority) query = query.eq('priority', priority)
   if (tag) query = query.contains('tags', [tag])
 
   const { data: todos } = await query
 
-  return <TodosClient todos={todos ?? []} />
+  return <TodosClient todos={todos ?? []} view={view ?? 'all'} />
 }
 
 export default function TodosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string; tag?: string }>
+  searchParams: Promise<{ view?: string; priority?: string; tag?: string }>
 }) {
   return (
     <Suspense fallback={<TodosLoading />}>

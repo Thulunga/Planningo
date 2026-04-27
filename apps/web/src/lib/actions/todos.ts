@@ -70,9 +70,35 @@ export async function deleteTodo(id: string) {
   return { success: true }
 }
 
+export async function restoreTodo(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('todos')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/todos')
+  revalidatePath('/')
+  return { success: true }
+}
+
 export async function toggleTodoStatus(id: string, currentStatus: string) {
   const newStatus = currentStatus === 'done' ? 'todo' : 'done'
   const completedAt = newStatus === 'done' ? new Date().toISOString() : null
 
   return updateTodo(id, { status: newStatus as 'todo' | 'done', completed_at: completedAt } as any)
+}
+
+export async function setTodoStatus(
+  id: string,
+  status: 'todo' | 'in_progress' | 'done' | 'cancelled',
+) {
+  const completedAt = status === 'done' ? new Date().toISOString() : null
+  return updateTodo(id, { status, completed_at: completedAt } as any)
 }
