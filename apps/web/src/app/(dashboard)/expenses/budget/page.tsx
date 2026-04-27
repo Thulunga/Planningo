@@ -69,7 +69,7 @@ export default async function BudgetPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="pb-28 sm:pb-6 overflow-x-hidden">
+    <div className="pb-28 sm:pb-6">
       {/* Sticky top bar */}
       <div className="sticky top-0 z-30 -mx-4 flex items-center gap-3 border-b border-border/50 bg-background/95 backdrop-blur px-4 py-2.5 mb-4">
         <Button variant="ghost" size="sm" asChild className="-ml-1.5 h-8 w-8 p-0 shrink-0">

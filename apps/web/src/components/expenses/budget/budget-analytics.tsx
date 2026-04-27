@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { format, parseISO, getDay, startOfWeek } from 'date-fns'
-import { TrendingUp, TrendingDown, Wallet, Target, ArrowRight } from 'lucide-react'
+import { format, parseISO, startOfWeek, addWeeks, subWeeks, isSameWeek, isAfter, startOfDay } from 'date-fns'
+import { TrendingUp, TrendingDown, Wallet, Target, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Category {
   id: string
@@ -449,7 +449,7 @@ function CategoryDonutChart({
   )
 }
 
-// ─── Weekly Spending Heatmap ──────────────────────────────────────────────────
+// ─── Weekly Spending Chart (navigable week view) ─────────────────────────────
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function WeekdayHeatmap({
@@ -461,21 +461,44 @@ function WeekdayHeatmap({
 }) {
   const [tooltip, setTooltip] = useState<TipState | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Start at the current week's Sunday
+  const today = startOfDay(new Date())
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(today, { weekStartsOn: 0 }))
 
-  const byDay = Array(7).fill(0) as number[]
-  const countByDay = Array(7).fill(0) as number[]
+  const isCurrentWeek = isSameWeek(weekStart, today, { weekStartsOn: 0 })
 
+  // Build per-date totals from expense transactions
+  const byDate: Record<string, { amount: number; count: number }> = {}
   transactions
     .filter((t) => t.type === 'expense')
     .forEach((t) => {
-      const d = getDay(parseISO(t.transaction_date))
-      byDay[d] += t.amount
-      countByDay[d] += 1
+      const key = t.transaction_date.split('T')[0]!
+      byDate[key] = byDate[key] ?? { amount: 0, count: 0 }
+      byDate[key].amount += t.amount
+      byDate[key].count += 1
     })
 
-  const maxDay = Math.max(...byDay, 0.01)
+  // 7 days of this week
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    const key = format(d, 'yyyy-MM-dd')
+    const isFuture = isAfter(startOfDay(d), today)
+    return {
+      label: DAY_LABELS[i]!,
+      dateLabel: format(d, 'd'),
+      key,
+      amount: byDate[key]?.amount ?? 0,
+      count: byDate[key]?.count ?? 0,
+      isFuture,
+    }
+  })
 
-  const showTip = (e: React.MouseEvent | React.TouchEvent, dayIdx: number) => {
+  const maxAmt = Math.max(...days.map((d) => d.amount), 0.01)
+  const weekLabel = `${format(weekStart, 'MMM d')} – ${format(new Date(weekStart.getTime() + 6 * 86400000), 'MMM d')}`
+
+  const showTip = (e: React.MouseEvent | React.TouchEvent, day: (typeof days)[0]) => {
+    if (day.isFuture || day.amount === 0) return
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -483,9 +506,9 @@ function WeekdayHeatmap({
       x: clientX,
       y: clientY,
       lines: [
-        { label: DAY_LABELS[dayIdx] },
-        { label: 'Spent', value: `${currency} ${byDay[dayIdx].toFixed(2)}`, color: '#f43f5e' },
-        { label: 'Transactions', value: String(countByDay[dayIdx]) },
+        { label: format(parseISO(day.key), 'EEE, MMM d') },
+        { label: 'Spent', value: `${currency} ${day.amount.toFixed(2)}`, color: '#f43f5e' },
+        { label: 'Transactions', value: String(day.count) },
       ],
     })
     timerRef.current = setTimeout(() => setTooltip(null), 2500)
@@ -493,28 +516,58 @@ function WeekdayHeatmap({
 
   return (
     <div className="relative">
+      {/* Week nav header */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          onClick={() => setWeekStart((w) => subWeeks(w, 1))}
+          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{weekLabel}</span>
+        <button
+          type="button"
+          onClick={() => setWeekStart((w) => addWeeks(w, 1))}
+          disabled={isCurrentWeek}
+          className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+            isCurrentWeek ? 'opacity-30 cursor-not-allowed' : 'hover:bg-accent'
+          }`}
+        >
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
+      {/* Bars */}
       <div className="flex items-end gap-1.5 h-20">
-        {byDay.map((val, i) => {
-          const pct = maxDay > 0 ? (val / maxDay) * 100 : 0
-          const isWeekend = i === 0 || i === 6
+        {days.map((day) => {
+          const pct = !day.isFuture && maxAmt > 0 ? (day.amount / maxAmt) * 100 : 0
+          const isWeekend = day.label === 'Sun' || day.label === 'Sat'
           return (
             <div
-              key={i}
-              className="flex-1 flex flex-col items-center gap-1 cursor-default"
-              onMouseEnter={(e) => showTip(e, i)}
+              key={day.key}
+              className="flex-1 flex flex-col items-center gap-0.5 cursor-default"
+              onMouseEnter={(e) => showTip(e, day)}
               onMouseLeave={() => {
                 if (timerRef.current) clearTimeout(timerRef.current)
                 setTooltip(null)
               }}
-              onTouchStart={(e) => showTip(e, i)}
+              onTouchStart={(e) => showTip(e, day)}
             >
-              <div className="w-full flex items-end" style={{ height: 64 }}>
+              <div className="w-full flex items-end" style={{ height: 52 }}>
                 <div
-                  className={`w-full rounded-t-md transition-all ${isWeekend ? 'bg-amber-500/70' : 'bg-rose-500/70'} ${val === 0 ? 'opacity-20' : ''}`}
-                  style={{ height: `${Math.max(pct, 4)}%` }}
+                  className={`w-full rounded-t-md transition-all ${
+                    day.isFuture
+                      ? 'bg-muted/30'
+                      : isWeekend
+                      ? 'bg-amber-500/70'
+                      : 'bg-rose-500/70'
+                  } ${!day.isFuture && day.amount === 0 ? 'opacity-20' : ''}`}
+                  style={{ height: day.isFuture ? '4%' : `${Math.max(pct, 4)}%` }}
                 />
               </div>
-              <span className="text-[9px] text-muted-foreground">{DAY_LABELS[i]}</span>
+              <span className="text-[9px] font-medium text-muted-foreground">{day.label}</span>
+              <span className="text-[8px] text-muted-foreground/50 tabular-nums">{day.dateLabel}</span>
             </div>
           )
         })}
