@@ -14,15 +14,24 @@ export async function createClient() {
 }
 
 /**
- * Get the authenticated user in server context.
- * Returns null if not authenticated.
+ * Cached auth user — deduplicates supabase.auth.getUser() within the same
+ * server render. All server components + server actions called during the
+ * same request share ONE network round-trip to Supabase Auth.
  */
-export async function getUser() {
+export const getCachedUser = cache(async () => {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   return user
+})
+
+/**
+ * Get the authenticated user in server context.
+ * Returns null if not authenticated.
+ */
+export async function getUser() {
+  return getCachedUser()
 }
 
 /**
@@ -32,13 +41,10 @@ export async function getUser() {
  * Returns null if not authenticated or profile not found.
  */
 export const getUserProfile = cache(async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const user = await getCachedUser()
   if (!user) return null
 
+  const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')

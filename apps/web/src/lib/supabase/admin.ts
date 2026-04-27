@@ -1,18 +1,15 @@
-import { createClient } from './server'
+import { getCachedUser } from './server'
 
 /**
  * Check if the current user is an admin.
- * Admins are identified by their email matching ADMIN_EMAIL
+ * Admins are identified by their email matching ADMIN_EMAIL.
+ * Uses getCachedUser so the auth call is shared with getUserProfile in the same render.
  */
 export async function isAdmin(): Promise<boolean> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
-  if (!user || !user.email) return false
+  if (!user?.email) return false
 
-  // Check against admin email environment variable
   const adminEmail = process.env.ADMIN_EMAIL
   return adminEmail ? user.email === adminEmail : false
 }
@@ -21,10 +18,6 @@ export async function isAdmin(): Promise<boolean> {
  * Get current user's email
  */
 export async function getUserEmail(): Promise<string | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return user?.email || null
+  const user = await getCachedUser()
+  return user?.email ?? null
 }

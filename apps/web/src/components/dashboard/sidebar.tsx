@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -17,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 import { cn, Button, Tooltip, TooltipContent, TooltipTrigger } from '@planningo/ui'
 import { useUIStore } from '@/stores/ui-store'
@@ -43,6 +45,26 @@ interface SidebarProps {
 export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+
+  // Clear pending state once the navigation lands
+  if (pendingHref !== null && pathname.startsWith(pendingHref === '/' ? pathname : pendingHref)) {
+    // Use a lazy clear to avoid render-during-render warning
+  }
+
+  function handleNav(href: string, isActive: boolean) {
+    if (!isActive) setPendingHref(href)
+  }
+
+  // When pathname changes, clear pending
+  if (pendingHref && pathname.startsWith(pendingHref === '/' ? '/' : pendingHref)) {
+    setTimeout(() => setPendingHref(null), 0)
+  }
+
+  const allItems = [
+    ...navItems,
+    ...(isAdmin ? [{ href: '/trading', icon: TrendingUp, label: 'Trading Bot' }] : []),
+  ]
 
   return (
     <aside
@@ -64,19 +86,13 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
         <ul className="space-y-0.5 px-2">
-          {[
-            ...navItems,
-            ...(isAdmin
-              ? [
-                  { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
-                ]
-              : []),
-          ].map((item) => {
+          {allItems.map((item) => {
             const isActive = item.href === '/expenses'
               ? pathname.startsWith('/expenses')
               : item.href === '/'
                 ? pathname === '/'
                 : pathname.startsWith(item.href)
+            const isPending = pendingHref === item.href && !isActive
             const Icon = item.icon
 
             if (sidebarCollapsed) {
@@ -86,14 +102,21 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
                     <TooltipTrigger asChild>
                       <Link
                         href={item.href}
+                        onClick={() => handleNav(item.href, isActive)}
                         className={cn(
                           'flex h-11 w-full items-center justify-center rounded-md transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                            : isPending
+                              ? 'bg-sidebar-accent/30 text-sidebar-accent-foreground/70'
+                              : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        {isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Icon className="h-4 w-4" />
+                        )}
                         <span className="sr-only">{item.label}</span>
                       </Link>
                     </TooltipTrigger>
@@ -107,15 +130,25 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={() => handleNav(item.href, isActive)}
                   className={cn(
                     'flex h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors',
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                      : isPending
+                        ? 'bg-sidebar-accent/20 text-sidebar-foreground/70'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  ) : (
+                    <Icon className="h-4 w-4 shrink-0" />
+                  )}
                   {item.label}
+                  {isPending && (
+                    <span className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60" />
+                  )}
                 </Link>
               </li>
             )

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import NextTopLoader from 'nextjs-toploader'
 import { Providers } from '@/components/providers'
 import { ThemedToaster } from '@/components/themed-toaster'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
@@ -38,6 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${inter.variable} font-sans`}>
+        <NextTopLoader
+          color="hsl(var(--primary))"
+          height={3}
+          showSpinner={false}
+          shadow={false}
+          easing="ease"
+          speed={200}
+        />
         <Providers>
           {children}
           <ThemedToaster />

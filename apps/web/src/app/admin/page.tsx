@@ -1,6 +1,7 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import AdminStatsOverview from '@/components/admin/stats-overview'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@planningo/ui'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@planningo/ui'
 import { AlertCircle, CheckCircle, TrendingUp } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -21,7 +22,24 @@ export default async function AdminDashboard() {
       {/* Statistics Overview */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Platform Overview</h2>
-        <AdminStatsOverview />
+        <Suspense
+          fallback={
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-xl border bg-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                  </div>
+                  <Skeleton className="h-7 w-16" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          }
+        >
+          <AdminStatsOverview />
+        </Suspense>
       </div>
 
       {/* Quick Actions & Info */}

@@ -15,21 +15,23 @@ interface Props {
 }
 
 export default async function BudgetPage({ searchParams }: Props) {
-  const profile = await getUserProfile()
-  if (!profile) return null
-
   const params = await searchParams
   const now = new Date()
   const month = params.month ? parseInt(params.month, 10) : now.getMonth() + 1
   const year = params.year ? parseInt(params.year, 10) : now.getFullYear()
 
-  // Get all dashboard data
-  const data = await getBudgetDashboard(month, year)
-  if (!data) return null
-
-  // Get group expenses for linking (all time, not just this month)
+  // ── Kick off all independent fetches in parallel ───────────────────────────
+  // getUserProfile and getBudgetDashboard both use getCachedUser internally,
+  // so the auth round-trip is shared even though they start simultaneously.
   const supabase = await createClient()
+  const [profile, data] = await Promise.all([
+    getUserProfile(),
+    getBudgetDashboard(month, year),
+  ])
 
+  if (!profile || !data) return null
+
+  // ── Group memberships (needs profile.id, runs after the parallel block) ───
   const { data: memberships } = await supabase
     .from('group_members')
     .select('group_id')

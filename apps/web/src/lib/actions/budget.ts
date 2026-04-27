@@ -1,8 +1,9 @@
 'use server'
 
+import { cache } from 'react'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCachedUser } from '@/lib/supabase/server'
 
 // ── Default categories seeded for new users ───────────────────────────────────
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -24,15 +25,22 @@ const DEFAULT_EXPENSE_CATEGORIES = [
 ] as const
 
 // ── Seed default categories for a user if they have none ─────────────────────
-export async function seedDefaultCategories(userId: string) {
+// Cache the count check per user per render so multiple callers in the same
+// request (getCategories + getBudgetDashboard) only hit the DB once.
+const _checkHasCategories = cache(async (userId: string) => {
   const supabase = await createClient()
   const { count } = await supabase
     .from('budget_categories')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
+  return (count ?? 0) > 0
+})
 
-  if ((count ?? 0) > 0) return { seeded: false }
+export async function seedDefaultCategories(userId: string) {
+  const hasCategories = await _checkHasCategories(userId)
+  if (hasCategories) return { seeded: false }
 
+  const supabase = await createClient()
   const { error } = await supabase.from('budget_categories').insert(
     DEFAULT_EXPENSE_CATEGORIES.map((c) => ({ ...c, user_id: userId }))
   )
@@ -42,9 +50,9 @@ export async function seedDefaultCategories(userId: string) {
 
 // ── Get categories ────────────────────────────────────────────────────────────
 export async function getCategories() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated', categories: [] }
+  const supabase = await createClient()
 
   await seedDefaultCategories(user.id)
 
@@ -67,9 +75,9 @@ const categorySchema = z.object({
 })
 
 export async function createCategory(data: z.infer<typeof categorySchema>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase.from('budget_categories').insert({
     ...data,
@@ -83,9 +91,9 @@ export async function createCategory(data: z.infer<typeof categorySchema>) {
 
 // ── Update category ───────────────────────────────────────────────────────────
 export async function updateCategory(id: string, data: Partial<z.infer<typeof categorySchema>>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('budget_categories')
@@ -100,9 +108,9 @@ export async function updateCategory(id: string, data: Partial<z.infer<typeof ca
 
 // ── Archive category ──────────────────────────────────────────────────────────
 export async function archiveCategory(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('budget_categories')
@@ -124,9 +132,9 @@ const budgetSchema = z.object({
 })
 
 export async function upsertBudget(data: z.infer<typeof budgetSchema>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('budgets')
@@ -142,9 +150,9 @@ export async function upsertBudget(data: z.infer<typeof budgetSchema>) {
 
 // ── Delete budget ─────────────────────────────────────────────────────────────
 export async function deleteBudget(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('budgets')
@@ -172,9 +180,9 @@ const transactionSchema = z.object({
 })
 
 export async function createTransaction(data: z.infer<typeof transactionSchema>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase.from('personal_transactions').insert({
     ...data,
@@ -188,9 +196,9 @@ export async function createTransaction(data: z.infer<typeof transactionSchema>)
 
 // ── Update personal transaction ───────────────────────────────────────────────
 export async function updateTransaction(id: string, data: Partial<z.infer<typeof transactionSchema>>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('personal_transactions')
@@ -205,9 +213,9 @@ export async function updateTransaction(id: string, data: Partial<z.infer<typeof
 
 // ── Delete personal transaction ───────────────────────────────────────────────
 export async function deleteTransaction(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { error: 'Not authenticated' }
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('personal_transactions')
@@ -222,9 +230,9 @@ export async function deleteTransaction(id: string) {
 
 // ── Get budget dashboard data ─────────────────────────────────────────────────
 export async function getBudgetDashboard(month: number, year: number) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return null
+  const supabase = await createClient()
 
   await seedDefaultCategories(user.id)
 
@@ -282,9 +290,9 @@ export async function getTransactions(filters: {
   categoryId?: string
   search?: string
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { transactions: [] }
+  const supabase = await createClient()
 
   let query = supabase
     .from('personal_transactions')
@@ -309,9 +317,9 @@ export async function getTransactions(filters: {
 
 // ── Get group expenses for linking ────────────────────────────────────────────
 export async function getGroupExpensesForLinking() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
   if (!user) return { expenses: [] }
+  const supabase = await createClient()
 
   // Get group memberships
   const { data: memberships } = await supabase

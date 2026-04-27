@@ -1,57 +1,13 @@
-'use client'
+'use server'
 
-import { useEffect, useState } from 'react'
-import { Loader2, Users, MessageSquare, Bug, Lightbulb, DollarSign, TrendingUp } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@planningo/ui'
+import { Bug, Lightbulb, MessageSquare, TrendingUp, Users } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@planningo/ui'
 import { getAdminStats } from '@/lib/actions/admin'
 
-interface Stats {
-  totalUsers: number
-  feedback: {
-    total: number
-    bugReports: number
-    featureRequests: number
-    improvements: number
-    open: number
-    inProgress: number
-    completed: number
-  }
-  expenses: {
-    total: number
-    totalAmount: number
-  }
-}
-
-export default function AdminStatsOverview() {
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        const result = await getAdminStats()
-        if (result.success) {
-          setStats(result.stats)
-        }
-      } catch (error) {
-        console.error('Failed to load stats:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadStats()
-  }, [])
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (!stats) return null
+export default async function AdminStatsOverview() {
+  const result = await getAdminStats()
+  if (!result.success || !result.stats) return null
+  const stats = result.stats
 
   const statCards = [
     {
@@ -91,7 +47,10 @@ export default function AdminStatsOverview() {
       value: stats.feedback.completed,
       icon: Lightbulb,
       color: 'bg-emerald-100 text-emerald-700',
-      subtext: `${Math.round((stats.feedback.completed / stats.feedback.total) * 100)}% rate`,
+      subtext:
+        stats.feedback.total > 0
+          ? `${Math.round((stats.feedback.completed / stats.feedback.total) * 100)}% rate`
+          : '0% rate',
     },
   ]
 
