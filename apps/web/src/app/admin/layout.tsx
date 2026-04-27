@@ -19,13 +19,15 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar (desktop) + mobile top bar/drawer are inside AdminSidebar */}
       <AdminSidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto p-6">{children}</div>
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Spacer for mobile top bar */}
+        <div className="md:hidden h-14" />
+        <div className="mx-auto w-full max-w-screen-xl p-4 md:p-6">{children}</div>
       </main>
     </div>
   )

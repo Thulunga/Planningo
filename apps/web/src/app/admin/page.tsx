@@ -12,7 +12,7 @@ export default async function AdminDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-muted-foreground mt-2">
           Monitor platform activity, manage feedback, and oversee expenses
         </p>
@@ -25,7 +25,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick Actions & Info */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>

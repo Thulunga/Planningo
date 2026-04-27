@@ -9,7 +9,7 @@ export default function AdminExpensesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Expenses Management</h1>
+        <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Expenses Management</h1>
         <p className="text-muted-foreground mt-2">
           Monitor expenses and settlements across all groups
         </p>
