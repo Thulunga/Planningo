@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, Settings2, ChevronLeft, ChevronRight,
+  Plus, Settings2, ChevronLeft, ChevronRight, ChevronDown,
   TrendingUp, TrendingDown, Wallet, Users2,
   AlertTriangle,
 } from 'lucide-react'
@@ -80,6 +80,7 @@ export function BudgetDashboard({
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [addType, setAddType] = useState<'income' | 'expense'>('expense')
   const [isManagerOpen, setIsManagerOpen] = useState(false)
+  const [txExpanded, setTxExpanded] = useState(false)
 
   // Navigate months
   function navigate(delta: number) {
@@ -249,40 +250,53 @@ export function BudgetDashboard({
 
         {/* Transactions list */}
         <div className="lg:col-span-5 min-w-0">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="rounded-xl border border-border bg-card">
+            {/* Collapsible header */}
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 hover:bg-accent/30 transition-colors rounded-xl"
+              onClick={() => setTxExpanded((v) => !v)}
+            >
               <h2 className="text-sm font-semibold">
                 Transactions ({transactions.length})
               </h2>
-            </div>
-            {transactions.length === 0 ? (
-              <div className="py-10 text-center">
-                <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/20" />
-                <p className="text-sm text-muted-foreground">No transactions this month</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Add your first income or expense to start tracking
-                </p>
-                <div className="mt-3 flex justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => { setAddType('income'); setIsAddOpen(true) }}
-                  >
-                    Add Income
-                  </Button>
-                  <Button size="sm" onClick={() => { setAddType('expense'); setIsAddOpen(true) }}>
-                    Add Expense
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <TransactionList
-                transactions={transactions}
-                categories={categories}
-                groupExpenses={groupExpenses}
-                currency="INR"
-                showFilters
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${txExpanded ? 'rotate-180' : ''}`}
               />
+            </button>
+
+            {txExpanded && (
+              <div className="px-4 pb-4">
+                {transactions.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground">No transactions this month</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Add your first income or expense to start tracking
+                    </p>
+                    <div className="mt-3 flex justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setAddType('income'); setIsAddOpen(true) }}
+                      >
+                        Add Income
+                      </Button>
+                      <Button size="sm" onClick={() => { setAddType('expense'); setIsAddOpen(true) }}>
+                        Add Expense
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <TransactionList
+                    transactions={transactions}
+                    categories={categories}
+                    groupExpenses={groupExpenses}
+                    currency="INR"
+                    showFilters
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>

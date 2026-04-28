@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { format, parseISO, startOfWeek, addWeeks, subWeeks, isSameWeek, isAfter, startOfDay } from 'date-fns'
 import { TrendingUp, TrendingDown, Wallet, Target, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { EXPENSE_CATEGORIES, CATEGORY_GROUP_COLORS } from '@/components/expenses/expense-form-dialog'
 
 interface Category {
   id: string
@@ -29,6 +30,7 @@ interface Transaction {
   title: string
   notes: string | null
   category_id: string | null
+  expense_category: string | null
   tags: string[]
   transaction_date: string
   linked_group_expense_id: string | null
@@ -336,7 +338,7 @@ function CategoryDonutChart({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
       <div className="relative mx-auto sm:mx-0 shrink-0">
-        <svg viewBox="0 0 160 160" className="w-40 h-40">
+        <svg viewBox="0 0 160 160" className="w-60 h-60 sm:w-72 sm:h-72 md:w-79 md:h-79">
           {slices.map((s) => {
             const isH = hovered === s.idx
             return (
@@ -420,7 +422,7 @@ function CategoryDonutChart({
         </svg>
         <ChartTooltip data={tooltip} />
       </div>
-      <div className="flex-1 min-w-0 max-h-44 overflow-y-auto space-y-0.5">
+      <div className="flex-1 min-w-0 space-y-0.5">
         {slices.map((s) => (
           <div
             key={s.idx}
@@ -432,15 +434,14 @@ function CategoryDonutChart({
               className="h-2.5 w-2.5 rounded-full shrink-0"
               style={{ backgroundColor: s.color }}
             />
-            <span className="text-[11px] truncate flex-1">
+            <span className="text-[11px] min-w-0 flex-1 truncate">
               {s.emoji} {s.label}
             </span>
-            <div className="text-right shrink-0">
-              <p className="text-[11px] font-semibold tabular-nums">{s.pct}%</p>
-              <p className="text-[9px] text-muted-foreground tabular-nums">
-                {currency}{' '}
-                {s.value >= 1000 ? (s.value / 1000).toFixed(1) + 'k' : s.value.toFixed(0)}
-              </p>
+            <div className="flex items-baseline gap-1.5 shrink-0 pl-1">
+              <span className="text-[11px] font-semibold tabular-nums">{s.pct}%</span>
+              <span className="text-[9px] text-muted-foreground tabular-nums">
+                {currency} {s.value >= 1000 ? (s.value / 1000).toFixed(1) + 'k' : s.value.toFixed(0)}
+              </span>
             </div>
           </div>
         ))}
@@ -984,7 +985,7 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0
   const expenseCount = transactions.filter((t) => t.type === 'expense').length
 
-  // Spending by category
+  // Spending by category_id (UUID) — used for budget progress cards
   const spendingByCategory = transactions
     .filter((t) => t.type === 'expense' && t.category_id)
     .reduce<Record<string, number>>((acc, t) => {
@@ -992,17 +993,40 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
       return acc
     }, {})
 
-  // Pie slices
-  const pieData: PieSliceData[] = categories
-    .filter((c) => (spendingByCategory[c.id] ?? 0) > 0)
-    .map((c, idx) => ({
-      label: c.name,
-      emoji: c.icon,
-      value: spendingByCategory[c.id]!,
-      color: c.color || CAT_PALETTE[idx % CAT_PALETTE.length],
-      count: transactions.filter((t) => t.category_id === c.id && t.type === 'expense').length,
-    }))
-    .sort((a, b) => b.value - a.value)
+  // Spending by expense_category slug — for transactions that have no category_id
+  const spendingBySlug = transactions
+    .filter((t) => t.type === 'expense' && !t.category_id && t.expense_category)
+    .reduce<Record<string, number>>((acc, t) => {
+      acc[t.expense_category!] = (acc[t.expense_category!] ?? 0) + t.amount
+      return acc
+    }, {})
+
+  // Pie slices: DB categories + expense_category slug categories
+  const pieData: PieSliceData[] = [
+    // Transactions linked to a budget_categories row (category_id)
+    ...categories
+      .filter((c) => (spendingByCategory[c.id] ?? 0) > 0)
+      .map((c, idx) => ({
+        label: c.name,
+        emoji: c.icon,
+        value: spendingByCategory[c.id]!,
+        color: c.color || CAT_PALETTE[idx % CAT_PALETTE.length],
+        count: transactions.filter((t) => t.category_id === c.id && t.type === 'expense').length,
+      })),
+    // Transactions using the shared EXPENSE_CATEGORIES slug (no category_id)
+    ...Object.entries(spendingBySlug).map(([slug, amount]) => {
+      const def = EXPENSE_CATEGORIES.find((c) => c.value === slug)
+      return {
+        label: def?.label ?? slug,
+        emoji: def?.emoji ?? '📦',
+        value: amount,
+        color: CATEGORY_GROUP_COLORS[def?.group ?? 'Other'] ?? '#94a3b8',
+        count: transactions.filter(
+          (t) => !t.category_id && t.expense_category === slug && t.type === 'expense'
+        ).length,
+      }
+    }),
+  ].sort((a, b) => b.value - a.value)
 
   const topCat = pieData[0]
 

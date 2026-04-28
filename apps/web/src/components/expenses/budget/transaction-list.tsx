@@ -1,9 +1,9 @@
 ﻿'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Search, Pencil, Trash2, Link2, TrendingUp, TrendingDown, Calendar, Tag, FileText, X } from 'lucide-react'
+import { Search, Pencil, Trash2, Link2, TrendingUp, TrendingDown, Calendar, Tag, FileText, X, ChevronDown } from 'lucide-react'
 import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetHeader, SheetTitle } from '@planningo/ui'
 import { deleteTransaction } from '@/lib/actions/budget'
 import { AddTransactionDialog } from './add-transaction-dialog'
@@ -65,6 +65,8 @@ export function TransactionList({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [confirmDeleteTitle, setConfirmDeleteTitle] = useState('')
+  const PAGE_SIZE = 5
+  const [visiblePages, setVisiblePages] = useState(1)
 
   const filtered = transactions.filter((t) => {
     if (filterType !== 'all' && t.type !== filterType) return false
@@ -72,6 +74,20 @@ export function TransactionList({
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  // Reset pagination when filters change
+  const filterKey = `${search}|${filterType}|${filterCategory}`
+  useEffect(() => { setVisiblePages(1) }, [filterKey])
+  const byDate = filtered.reduce<Record<string, Transaction[]>>((acc, t) => {
+    const key = t.transaction_date
+    if (!acc[key]) acc[key] = []
+    acc[key]!.push(t)
+    return acc
+  }, {})
+
+  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a))
+  const visibleDates = sortedDates.slice(0, visiblePages * PAGE_SIZE)
+  const hasMore = visibleDates.length < sortedDates.length
 
   function handleDelete(id: string) {
     setDeletingId(id)
@@ -83,16 +99,6 @@ export function TransactionList({
       setConfirmDeleteId(null)
     })
   }
-
-  // Group transactions by date
-  const byDate = filtered.reduce<Record<string, Transaction[]>>((acc, t) => {
-    const key = t.transaction_date
-    if (!acc[key]) acc[key] = []
-    acc[key]!.push(t)
-    return acc
-  }, {})
-
-  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a))
 
   return (
     <div className="space-y-3">
@@ -141,7 +147,7 @@ export function TransactionList({
         </div>
       ) : (
         <div className="space-y-4">
-          {sortedDates.map((date) => (
+          {visibleDates.map((date) => (
             <div key={date}>
               <p className="mb-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 {format(new Date(date + 'T00:00:00'), 'EEEE, MMMM d, yyyy')}
@@ -160,6 +166,16 @@ export function TransactionList({
               </div>
             </div>
           ))}
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setVisiblePages((p) => p + 1)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground hover:border-border/80 hover:text-foreground hover:bg-accent/30 transition-colors"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              Load older ({sortedDates.length - visibleDates.length} more {sortedDates.length - visibleDates.length === 1 ? 'day' : 'days'})
+            </button>
+          )}
         </div>
       )}
 
