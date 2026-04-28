@@ -159,7 +159,8 @@ function CategoryDonutChart({ data, currency }: { data: PieSliceData[]; currency
     angle += sweep
     const lg = sweep > Math.PI ? 1 : 0
     const midA = sa + sweep / 2
-    const path = [`M ${cx + r * Math.cos(sa)} ${cy + r * Math.sin(sa)}`, `A ${r} ${r} 0 ${lg} 1 ${cx + r * Math.cos(ea)} ${cy + r * Math.sin(ea)}`, `L ${cx + innerR * Math.cos(ea)} ${cy + innerR * Math.sin(ea)}`, `A ${innerR} ${innerR} 0 ${lg} 0 ${cx + innerR * Math.cos(sa)} ${cy + innerR * Math.sin(sa)}`, 'Z'].join(' ')
+    const n = (v: number) => v.toFixed(6)
+    const path = [`M ${n(cx + r * Math.cos(sa))} ${n(cy + r * Math.sin(sa))}`, `A ${r} ${r} 0 ${lg} 1 ${n(cx + r * Math.cos(ea))} ${n(cy + r * Math.sin(ea))}`, `L ${n(cx + innerR * Math.cos(ea))} ${n(cy + innerR * Math.sin(ea))}`, `A ${innerR} ${innerR} 0 ${lg} 0 ${n(cx + innerR * Math.cos(sa))} ${n(cy + innerR * Math.sin(sa))}`, 'Z'].join(' ')
     return { ...d, idx, pct: Math.round((d.value / total) * 100), path, midA }
   })
   const h = hovered !== null ? slices[hovered] : null
