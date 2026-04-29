@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { Search, Pencil, Trash2, Link2, TrendingUp, TrendingDown, Calendar, Tag, FileText, X, ChevronDown } from 'lucide-react'
-import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetHeader, SheetTitle } from '@planningo/ui'
+import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetHeader, SheetTitle, cn } from '@planningo/ui'
 import { deleteTransaction } from '@/lib/actions/budget'
 import { AddTransactionDialog } from './add-transaction-dialog'
 import { ConfirmDialog } from '../confirm-dialog'
@@ -30,6 +30,7 @@ interface Transaction {
   tags: string[]
   transaction_date: string
   linked_group_expense_id: string | null
+  auto_linked?: boolean | null
   budget_categories: { id: string; name: string; icon: string; color: string } | null
 }
 
@@ -253,8 +254,15 @@ function TransactionRow({
               <span className="text-[10px] font-medium" style={{ color: cat.color }}>{cat.icon} {cat.name}</span>
             ) : null}
             {t.linked_group_expense_id && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-1.5 py-px text-[9px] text-blue-500 font-medium">
-                <Link2 className="h-2 w-2" />Group
+              <span
+                className={cn(
+                  'inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] font-medium',
+                  t.auto_linked
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-blue-500/10 text-blue-500',
+                )}
+              >
+                <Link2 className="h-2 w-2" />{t.auto_linked ? 'Auto' : 'Group'}
               </span>
             )}
             {t.tags.slice(0, 1).map((tag) => (
@@ -372,8 +380,15 @@ function TransactionRow({
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <Link2 className="h-4 w-4" />Source
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500">
-                  Linked group expense
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
+                    t.auto_linked
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-blue-500/10 text-blue-500',
+                  )}
+                >
+                  {t.auto_linked ? 'Auto-tracked from group expense' : 'Linked group expense'}
                 </span>
               </div>
             )}

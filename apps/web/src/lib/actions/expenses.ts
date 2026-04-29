@@ -82,6 +82,7 @@ const expenseSchema = z.object({
   split_type: z.enum(['equal', 'exact', 'percentage', 'shares']).default('equal'),
   expense_date: z.string().default(() => new Date().toISOString().split('T')[0]!),
   paid_by_override: z.string().uuid().optional(), // allow specifying who paid
+  link_to_personal: z.boolean().optional().default(false), // auto-track caller's share in personal expenses
   splits: z.array(z.object({
     user_id: z.string().uuid(),
     amount: z.number(),
@@ -90,12 +91,96 @@ const expenseSchema = z.object({
   })),
 })
 
+/**
+ * Sync the *current user's* auto-linked personal transaction with a group
+ * expense. RLS guarantees we can only ever read/write the caller's own
+ * personal_transactions rows, so this never touches other members' data.
+ *
+ * Behaviour matrix:
+ *   - enabled && share > 0  -> upsert (create or update title/amount/etc.)
+ *   - !enabled || share <= 0 -> soft-delete any existing auto-linked row
+ */
+async function syncCurrentUserAutoLink(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  groupExpense: {
+    id: string
+    title: string
+    category: string
+    currency: string
+    expense_date: string
+  },
+  myShare: number,
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  // Look up an existing auto-linked active row for this (user, expense)
+  const { data: existing, error: lookupErr } = await supabase
+    .from('personal_transactions')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('linked_group_expense_id', groupExpense.id)
+    .eq('auto_linked', true)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (lookupErr) return { error: lookupErr.message }
+
+  const wantsRow = enabled && myShare > 0
+
+  if (!wantsRow) {
+    if (existing) {
+      const { error: delErr } = await supabase
+        .from('personal_transactions')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .eq('user_id', userId)
+      if (delErr) return { error: delErr.message }
+    }
+    return {}
+  }
+
+  // Round to 2dp to match the rest of the system
+  const safeShare = Math.round(myShare * 100) / 100
+
+  if (existing) {
+    const { error: updErr } = await supabase
+      .from('personal_transactions')
+      .update({
+        type: 'expense',
+        amount: safeShare,
+        currency: groupExpense.currency,
+        title: groupExpense.title,
+        expense_category: groupExpense.category,
+        transaction_date: groupExpense.expense_date,
+      })
+      .eq('id', existing.id)
+      .eq('user_id', userId)
+    if (updErr) return { error: updErr.message }
+  } else {
+    const { error: insErr } = await supabase.from('personal_transactions').insert({
+      user_id: userId,
+      type: 'expense',
+      amount: safeShare,
+      currency: groupExpense.currency,
+      title: groupExpense.title,
+      expense_category: groupExpense.category,
+      transaction_date: groupExpense.expense_date,
+      linked_group_expense_id: groupExpense.id,
+      auto_linked: true,
+      tags: [],
+    })
+    if (insErr) return { error: insErr.message }
+  }
+
+  return {}
+}
+
 export async function createExpense(data: z.infer<typeof expenseSchema>) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { splits, paid_by_override, ...expenseData } = data
+  const { splits, paid_by_override, link_to_personal, ...expenseData } = data
   const paidBy = paid_by_override ?? user.id
 
   const { data: expense, error } = await supabase
@@ -116,8 +201,39 @@ export async function createExpense(data: z.infer<typeof expenseSchema>) {
 
   if (splitsError) return { error: splitsError.message }
 
+  // Auto-link caller's share to personal expenses if requested
+  if (link_to_personal) {
+    const myShare = splits.find((s) => s.user_id === user.id)?.amount ?? 0
+    const syncRes = await syncCurrentUserAutoLink(
+      supabase,
+      user.id,
+      {
+        id: expense.id,
+        title: expense.title,
+        category: expense.category,
+        currency: expense.currency,
+        expense_date: expense.expense_date,
+      },
+      myShare,
+      true,
+    )
+    if (syncRes.error) {
+      // Don't fail the whole create -- group expense was saved successfully.
+      // Surface a soft warning so the UI can toast it.
+      revalidatePath(`/expenses/${data.group_id}`)
+      revalidatePath('/expenses')
+      revalidatePath('/expenses/budget')
+      return {
+        success: true,
+        expense,
+        warning: `Group expense saved, but couldn't add to personal expenses: ${syncRes.error}`,
+      }
+    }
+  }
+
   revalidatePath(`/expenses/${data.group_id}`)
   revalidatePath('/expenses')
+  revalidatePath('/expenses/budget')
   return { success: true, expense }
 }
 
@@ -143,7 +259,19 @@ export async function deleteExpense(id: string, groupId: string) {
 
   if (error) return { error: error.message }
 
+  // Soft-delete the *current user's* auto-linked personal transaction (if any).
+  // RLS prevents touching other users' rows; their auto-links will simply
+  // dangle until they next open the dialog or are cleaned up by FK on hard
+  // delete. Manually-linked rows (auto_linked=false) are left alone.
+  await supabase
+    .from('personal_transactions')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('linked_group_expense_id', id)
+    .eq('auto_linked', true)
+    .is('deleted_at', null)
+
   revalidatePath(`/expenses/${groupId}`)
+  revalidatePath('/expenses/budget')
   return { success: true }
 }
 
@@ -156,6 +284,8 @@ export async function updateExpense(
     category: string
     expense_date: string
     paid_by: string
+    currency?: string
+    link_to_personal?: boolean
   },
   splits: { user_id: string; amount: number }[],
 ) {
@@ -194,8 +324,65 @@ export async function updateExpense(
   )
   if (insertErr) return { error: insertErr.message }
 
+  // Sync caller's auto-linked personal transaction. We always run sync (even
+  // when link_to_personal === false) so that turning the toggle OFF in edit
+  // mode soft-deletes the previously auto-created personal row.
+  const myShare = splits.find((s) => s.user_id === user.id)?.amount ?? 0
+  let currency = data.currency
+  if (!currency) {
+    const { data: groupRow } = await supabase
+      .from('expense_groups')
+      .select('currency')
+      .eq('id', groupId)
+      .single()
+    currency = groupRow?.currency ?? 'USD'
+  }
+  const syncRes = await syncCurrentUserAutoLink(
+    supabase,
+    user.id,
+    {
+      id,
+      title: data.title,
+      category: data.category,
+      currency,
+      expense_date: data.expense_date,
+    },
+    myShare,
+    Boolean(data.link_to_personal),
+  )
+
   revalidatePath(`/expenses/${groupId}`)
+  revalidatePath('/expenses/budget')
+
+  if (syncRes.error) {
+    return {
+      success: true as const,
+      warning: `Group expense saved, but personal-expense sync failed: ${syncRes.error}`,
+    }
+  }
   return { success: true }
+}
+
+/**
+ * Returns whether the *current user* already has an active auto-linked
+ * personal transaction for the given group expense. Used by the edit dialog
+ * to pre-set the "Track my share" toggle.
+ */
+export async function getMyAutoLinkStatus(expenseId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { autoLinked: false }
+
+  const { data } = await supabase
+    .from('personal_transactions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('linked_group_expense_id', expenseId)
+    .eq('auto_linked', true)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  return { autoLinked: Boolean(data) }
 }
 
 export async function createSettlement(data: {

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Loader2, Search, Check, ChevronDown, RotateCcw } from 'lucide-react'
+import { Loader2, Search, Check, ChevronDown, RotateCcw, Wallet } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -19,13 +19,14 @@ import {
   PopoverContent,
   PopoverTrigger,
   Separator,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@planningo/ui'
 import { cn } from '@planningo/ui'
-import { createExpense, updateExpense } from '@/lib/actions/expenses'
+import { createExpense, updateExpense, getMyAutoLinkStatus } from '@/lib/actions/expenses'
 
 interface Member {
   user_id: string
@@ -249,6 +250,9 @@ export function ExpenseFormDialog({
   const [splits, setSplits] = useState<Record<string, string>>({})
   const [pinnedSplits, setPinnedSplits] = useState<Set<string>>(new Set())
 
+  // Auto-link caller's share to personal expenses
+  const [linkToPersonal, setLinkToPersonal] = useState(false)
+
   // Initialise when dialog opens
   useEffect(() => {
     if (!open) return
@@ -264,6 +268,16 @@ export function ExpenseFormDialog({
       const initialSplits = initSplits(members, expense.amount ?? 0, initialMode, expense.expense_splits)
       setSplits(initialSplits)
       setPinnedSplits(new Set(members.map((m) => m.user_id))) // all pinned from existing data
+      // Pre-fill toggle from server: is there already an auto-linked personal txn?
+      setLinkToPersonal(false)
+      let cancelled = false
+      ;(async () => {
+        const res = await getMyAutoLinkStatus(expense.id)
+        if (!cancelled) setLinkToPersonal(Boolean(res?.autoLinked))
+      })()
+      return () => {
+        cancelled = true
+      }
     } else {
       setTitle('')
       setAmount('')
@@ -274,6 +288,7 @@ export function ExpenseFormDialog({
       setSplitMode('equal')
       setSplits({})
       setPinnedSplits(new Set())
+      setLinkToPersonal(false)
     }
   }, [open, mode, expense, currentUserId, members])
 
@@ -384,7 +399,7 @@ export function ExpenseFormDialog({
     if (!finalSplits) return
 
     setSaving(true)
-    let result: { error?: string }
+    let result: { error?: string; warning?: string }
 
     if (mode === 'add') {
       result = await createExpense({
@@ -396,13 +411,22 @@ export function ExpenseFormDialog({
         split_type: splitMode === 'equal' ? 'equal' : 'exact',
         expense_date: expenseDate,
         paid_by_override: paidBy !== currentUserId ? paidBy : undefined,
+        link_to_personal: linkToPersonal,
         splits: finalSplits,
       })
     } else {
       result = await updateExpense(
         expense!.id,
         group.id,
-        { title: title.trim(), amount: totalNum, category, expense_date: expenseDate, paid_by: paidBy },
+        {
+          title: title.trim(),
+          amount: totalNum,
+          category,
+          expense_date: expenseDate,
+          paid_by: paidBy,
+          currency: group.currency,
+          link_to_personal: linkToPersonal,
+        },
         finalSplits,
       )
     }
@@ -411,7 +435,8 @@ export function ExpenseFormDialog({
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(mode === 'add' ? 'Expense added' : 'Expense updated')
+      if (result.warning) toast.warning(result.warning)
+      else toast.success(mode === 'add' ? 'Expense added' : 'Expense updated')
       onOpenChange(false)
       onSuccess?.()
     }
@@ -419,6 +444,23 @@ export function ExpenseFormDialog({
 
   const totalNum = parseFloat(amount) || 0
   const selectedCat = EXPENSE_CATEGORIES.find((c) => c.value === category)
+
+  // Live preview of caller's share (matches what computeFinalSplits would emit)
+  const myShareNum = useMemo(() => {
+    if (!members.length || totalNum <= 0) return 0
+    if (splitMode === 'equal') {
+      return Math.round((totalNum / members.length) * 100) / 100
+    }
+    if (splitMode === 'amount') {
+      return Math.round((parseFloat(splits[currentUserId] ?? '0') || 0) * 100) / 100
+    }
+    // percentage
+    const pct = parseFloat(splits[currentUserId] ?? '0') || 0
+    return Math.round((pct / 100) * totalNum * 100) / 100
+  }, [splitMode, splits, totalNum, members, currentUserId])
+
+  const isCurrentUserMember = members.some((m) => m.user_id === currentUserId)
+  const canLinkToPersonal = isCurrentUserMember && myShareNum > 0
 
   // Split summary values
   const splitAmountTotal = splitMode === 'amount'
@@ -438,6 +480,62 @@ export function ExpenseFormDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4">
+          {/* Track-my-share toggle (auto-link caller's share to personal expenses) */}
+          {isCurrentUserMember && (
+            <div
+              className={cn(
+                'flex items-start gap-3 rounded-lg border p-3 transition-colors',
+                linkToPersonal && canLinkToPersonal
+                  ? 'border-emerald-500/40 bg-emerald-500/5'
+                  : 'border-border bg-muted/30',
+              )}
+            >
+              <div
+                className={cn(
+                  'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+                  linkToPersonal && canLinkToPersonal
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-muted text-muted-foreground',
+                )}
+              >
+                <Wallet className="h-4 w-4" />
+              </div>
+              <div className="flex-1 space-y-0.5">
+                <Label
+                  htmlFor="link-to-personal"
+                  className={cn(
+                    'cursor-pointer text-sm font-medium leading-tight',
+                    !canLinkToPersonal && 'text-muted-foreground',
+                  )}
+                >
+                  Track my share in personal expenses
+                </Label>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {canLinkToPersonal ? (
+                    <>
+                      Your share{' '}
+                      <span className="font-semibold text-foreground">
+                        {group.currency} {myShareNum.toFixed(2)}
+                      </span>{' '}
+                      will be auto-added to your personal budget and stay linked to this group expense. Other members&apos; shares are never touched.
+                    </>
+                  ) : totalNum <= 0 ? (
+                    <>Enter an amount and your share will be calculated and tracked here.</>
+                  ) : (
+                    <>You&apos;re excluded from this split, so nothing will be added to your personal expenses.</>
+                  )}
+                </p>
+              </div>
+              <Switch
+                id="link-to-personal"
+                checked={linkToPersonal && canLinkToPersonal}
+                onCheckedChange={setLinkToPersonal}
+                disabled={!canLinkToPersonal}
+                className="mt-1 shrink-0"
+              />
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-1.5">
             <Label>Description *</Label>
