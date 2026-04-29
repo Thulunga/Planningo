@@ -239,10 +239,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <GroupExpenseShowcase />
-
-      <PersonalBudgetShowcase />
-
       {/* ── Features grid ── */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <div className="mb-12 text-center">
@@ -268,6 +264,10 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <PersonalBudgetShowcase />
+
+      <GroupExpenseShowcase />
 
       {/* ── Why Planningo ── */}
       <section className="border-y border-border/60 bg-muted/30 px-4 py-20 sm:px-6">
