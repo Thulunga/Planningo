@@ -472,7 +472,7 @@ export function ExpenseFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full inset-x-0 bottom-0 top-auto sm:inset-auto sm:top-1/2 sm:-translate-y-1/2 sm:max-w-lg p-0 gap-0 max-h-[85svh] sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-lg">
+      <DialogContent className="left-0 right-0 translate-x-0 w-full max-w-none bottom-0 top-auto sm:inset-auto sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2 sm:max-w-lg p-0 gap-0 max-h-[85svh] sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-lg">
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b bg-background/95 backdrop-blur-sm shrink-0">
           <DialogTitle className="text-lg font-bold">
