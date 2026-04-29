@@ -34,7 +34,7 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={loading ? undefined : onOpenChange}>
-      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden top-1/2 -translate-y-1/2">
         <DialogTitle className="sr-only">{title}</DialogTitle>
         {/* Coloured strip at the top */}
         <div className={`h-1.5 w-full ${isDanger ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`} />

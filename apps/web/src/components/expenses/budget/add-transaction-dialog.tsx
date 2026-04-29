@@ -252,12 +252,24 @@ export function AddTransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editTransaction ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="w-full inset-x-0 bottom-0 top-auto sm:inset-auto sm:top-1/2 sm:-translate-y-1/2 sm:max-w-md p-0 gap-0 max-h-[85svh] sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-lg">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b bg-background/95 backdrop-blur-sm shrink-0">
+          <DialogTitle className="text-lg font-bold">
+            {editTransaction ? 'Edit Transaction' : 'Add Transaction'}
+          </DialogTitle>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </button>
+        </div>
 
-        <div className="space-y-4">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Type toggle */}
           <div className="flex rounded-lg border border-border p-1 gap-1">
             {(['expense', 'income'] as const).map((t) => (
@@ -427,9 +439,9 @@ export function AddTransactionDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={isPending}>
+          <div className="sticky bottom-0 z-10 flex gap-3 border-t bg-background/95 backdrop-blur-sm py-4 sm:gap-2 justify-end sm:pt-1">
+            <Button variant="outline" size="lg" className="sm:size-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button size="lg" className="sm:size-auto" onClick={handleSave} disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editTransaction ? 'Save Changes' : 'Add Transaction'}
             </Button>

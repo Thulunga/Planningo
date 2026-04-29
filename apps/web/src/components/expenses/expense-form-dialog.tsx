@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Loader2, Search, Check, ChevronDown, RotateCcw, Wallet } from 'lucide-react'
+import { Loader2, Search, Check, ChevronDown, RotateCcw, Wallet, X } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -472,14 +472,24 @@ export function ExpenseFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-full p-0 gap-0 max-h-[92vh] flex flex-col">
-        <DialogHeader className="px-5 pt-5 pb-3 shrink-0">
-          <DialogTitle className="text-lg">
+      <DialogContent className="w-full inset-x-0 bottom-0 top-auto sm:inset-auto sm:top-1/2 sm:-translate-y-1/2 sm:max-w-lg p-0 gap-0 max-h-[85svh] sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-lg">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b bg-background/95 backdrop-blur-sm shrink-0">
+          <DialogTitle className="text-lg font-bold">
             {mode === 'add' ? 'Add Expense' : 'Edit Expense'}
           </DialogTitle>
-        </DialogHeader>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </button>
+        </div>
 
-        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Track-my-share toggle (auto-link caller's share to personal expenses) */}
           {isCurrentUserMember && (
             <div
@@ -792,39 +802,24 @@ export function ExpenseFormDialog({
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-
-          {/* Summary */}
-          {totalNum > 0 && (
-            <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Paid by</span>
-                <span className="font-medium">
-                  {memberName(members.find((m) => m.user_id === paidBy) ?? members[0])}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold">{group.currency} {totalNum.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Split</span>
-                <span className="capitalize text-xs">
-                  {splitMode === 'equal' ? `Equally (${members.length} people)` :
-                   splitMode === 'amount' ? 'Custom amounts' :
-                   'Custom percentages'}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Footer buttons */}
-        <div className="flex gap-2 px-5 py-4 border-t bg-background shrink-0">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+        {/* Sticky Footer Buttons - Mobile Bottom Sticky, Desktop Right-aligned */}
+        <div className="sticky bottom-0 z-10 flex gap-3 px-5 py-4 border-t bg-background/95 backdrop-blur-sm shrink-0 sm:gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none sm:w-auto h-11 sm:h-9"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
-          <Button className="flex-1" onClick={handleSubmit} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button
+            className="flex-1 sm:flex-none sm:w-auto h-11 sm:h-9 gap-2"
+            onClick={handleSubmit}
+            disabled={saving}
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {mode === 'add' ? 'Add Expense' : 'Save Changes'}
           </Button>
         </div>
