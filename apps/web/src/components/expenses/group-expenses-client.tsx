@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2 } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2, Info } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -19,6 +19,10 @@ import {
   Input,
   Label,
   Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@planningo/ui'
 import { deleteExpense, addGroupMember, createSettlement, updateSettlement, deleteSettlement, searchGroupUsers, generateGroupInviteCode } from '@/lib/actions/expenses'
 import { useRouter } from 'next/navigation'
@@ -471,7 +475,19 @@ export function GroupExpensesClient({
       <Dialog open={isSettleOpen} onOpenChange={setIsSettleOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editingSettlement ? 'Edit Payment' : 'Record a Payment'}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>{editingSettlement ? 'Edit Payment' : 'Record a Payment'}</DialogTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Only the payer and receiver can record this payment
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
