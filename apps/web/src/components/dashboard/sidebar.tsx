@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  Landmark,
   Loader2,
 } from 'lucide-react'
 import { cn, Button, Tooltip, TooltipContent, TooltipTrigger } from '@planningo/ui'
@@ -63,7 +64,12 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
 
   const allItems = [
     ...navItems,
-    ...(isAdmin ? [{ href: '/trading', icon: TrendingUp, label: 'Trading Bot' }] : []),
+    ...(isAdmin
+      ? [
+          { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
+          { href: '/wealth-lab', icon: Landmark, label: 'Wealth Lab' },
+        ]
+      : []),
   ]
 
   return (

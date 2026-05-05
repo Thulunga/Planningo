@@ -68,10 +68,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin-only routes: /admin, /trading, and matching APIs
+  // Admin-only routes: /admin, /trading, /wealth-lab, and matching APIs
   const isAdminRoute =
     pathname.startsWith('/admin') ||
     pathname.startsWith('/trading') ||
+    pathname.startsWith('/wealth-lab') ||
     pathname.startsWith('/api/trading')
 
   if (isAdminRoute && user) {

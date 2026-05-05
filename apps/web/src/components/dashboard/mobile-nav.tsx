@@ -14,6 +14,7 @@ import {
   DollarSign,
   Settings,
   TrendingUp,
+  Landmark,
 } from 'lucide-react'
 import { cn, SheetClose } from '@planningo/ui'
 import { UserMenu } from './user-menu'
@@ -51,6 +52,7 @@ export function MobileNav({ profile, isAdmin = false }: { profile: Tables<'profi
             ...(isAdmin
               ? [
                   { href: '/trading', icon: TrendingUp, label: 'Trading Bot' },
+                  { href: '/wealth-lab', icon: Landmark, label: 'Wealth Lab' },
                 ]
               : []),
           ].map(({ href, icon: Icon, label }) => {
