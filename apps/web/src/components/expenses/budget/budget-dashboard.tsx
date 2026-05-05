@@ -177,7 +177,7 @@ export function BudgetDashboard({
             <Settings2 className="h-3.5 w-3.5" />
             Budgets
           </Button>
-          {/* Add Transaction — desktop only; mobile uses sticky bottom bar */}
+          {/* Add Transaction - desktop only; mobile uses sticky bottom bar */}
           <Button
             size="sm"
             onClick={() => { setAddType('expense'); setIsAddOpen(true) }}
@@ -319,7 +319,7 @@ export function BudgetDashboard({
         currentYear={year}
       />
 
-      {/* Sticky bottom bar — mobile only */}
+      {/* Sticky bottom bar - mobile only */}
       <div className="fixed bottom-16 left-0 right-0 z-40 sm:hidden border-t border-border bg-background/95 backdrop-blur px-3 py-2.5">
         <Button
           size="lg"

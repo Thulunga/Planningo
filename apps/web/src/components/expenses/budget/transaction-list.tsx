@@ -276,7 +276,7 @@ function TransactionRow({
           {isIncome ? '+' : '-'}{currency}&nbsp;{t.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
         </span>
 
-        {/* Action buttons — stop propagation so row click doesn't fire */}
+        {/* Action buttons - stop propagation so row click doesn't fire */}
         <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost" size="sm"

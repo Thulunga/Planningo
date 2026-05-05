@@ -12,14 +12,14 @@ export default function TodosLoading() {
         <Skeleton className="h-9 w-28 rounded-md" />
       </div>
 
-      {/* Filter chips — horizontal scroll */}
+      {/* Filter chips - horizontal scroll */}
       <div className="flex gap-2 overflow-x-hidden">
         {['All', 'Today', 'Overdue', 'Todo', 'In Progress', 'Done', 'Cancelled'].map((label) => (
           <Skeleton key={label} className="h-9 shrink-0 rounded-full px-3" style={{ width: `${label.length * 9 + 20}px` }} />
         ))}
       </div>
 
-      {/* Todo rows — matches TodoRow layout: checkbox + title area + MoreVertical */}
+      {/* Todo rows - matches TodoRow layout: checkbox + title area + MoreVertical */}
       <div className="space-y-1.5">
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="flex items-start gap-2 rounded-lg border bg-card py-2.5 pr-1.5 pl-2.5">

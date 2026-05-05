@@ -1,4 +1,4 @@
-// Shared UNO types — used by both server engine and client UI.
+// Shared UNO types - used by both server engine and client UI.
 
 export type CardColor = 'red' | 'yellow' | 'green' | 'blue' | 'wild'
 

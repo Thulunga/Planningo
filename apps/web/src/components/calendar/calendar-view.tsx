@@ -276,7 +276,7 @@ function MonthView({
           </div>
           {selectedDayEvents.length === 0 ? (
             <p className="px-3 pb-3 text-xs text-muted-foreground">
-              No events — tap &quot;+ Add event&quot; to create one.
+              No events - tap &quot;+ Add event&quot; to create one.
             </p>
           ) : (
             <ul className="space-y-1.5 px-3 pb-3">
@@ -688,7 +688,7 @@ export function CalendarView({
               size="sm"
               className={cn(
                 'h-7 gap-1.5 px-2 text-xs',
-                // Week view is complex on very small screens — keep it for sm+
+                // Week view is complex on very small screens - keep it for sm+
                 value === 'week' && 'hidden sm:inline-flex',
               )}
               onClick={() => onViewChange(value)}

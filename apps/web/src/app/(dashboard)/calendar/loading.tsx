@@ -34,7 +34,7 @@ export default function CalendarLoading() {
           ))}
         </div>
 
-        {/* Calendar grid — 5 weeks */}
+        {/* Calendar grid - 5 weeks */}
         <div className="grid grid-cols-7">
           {Array.from({ length: 35 }).map((_, i) => (
             <div

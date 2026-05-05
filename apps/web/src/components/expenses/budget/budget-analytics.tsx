@@ -986,7 +986,7 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0
   const expenseCount = transactions.filter((t) => t.type === 'expense').length
 
-  // Spending by category_id (UUID) — used for budget progress cards
+  // Spending by category_id (UUID) - used for budget progress cards
   const spendingByCategory = transactions
     .filter((t) => t.type === 'expense' && t.category_id)
     .reduce<Record<string, number>>((acc, t) => {
@@ -994,7 +994,7 @@ export function BudgetAnalytics({ transactions, categories, budgets, currency = 
       return acc
     }, {})
 
-  // Spending by expense_category slug — for transactions that have no category_id
+  // Spending by expense_category slug - for transactions that have no category_id
   const spendingBySlug = transactions
     .filter((t) => t.type === 'expense' && !t.category_id && t.expense_category)
     .reduce<Record<string, number>>((acc, t) => {

@@ -292,7 +292,7 @@ export function TodosClient({ todos, view: viewProp }: TodosClientProps) {
         </Button>
       </div>
 
-      {/* Filter chips — horizontal scroll on mobile */}
+      {/* Filter chips - horizontal scroll on mobile */}
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0">
         <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {VIEWS.map((v) => {
@@ -626,7 +626,7 @@ function EmptyState({ view, onCreate }: { view: View; onCreate: () => void }) {
     all: {
       icon: Inbox,
       title: 'No todos yet',
-      subtitle: 'Capture what you need to do — big or small.',
+      subtitle: 'Capture what you need to do - big or small.',
       cta: 'Create your first todo',
     },
     today: {

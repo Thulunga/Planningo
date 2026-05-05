@@ -8,7 +8,7 @@ import { User, Bell, Globe, ArrowRight, MessageSquare, LayoutDashboard } from 'l
 export const metadata: Metadata = { title: 'Settings' }
 
 export default async function SettingsPage() {
-  // Run both in parallel — isAdmin uses getCachedUser so the auth call is shared
+  // Run both in parallel - isAdmin uses getCachedUser so the auth call is shared
   const [profile, admin] = await Promise.all([getUserProfile(), isAdmin()])
   if (!profile) return null
 

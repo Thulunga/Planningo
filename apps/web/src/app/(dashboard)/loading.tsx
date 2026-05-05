@@ -3,7 +3,7 @@ import { Skeleton } from '@planningo/ui'
 export default function DashboardLoading() {
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Greeting hero — matches the gradient card with analog clock */}
+      {/* Greeting hero - matches the gradient card with analog clock */}
       <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
         <div className="flex justify-center sm:justify-start sm:shrink-0">
           {/* Clock circle */}
@@ -31,7 +31,7 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      {/* 3-column card grid — todos, events, planner */}
+      {/* 3-column card grid - todos, events, planner */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="rounded-xl border bg-card p-5 space-y-4">

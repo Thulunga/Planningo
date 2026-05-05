@@ -20,7 +20,7 @@ export function EventDetail({ event, onClose, onEdit, onDelete }: EventDetailPro
 
   const timeDisplay = event.all_day
     ? (() => {
-        // End is stored exclusive — show inclusive end date
+        // End is stored exclusive - show inclusive end date
         const inclusiveEnd = new Date(end)
         inclusiveEnd.setDate(inclusiveEnd.getDate() - 1)
         const sameDay = format(start, 'yyyy-MM-dd') === format(inclusiveEnd, 'yyyy-MM-dd')

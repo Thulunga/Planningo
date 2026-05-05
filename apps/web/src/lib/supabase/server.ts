@@ -14,7 +14,7 @@ export async function createClient() {
 }
 
 /**
- * Cached auth user — deduplicates supabase.auth.getUser() within the same
+ * Cached auth user - deduplicates supabase.auth.getUser() within the same
  * server render. All server components + server actions called during the
  * same request share ONE network round-trip to Supabase Auth.
  */

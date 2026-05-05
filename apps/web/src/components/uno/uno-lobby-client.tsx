@@ -103,7 +103,7 @@ export function UnoLobbyClient() {
       </div>
 
       <section className="rounded-2xl border border-dashed border-border bg-card p-5 text-sm text-muted-foreground">
-        Tip: share the room code (or the page URL) with friends — they will land directly in the lobby.
+        Tip: share the room code (or the page URL) with friends - they will land directly in the lobby.
       </section>
     </div>
   )

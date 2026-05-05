@@ -35,7 +35,7 @@ export default function BudgetLoading() {
         ))}
       </div>
 
-      {/* Main content — 2-col on lg */}
+      {/* Main content - 2-col on lg */}
       <div className="grid gap-5 lg:grid-cols-5">
         {/* Left: arc gauge + budget breakdown */}
         <div className="space-y-5 lg:col-span-2">

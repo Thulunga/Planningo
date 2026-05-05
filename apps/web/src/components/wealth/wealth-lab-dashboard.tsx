@@ -129,7 +129,7 @@ const ASSET_CONFIGS: AssetConfig[] = [
     color: '#06b6d4',
     gradientFrom: '#06b6d4',
     gradientTo: '#0891b2',
-    description: 'Public Provident Fund — EEE tax status',
+    description: 'Public Provident Fund - EEE tax status',
     category: 'debt',
     taxNote: 'Fully tax free (EEE)',
   },
@@ -601,7 +601,7 @@ export function WealthLabDashboard() {
     const tiers = [1e6, 5e6, 1e7, 2.5e7, 5e7, 1e8]
     return tiers.map((t) => {
       const hit = projection.find((p) => p.balance >= t)
-      return { label: shortMoney(t), year: hit ? `Year ${hit.year}` : '—' }
+      return { label: shortMoney(t), year: hit ? `Year ${hit.year}` : '-' }
     })
   }, [projection])
 
@@ -1779,7 +1779,7 @@ function InsightsTab({
                 <span className="font-medium text-foreground">PPF (tax-free)</span>
                 <span className="font-semibold text-emerald-500">₹0</span>
               </div>
-              <p className="mt-1 text-muted-foreground">EEE status — exempt at contribution, accumulation, and withdrawal.</p>
+              <p className="mt-1 text-muted-foreground">EEE status - exempt at contribution, accumulation, and withdrawal.</p>
             </div>
             <div className="rounded-lg border border-border p-3 text-muted-foreground italic">
               ⚠ This is illustrative. Consult a CA for your actual tax position.
