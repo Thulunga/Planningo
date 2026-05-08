@@ -308,6 +308,49 @@ function shiftReturns(allocations: AssetAllocation[], deltaPct: number): AssetAl
   }))
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function allocateMonthlyByWeights(
+  total: number,
+  weights: { id: AssetClass; weight: number }[]
+): Record<AssetClass, number> {
+  const result = {} as Record<AssetClass, number>
+  const safeTotal = Math.max(0, Math.round(total))
+  if (!weights.length || safeTotal <= 0) {
+    for (const w of weights) result[w.id] = 0
+    return result
+  }
+
+  const normalized = weights.map((w) => ({ id: w.id, weight: Math.max(0, w.weight) }))
+  const weightSum = normalized.reduce((s, w) => s + w.weight, 0)
+  const base =
+    weightSum > 0
+      ? normalized.map((w) => ({ id: w.id, raw: (safeTotal * w.weight) / weightSum }))
+      : normalized.map((w) => ({ id: w.id, raw: safeTotal / normalized.length }))
+
+  let assigned = 0
+  const withRemainder = base.map((b) => {
+    const floor = Math.floor(b.raw)
+    assigned += floor
+    return { id: b.id, floor, remainder: b.raw - floor }
+  })
+
+  withRemainder.sort((a, b) => b.remainder - a.remainder)
+  let leftover = safeTotal - assigned
+  for (let i = 0; i < withRemainder.length && leftover > 0; i += 1) {
+    withRemainder[i].floor += 1
+    leftover -= 1
+  }
+
+  for (const item of withRemainder) {
+    result[item.id] = item.floor
+  }
+
+  return result
+}
+
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 function ChartTooltip({ state }: { state: TooltipState | null }) {
   if (!state) return null
@@ -327,7 +370,7 @@ function ChartTooltip({ state }: { state: TooltipState | null }) {
   )
 }
 
-// ─── Tiny number input ────────────────────────────────────────────────────────
+// ─── Enhanced slider with manual input ────────────────────────────────────────
 function Slider({
   label,
   value,
@@ -345,29 +388,87 @@ function Slider({
   format?: (v: number) => string
   onChange: (v: number) => void
 }) {
+  const [manualInput, setManualInput] = useState<string>(String(value))
   const display = fmt ? fmt(value) : Number.isInteger(value) ? `${value}` : value.toFixed(2)
   const pct = ((value - min) / (max - min)) * 100
 
+  // Sync manual input whenever the parent value changes (e.g., during hydration)
+  useEffect(() => {
+    setManualInput(String(value))
+  }, [value])
+
+  const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    setManualInput(raw)
+    
+    const num = parseFloat(raw)
+    if (!isNaN(num)) {
+      const clamped = Math.min(max, Math.max(min, num))
+      onChange(clamped)
+    }
+  }
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const num = Number(e.target.value)
+    onChange(num)
+    setManualInput(String(num))
+  }
+
+  const handleManualBlur = () => {
+    const num = parseFloat(manualInput)
+    if (isNaN(num)) {
+      setManualInput(String(value))
+    } else {
+      const clamped = Math.min(max, Math.max(min, num))
+      setManualInput(String(clamped))
+      onChange(clamped)
+    }
+  }
+
   return (
-    <label className="block space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-semibold tabular-nums">{display}</span>
+    <div className="block space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+            {display}
+          </span>
+          <div className="flex items-center gap-0.5 text-muted-foreground text-[10px]">
+            <Zap className="h-3 w-3" />
+            <span>Drag</span>
+          </div>
+        </div>
       </div>
-      <div className="relative h-2">
+      
+      {/* Slider track */}
+      <div className="relative h-2.5 rounded-full">
         <div className="absolute inset-y-0 left-0 right-0 rounded-full bg-muted" />
-        <div className="absolute inset-y-0 left-0 rounded-full bg-primary/70" style={{ width: `${pct}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-primary/70 transition-all duration-100" style={{ width: `${pct}%` }} />
         <input
           type="range"
           min={min}
           max={max}
           step={step}
           value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          onChange={handleSliderChange}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
       </div>
-    </label>
+
+      {/* Manual input field */}
+      <input
+        type="number"
+        value={manualInput}
+        onChange={handleManualChange}
+        onBlur={handleManualBlur}
+        min={min}
+        max={max}
+        step={step}
+        placeholder={String(value)}
+        className="w-full rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        aria-label={`${label} input`}
+      />
+    </div>
   )
 }
 
@@ -479,8 +580,12 @@ export function WealthLabDashboard() {
   const [years, setYears] = useState(20)
   const [inflationPct, setInflationPct] = useState(6)
   const [yearlyBonus, setYearlyBonus] = useState(150000)
+  const [monthlyIncome, setMonthlyIncome] = useState(200000)
+  const [yearlyIncomeStepUpPct, setYearlyIncomeStepUpPct] = useState(8)
+  const [monthlyBudget, setMonthlyBudget] = useState(120000)
+  const [expectedMonthlySavings, setExpectedMonthlySavings] = useState(80000)
   const [currentMonthlyExpenses, setCurrentMonthlyExpenses] = useState(120000)
-  const [activeTab, setActiveTab] = useState<'growth' | 'allocation' | 'assets' | 'insights'>('growth')
+  const [activeTab, setActiveTab] = useState<'setup' | 'growth' | 'allocation' | 'insights'>('setup')
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [showDummyDataPopup, setShowDummyDataPopup] = useState(false)
@@ -501,6 +606,10 @@ export function WealthLabDashboard() {
             years?: number
             inflationPct?: number
             yearlyBonus?: number
+            monthlyIncome?: number
+            yearlyIncomeStepUpPct?: number
+            monthlyBudget?: number
+            expectedMonthlySavings?: number
             currentMonthlyExpenses?: number
           }
           if (!cancelled) {
@@ -508,6 +617,14 @@ export function WealthLabDashboard() {
             if (typeof parsed.years === 'number') setYears(parsed.years)
             if (typeof parsed.inflationPct === 'number') setInflationPct(parsed.inflationPct)
             if (typeof parsed.yearlyBonus === 'number') setYearlyBonus(parsed.yearlyBonus)
+            if (typeof parsed.monthlyIncome === 'number') setMonthlyIncome(parsed.monthlyIncome)
+            if (typeof parsed.yearlyIncomeStepUpPct === 'number') {
+              setYearlyIncomeStepUpPct(parsed.yearlyIncomeStepUpPct)
+            }
+            if (typeof parsed.monthlyBudget === 'number') setMonthlyBudget(parsed.monthlyBudget)
+            if (typeof parsed.expectedMonthlySavings === 'number') {
+              setExpectedMonthlySavings(parsed.expectedMonthlySavings)
+            }
             if (typeof parsed.currentMonthlyExpenses === 'number') {
               setCurrentMonthlyExpenses(parsed.currentMonthlyExpenses)
             }
@@ -526,6 +643,14 @@ export function WealthLabDashboard() {
         if (typeof result.config.years === 'number') setYears(result.config.years)
         if (typeof result.config.inflationPct === 'number') setInflationPct(result.config.inflationPct)
         if (typeof result.config.yearlyBonus === 'number') setYearlyBonus(result.config.yearlyBonus)
+        if (typeof result.config.monthlyIncome === 'number') setMonthlyIncome(result.config.monthlyIncome)
+        if (typeof result.config.yearlyIncomeStepUpPct === 'number') {
+          setYearlyIncomeStepUpPct(result.config.yearlyIncomeStepUpPct)
+        }
+        if (typeof result.config.monthlyBudget === 'number') setMonthlyBudget(result.config.monthlyBudget)
+        if (typeof result.config.expectedMonthlySavings === 'number') {
+          setExpectedMonthlySavings(result.config.expectedMonthlySavings)
+        }
         if (typeof result.config.currentMonthlyExpenses === 'number') {
           setCurrentMonthlyExpenses(result.config.currentMonthlyExpenses)
         }
@@ -555,6 +680,10 @@ export function WealthLabDashboard() {
       years,
       inflationPct,
       yearlyBonus,
+      monthlyIncome,
+      yearlyIncomeStepUpPct,
+      monthlyBudget,
+      expectedMonthlySavings,
       currentMonthlyExpenses,
     }
 
@@ -578,7 +707,18 @@ export function WealthLabDashboard() {
       if (saveStateTimerRef.current) clearTimeout(saveStateTimerRef.current)
       saveStateTimerRef.current = setTimeout(() => setSaveState('idle'), 1400)
     }, 1200)
-  }, [allocations, years, inflationPct, yearlyBonus, currentMonthlyExpenses, isHydrating])
+  }, [
+    allocations,
+    years,
+    inflationPct,
+    yearlyBonus,
+    monthlyIncome,
+    yearlyIncomeStepUpPct,
+    monthlyBudget,
+    expectedMonthlySavings,
+    currentMonthlyExpenses,
+    isHydrating,
+  ])
 
   const projection = useMemo(
     () => projectPortfolio(allocations, years, inflationPct, yearlyBonus),
@@ -611,6 +751,95 @@ export function WealthLabDashboard() {
 
   const enabledAllocs = allocations.filter((a) => a.enabled)
   const totalMonthly = enabledAllocs.reduce((s, a) => s + a.monthlyAmount, 0)
+  const derivedSavings = Math.max(0, monthlyIncome - monthlyBudget)
+  const savingsRate = monthlyIncome > 0 ? (expectedMonthlySavings / monthlyIncome) * 100 : 0
+
+  function handleMonthlyIncomeChange(nextIncome: number) {
+    setMonthlyIncome(nextIncome)
+    const newSavings = Math.max(0, nextIncome - monthlyBudget)
+    setExpectedMonthlySavings(newSavings)
+    distributeSavingsKeepingMix(newSavings)
+  }
+
+  function handleMonthlyBudgetChange(nextBudget: number) {
+    setMonthlyBudget(nextBudget)
+    setCurrentMonthlyExpenses(nextBudget)
+    const newSavings = Math.max(0, monthlyIncome - nextBudget)
+    setExpectedMonthlySavings(newSavings)
+    distributeSavingsKeepingMix(newSavings)
+  }
+
+  function distributeSavingsKeepingMix(totalSavings: number) {
+    setAllocations((prev) => {
+      const enabled = prev.filter((a) => a.enabled)
+      if (!enabled.length) return prev
+      const totalCurrent = enabled.reduce((s, a) => s + Math.max(0, a.monthlyAmount), 0)
+      const weights = enabled.map((a) => ({
+        id: a.id,
+        weight: totalCurrent > 0 ? Math.max(0, a.monthlyAmount) / totalCurrent : 1,
+      }))
+      const amounts = allocateMonthlyByWeights(totalSavings, weights)
+      return prev.map((a) => (a.enabled ? { ...a, monthlyAmount: amounts[a.id] ?? 0 } : { ...a, monthlyAmount: 0 }))
+    })
+  }
+
+  function distributeSavingsEqually(totalSavings: number) {
+    setAllocations((prev) => {
+      const enabled = prev.filter((a) => a.enabled)
+      if (!enabled.length) return prev
+      const weights = enabled.map((a) => ({ id: a.id, weight: 1 }))
+      const amounts = allocateMonthlyByWeights(totalSavings, weights)
+      return prev.map((a) => (a.enabled ? { ...a, monthlyAmount: amounts[a.id] ?? 0 } : { ...a, monthlyAmount: 0 }))
+    })
+  }
+
+  function handleExpectedSavingsChange(nextSavings: number) {
+    setExpectedMonthlySavings(nextSavings)
+    distributeSavingsKeepingMix(nextSavings)
+  }
+
+  function handleSavingsShareChange(assetId: AssetClass, nextPct: number) {
+    setAllocations((prev) => {
+      const enabled = prev.filter((a) => a.enabled)
+      if (!enabled.length) return prev
+
+      const selected = enabled.find((a) => a.id === assetId)
+      if (!selected) return prev
+
+      if (enabled.length === 1) {
+        return prev.map((a) =>
+          a.id === assetId ? { ...a, monthlyAmount: Math.max(0, Math.round(expectedMonthlySavings)) } : a
+        )
+      }
+
+      const totalCurrent = enabled.reduce((s, a) => s + Math.max(0, a.monthlyAmount), 0)
+      const selectedShare = clamp(nextPct / 100, 0, 1)
+      const others = enabled.filter((a) => a.id !== assetId)
+      const othersWeightBase = others.reduce((s, a) => s + Math.max(0, a.monthlyAmount), 0)
+
+      const weights = enabled.map((a) => {
+        if (a.id === assetId) return { id: a.id, weight: selectedShare }
+
+        if (othersWeightBase > 0) {
+          return {
+            id: a.id,
+            weight: (Math.max(0, a.monthlyAmount) / othersWeightBase) * (1 - selectedShare),
+          }
+        }
+
+        const fallback = (1 - selectedShare) / others.length
+        return { id: a.id, weight: fallback }
+      })
+
+      const fallbackWeights =
+        totalCurrent <= 0
+          ? enabled.map((a) => ({ id: a.id, weight: a.id === assetId ? selectedShare : (1 - selectedShare) / others.length }))
+          : weights
+
+      const amounts = allocateMonthlyByWeights(expectedMonthlySavings, fallbackWeights)
+      return prev.map((a) => (a.enabled ? { ...a, monthlyAmount: amounts[a.id] ?? 0 } : { ...a, monthlyAmount: 0 }))
+    })
+  }
 
   return (
     <div className="space-y-5 pb-8">
@@ -663,8 +892,8 @@ export function WealthLabDashboard() {
           <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
             <KpiPill label="Target corpus" value={shortMoney(finalBalance)} accent="text-emerald-500" />
             <KpiPill label="Real value" value={shortMoney(finalReal)} accent="text-cyan-500" />
-            <KpiPill label="Monthly SIP" value={shortMoney(totalMonthly)} accent="text-blue-500" />
-            <KpiPill label={`${years}yr multiplier`} value={`${multiplier.toFixed(1)}×`} accent="text-amber-500" />
+            <KpiPill label="Monthly savings" value={shortMoney(expectedMonthlySavings)} accent="text-blue-500" />
+            <KpiPill label="Savings rate" value={`${savingsRate.toFixed(1)}%`} accent="text-amber-500" />
           </div>
         </div>
         <div className="relative z-10 mt-2 flex items-center justify-end">
@@ -694,10 +923,10 @@ export function WealthLabDashboard() {
       <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1">
         {(
           [
-            { id: 'growth', label: 'Growth Projections', icon: <TrendingUp className="h-3.5 w-3.5" /> },
-            { id: 'allocation', label: 'Allocation', icon: <PiggyBank className="h-3.5 w-3.5" /> },
-            { id: 'assets', label: 'Asset Setup', icon: <Settings2 className="h-3.5 w-3.5" /> },
-            { id: 'insights', label: 'Insights & Tax', icon: <Sparkles className="h-3.5 w-3.5" /> },
+            { id: 'setup', label: '1. Setup Inputs', icon: <Wallet className="h-3.5 w-3.5" /> },
+            { id: 'growth', label: '2. Projections', icon: <TrendingUp className="h-3.5 w-3.5" /> },
+            { id: 'allocation', label: '3. Allocation View', icon: <PiggyBank className="h-3.5 w-3.5" /> },
+            { id: 'insights', label: '4. Insights & Tax', icon: <Sparkles className="h-3.5 w-3.5" /> },
           ] as const
         ).map((tab) => (
           <button
@@ -715,27 +944,6 @@ export function WealthLabDashboard() {
         ))}
       </div>
 
-      {/* ─── Global controls ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
-        <Slider label="Plan horizon (years)" value={years} min={3} max={35} step={1} onChange={setYears} />
-        <Slider label="Inflation %" value={inflationPct} min={2} max={12} step={0.25} onChange={setInflationPct} />
-        <Slider label="Yearly bonus investment" value={yearlyBonus} min={0} max={3000000} step={10000} format={shortMoney} onChange={setYearlyBonus} />
-      </div>
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2">
-        <Slider
-          label="Current monthly lifestyle expense"
-          value={currentMonthlyExpenses}
-          min={10000}
-          max={1000000}
-          step={5000}
-          format={shortMoney}
-          onChange={setCurrentMonthlyExpenses}
-        />
-        <div className="rounded-lg border border-border bg-background/60 p-3 text-xs text-muted-foreground">
-          Tooltip psychology mode is active. Hover chart years to see lifestyle coverage and passive-income readiness.
-        </div>
-      </div>
-
       {/* ─── KPI strip ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard icon={<Wallet className="h-4 w-4 text-cyan-500" />} label="Total invested" value={shortMoney(finalInvested)} sub="Principal + bonus" />
@@ -745,6 +953,31 @@ export function WealthLabDashboard() {
       </div>
 
       {/* ─── Tab content ─────────────────────────────────────────────────── */}
+      {activeTab === 'setup' && (
+        <SetupTab
+          allocations={allocations}
+          onUpdate={updateAllocation}
+          years={years}
+          inflationPct={inflationPct}
+          yearlyBonus={yearlyBonus}
+          monthlyIncome={monthlyIncome}
+          yearlyIncomeStepUpPct={yearlyIncomeStepUpPct}
+          monthlyBudget={monthlyBudget}
+          expectedMonthlySavings={expectedMonthlySavings}
+          currentMonthlyExpenses={currentMonthlyExpenses}
+          totalMonthly={totalMonthly}
+          derivedSavings={derivedSavings}
+          onYearsChange={setYears}
+          onInflationChange={setInflationPct}
+          onYearlyBonusChange={setYearlyBonus}
+          onMonthlyIncomeChange={handleMonthlyIncomeChange}
+          onYearlyIncomeStepUpChange={setYearlyIncomeStepUpPct}
+          onMonthlyBudgetChange={handleMonthlyBudgetChange}
+          onCurrentMonthlyExpensesChange={setCurrentMonthlyExpenses}
+          onSavingsShareChange={handleSavingsShareChange}
+          onEqualSplit={() => distributeSavingsEqually(expectedMonthlySavings)}
+        />
+      )}
       {activeTab === 'growth' && (
         <GrowthTab
           projection={projection}
@@ -761,9 +994,6 @@ export function WealthLabDashboard() {
       {activeTab === 'allocation' && (
         <AllocationTab projection={projection} allocations={allocations} years={years} />
       )}
-      {activeTab === 'assets' && (
-        <AssetsTab allocations={allocations} onUpdate={updateAllocation} />
-      )}
       {activeTab === 'insights' && (
         <InsightsTab
           projection={projection}
@@ -777,6 +1007,207 @@ export function WealthLabDashboard() {
           milestones={milestones}
         />
       )}
+    </div>
+  )
+}
+
+function SetupTab({
+  allocations,
+  onUpdate,
+  years,
+  inflationPct,
+  yearlyBonus,
+  monthlyIncome,
+  yearlyIncomeStepUpPct,
+  monthlyBudget,
+  expectedMonthlySavings,
+  currentMonthlyExpenses,
+  totalMonthly,
+  derivedSavings,
+  onYearsChange,
+  onInflationChange,
+  onYearlyBonusChange,
+  onMonthlyIncomeChange,
+  onYearlyIncomeStepUpChange,
+  onMonthlyBudgetChange,
+  onCurrentMonthlyExpensesChange,
+  onSavingsShareChange,
+  onEqualSplit,
+}: {
+  allocations: AssetAllocation[]
+  onUpdate: (id: AssetClass, patch: Partial<AssetAllocation>) => void
+  years: number
+  inflationPct: number
+  yearlyBonus: number
+  monthlyIncome: number
+  yearlyIncomeStepUpPct: number
+  monthlyBudget: number
+  expectedMonthlySavings: number
+  currentMonthlyExpenses: number
+  totalMonthly: number
+  derivedSavings: number
+  onYearsChange: (v: number) => void
+  onInflationChange: (v: number) => void
+  onYearlyBonusChange: (v: number) => void
+  onMonthlyIncomeChange: (v: number) => void
+  onYearlyIncomeStepUpChange: (v: number) => void
+  onMonthlyBudgetChange: (v: number) => void
+  onCurrentMonthlyExpensesChange: (v: number) => void
+  onSavingsShareChange: (id: AssetClass, pct: number) => void
+  onEqualSplit: () => void
+}) {
+  const enabled = allocations.filter((a) => a.enabled)
+  const savingsMismatch = Math.abs(expectedMonthlySavings - derivedSavings)
+  const projectedYearlyIncome = monthlyIncome * Math.pow(1 + yearlyIncomeStepUpPct / 100, 1)
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold">Step 1 · Income, Budget, Savings Inputs</h2>
+          <p className="text-xs text-muted-foreground">
+            Start here first. These values drive your monthly savings and how much gets diversified across investments.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Slider
+            label="Monthly income"
+            value={monthlyIncome}
+            min={20000}
+            max={2000000}
+            step={5000}
+            format={shortMoney}
+            onChange={onMonthlyIncomeChange}
+          />
+          <Slider
+            label="Yearly expected income increment %"
+            value={yearlyIncomeStepUpPct}
+            min={0}
+            max={30}
+            step={0.5}
+            onChange={onYearlyIncomeStepUpChange}
+          />
+          <Slider
+            label="Monthly budget"
+            value={monthlyBudget}
+            min={10000}
+            max={1500000}
+            step={5000}
+            format={shortMoney}
+            onChange={onMonthlyBudgetChange}
+          />
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/8 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Expected monthly savings (auto-calculated)</span>
+              <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                {shortMoney(expectedMonthlySavings)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Formula: {shortMoney(monthlyIncome)} (income) − {shortMoney(monthlyBudget)} (budget) = {shortMoney(expectedMonthlySavings)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-border bg-background/60 p-3 text-xs">
+            <p className="text-muted-foreground">Allocated to assets</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums">{shortMoney(totalMonthly)}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background/60 p-3 text-xs">
+            <p className="text-muted-foreground">Next-year income estimate</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums">{shortMoney(projectedYearlyIncome)}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onEqualSplit}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+          >
+            Split savings equally across assets
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold">Step 2 · Diversify Savings Across Assets</h2>
+            <p className="text-xs text-muted-foreground">
+              Adjust share sliders to distribute your expected monthly savings across enabled assets.
+            </p>
+          </div>
+          <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">
+            Total: {shortMoney(expectedMonthlySavings)}/mo
+          </span>
+        </div>
+
+        {enabled.length === 0 ? (
+          <div className="rounded-lg border border-border bg-background/60 p-3 text-xs text-muted-foreground">
+            Enable at least one asset in Advanced Asset Controls to start diversification.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {enabled.map((a) => {
+              const cfg = CONFIG_MAP[a.id]
+              const share = totalMonthly > 0 ? (a.monthlyAmount / totalMonthly) * 100 : 100 / enabled.length
+              return (
+                <div key={a.id} className="rounded-lg border border-border bg-background/40 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: `${cfg.color}1f`, color: cfg.color }}>
+                        {cfg.icon}
+                      </span>
+                      <span className="font-medium">{cfg.label}</span>
+                    </div>
+                    <span className="font-semibold tabular-nums">{shortMoney(a.monthlyAmount)}/mo</span>
+                  </div>
+                  <Slider
+                    label="Allocation share"
+                    value={Number(share.toFixed(2))}
+                    min={0}
+                    max={100}
+                    step={1}
+                    format={(v) => `${v.toFixed(0)}%`}
+                    onChange={(v) => onSavingsShareChange(a.id, v)}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">Step 3 · Projection Assumptions</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Tune these assumptions after you set monthly inputs and savings diversification.
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <Slider label="Plan horizon (years)" value={years} min={3} max={35} step={1} onChange={onYearsChange} />
+          <Slider label="Inflation %" value={inflationPct} min={2} max={12} step={0.25} onChange={onInflationChange} />
+          <Slider label="Yearly bonus investment" value={yearlyBonus} min={0} max={3000000} step={10000} format={shortMoney} onChange={onYearlyBonusChange} />
+          <Slider
+            label="Lifestyle expense (for coverage)"
+            value={currentMonthlyExpenses}
+            min={10000}
+            max={1000000}
+            step={5000}
+            format={shortMoney}
+            onChange={onCurrentMonthlyExpensesChange}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-2 text-sm font-semibold">Advanced Asset Controls</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Use these controls for fine tuning returns, lumpsum amounts, and yearly SIP step-up by asset class.
+        </p>
+        <AssetsTab allocations={allocations} onUpdate={onUpdate} />
+      </div>
     </div>
   )
 }

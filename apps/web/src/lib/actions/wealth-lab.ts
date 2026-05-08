@@ -7,6 +7,10 @@ export type WealthLabPersistedConfig = {
   years?: number
   inflationPct?: number
   yearlyBonus?: number
+  monthlyIncome?: number
+  yearlyIncomeStepUpPct?: number
+  monthlyBudget?: number
+  expectedMonthlySavings?: number
   currentMonthlyExpenses?: number
 }
 
