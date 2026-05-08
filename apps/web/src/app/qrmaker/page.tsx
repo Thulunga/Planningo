@@ -157,7 +157,7 @@ export default function QRGeneratorPage() {
             {/* Logo upload */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Logo <span className="text-slate-400 font-normal">(optional — appears in center)</span>
+                Logo <span className="text-slate-400 font-normal">(optional - appears in center)</span>
               </label>
               {logoDataUrl ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
