@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute =
     isAuthRoute ||
     pathname === '/landing' ||
+    pathname === '/qrmaker' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico'
