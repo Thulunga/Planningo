@@ -2,14 +2,29 @@
 
 import { useState, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { Download, Mail, RotateCcw } from 'lucide-react'
+import { Download, Mail, RotateCcw, Upload, X } from 'lucide-react'
 
 export default function QRGeneratorPage() {
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [generated, setGenerated] = useState(false)
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const qrRef = useRef<HTMLDivElement>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setLogoDataUrl(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const removeLogo = () => {
+    setLogoDataUrl(null)
+    if (logoInputRef.current) logoInputRef.current.value = ''
+  }
 
   const mailtoLink =
     `mailto:${encodeURIComponent(to)}` +
@@ -26,6 +41,8 @@ export default function QRGeneratorPage() {
     setSubject('')
     setBody('')
     setGenerated(false)
+    setLogoDataUrl(null)
+    if (logoInputRef.current) logoInputRef.current.value = ''
   }
 
   const handleDownload = () => {
@@ -52,10 +69,31 @@ export default function QRGeneratorPage() {
       ctx.drawImage(img, padding, padding, svgSize, svgSize)
       URL.revokeObjectURL(svgUrl)
 
-      const a = document.createElement('a')
-      a.href = canvas.toDataURL('image/jpeg', 0.95)
-      a.download = 'email-qr-code.jpg'
-      a.click()
+      if (logoDataUrl) {
+        const logoImg = new Image()
+        logoImg.onload = () => {
+          const logoSize = svgSize * 0.2
+          const logoX = padding + (svgSize - logoSize) / 2
+          const logoY = padding + (svgSize - logoSize) / 2
+          // White backing circle
+          ctx.fillStyle = '#ffffff'
+          ctx.beginPath()
+          ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 4, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize)
+
+          const a = document.createElement('a')
+          a.href = canvas.toDataURL('image/jpeg', 0.95)
+          a.download = 'email-qr-code.jpg'
+          a.click()
+        }
+        logoImg.src = logoDataUrl
+      } else {
+        const a = document.createElement('a')
+        a.href = canvas.toDataURL('image/jpeg', 0.95)
+        a.download = 'email-qr-code.jpg'
+        a.click()
+      }
     }
     img.src = svgUrl
   }
@@ -116,6 +154,34 @@ export default function QRGeneratorPage() {
               />
             </div>
 
+            {/* Logo upload */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Logo <span className="text-slate-400 font-normal">(optional — appears in center)</span>
+              </label>
+              {logoDataUrl ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                  <img src={logoDataUrl} alt="Logo preview" className="w-10 h-10 object-contain rounded" />
+                  <span className="flex-1 text-sm text-slate-600 dark:text-slate-300 truncate">Logo uploaded</span>
+                  <button type="button" onClick={removeLogo} className="text-slate-400 hover:text-red-500 transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-lg py-4 cursor-pointer hover:border-indigo-400 transition text-sm text-slate-500 dark:text-slate-400">
+                  <Upload className="w-4 h-4" />
+                  Click to upload PNG, JPG, or SVG
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                </label>
+              )}
+            </div>
+
             <button
               type="submit"
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition text-sm shadow-sm"
@@ -132,8 +198,18 @@ export default function QRGeneratorPage() {
                 size={220}
                 bgColor="#ffffff"
                 fgColor="#1e1b4b"
-                level="M"
+                level={logoDataUrl ? 'H' : 'M'}
                 includeMargin={false}
+                imageSettings={
+                  logoDataUrl
+                    ? {
+                        src: logoDataUrl,
+                        height: 44,
+                        width: 44,
+                        excavate: true,
+                      }
+                    : undefined
+                }
               />
             </div>
 
