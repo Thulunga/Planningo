@@ -32,15 +32,32 @@ export default function QRGeneratorPage() {
     const svg = qrRef.current?.querySelector('svg')
     if (!svg) return
 
+    const svgSize = 220
+    const padding = 24
+    const canvasSize = svgSize + padding * 2
+
     const serializer = new XMLSerializer()
     const svgStr = serializer.serializeToString(svg)
-    const blob = new Blob([svgStr], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'email-qr-code.svg'
-    a.click()
-    URL.revokeObjectURL(url)
+    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+    const svgUrl = URL.createObjectURL(svgBlob)
+
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvasSize
+      canvas.height = canvasSize
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvasSize, canvasSize)
+      ctx.drawImage(img, padding, padding, svgSize, svgSize)
+      URL.revokeObjectURL(svgUrl)
+
+      const a = document.createElement('a')
+      a.href = canvas.toDataURL('image/jpeg', 0.95)
+      a.download = 'email-qr-code.jpg'
+      a.click()
+    }
+    img.src = svgUrl
   }
 
   return (
@@ -52,7 +69,7 @@ export default function QRGeneratorPage() {
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Email QR Generator</h1>
         <p className="mt-2 text-slate-500 dark:text-slate-400 max-w-md">
-          Create a QR code that opens the email app with pre-filled details — free, no login required.
+          Create a QR code that opens the email app with pre-filled details - free, no login required.
         </p>
       </div>
 
@@ -141,7 +158,7 @@ export default function QRGeneratorPage() {
             </div>
 
             <p className="text-xs text-slate-400 text-center">
-              Scan with your phone camera — it will open the email app with the above details pre-filled.
+              Scan with your phone camera - it will open the email app with the above details pre-filled.
             </p>
 
             {/* Actions */}
@@ -158,7 +175,7 @@ export default function QRGeneratorPage() {
                 className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition text-sm shadow-sm"
               >
                 <Download className="w-4 h-4" />
-                Download SVG
+                Download JPG
               </button>
             </div>
           </div>
