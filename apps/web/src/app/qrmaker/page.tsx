@@ -181,7 +181,7 @@ export default function QRGeneratorPage() {
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-white">
       {/* Top nav */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0f0f1a]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <Mail className="w-4 h-4 text-white" />
@@ -389,7 +389,7 @@ export default function QRGeneratorPage() {
           </div>
 
           {/* RIGHT - Live Preview */}
-          <div className="lg:sticky lg:top-6 space-y-4">
+          <div className="lg:sticky lg:top-24 space-y-4">
             <div className="bg-white/5 border border-white/[0.08] rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-5">
                 <ScanLine className="w-4 h-4 text-indigo-400" />
@@ -493,6 +493,18 @@ export default function QRGeneratorPage() {
           </div>
         </div>
       </div>
+
+      <footer className="pb-8 text-center text-xs text-white/30">
+        Powered by{' '}
+        <a
+          href="http://mydailyworkspace.site"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-300 hover:text-indigo-200 transition"
+        >
+          mydailyworkspace.site
+        </a>
+      </footer>
     </div>
   )
 }
