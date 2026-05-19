@@ -24,6 +24,7 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
     { data: expenses },
     { data: settlements },
     { categories },
+    { data: shoppingLists },
   ] = await Promise.all([
     supabase
       .from('expenses')
@@ -37,6 +38,11 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
       .eq('group_id', groupId)
       .order('settled_at', { ascending: false }),
     getCategories(),
+    supabase
+      .from('shopping_lists')
+      .select('*, shopping_list_items(*)')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: true }),
   ])
 
   return (
@@ -46,6 +52,7 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
       settlements={settlements ?? []}
       currentUserId={profile.id}
       budgetCategories={categories}
+      shoppingLists={shoppingLists ?? []}
     />
   )
 }

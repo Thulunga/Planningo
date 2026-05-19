@@ -33,6 +33,7 @@ import { GroupAnalytics } from './group-analytics'
 import { ConfirmDialog } from './confirm-dialog'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { FeedbackCta } from '@/components/feedback/feedback-cta'
+import { ShoppingListsSection } from './shopping-lists-section'
 
 interface Member {
   user_id: string
@@ -54,6 +55,7 @@ interface GroupExpensesClientProps {
   settlements: any[]
   currentUserId: string
   budgetCategories: BudgetCategory[]
+  shoppingLists: any[]
 }
 
 function calcBalances(expenses: any[], settlements: any[], currentUserId: string, members: Member[]) {
@@ -85,6 +87,7 @@ export function GroupExpensesClient({
   settlements: initialSettlements,
   currentUserId,
   budgetCategories,
+  shoppingLists,
 }: GroupExpensesClientProps) {
   const router = useRouter()
   const [expenses, setExpenses] = useState(initialExpenses)
@@ -418,6 +421,12 @@ export function GroupExpensesClient({
           </div>
         )}
       </div>
+
+      {/* ── Shopping Lists ── */}
+      <ShoppingListsSection
+        groupId={group.id}
+        initialLists={shoppingLists}
+      />
 
       {/* Add / Edit Expense Dialog - new advanced form */}
       <ExpenseFormDialog

@@ -806,6 +806,76 @@ export type Database = {
         }
         Relationships: []
       }
+      shopping_lists: {
+        Row: {
+          id: string
+          group_id: string
+          name: string
+          description: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          name: string
+          description?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shopping_list_items: {
+        Row: {
+          id: string
+          list_id: string
+          name: string
+          quantity: number | null
+          unit: string | null
+          notes: string | null
+          status: 'pending' | 'bought' | 'buy_later' | 'on_hold' | 'skipped'
+          hold_until: string | null
+          added_by: string
+          updated_by: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          list_id: string
+          name: string
+          quantity?: number | null
+          unit?: string | null
+          notes?: string | null
+          status?: 'pending' | 'bought' | 'buy_later' | 'on_hold' | 'skipped'
+          hold_until?: string | null
+          added_by: string
+          updated_by?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          quantity?: number | null
+          unit?: string | null
+          notes?: string | null
+          status?: 'pending' | 'bought' | 'buy_later' | 'on_hold' | 'skipped'
+          hold_until?: string | null
+          updated_by?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -823,6 +893,7 @@ export type Database = {
       split_type: 'equal' | 'exact' | 'percentage' | 'shares'
       notification_type: string
       notification_status: 'queued' | 'processing' | 'sent' | 'failed'
+      shopping_item_status: 'pending' | 'bought' | 'buy_later' | 'on_hold' | 'skipped'
     }
     CompositeTypes: {
       [_ in never]: never
