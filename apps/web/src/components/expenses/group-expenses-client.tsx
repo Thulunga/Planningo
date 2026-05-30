@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2, Info } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2, Info, ChevronDown } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -81,6 +81,22 @@ function calcBalances(expenses: any[], settlements: any[], currentUserId: string
   return balances
 }
 
+/** Group an array into months, preserving existing sort order within each month. */
+function groupByMonth<T>(items: T[], getDate: (item: T) => string): Array<{ key: string; label: string; items: T[] }> {
+  const map = new Map<string, T[]>()
+  for (const item of items) {
+    const key = getDate(item).slice(0, 7) // 'yyyy-MM'
+    const arr = map.get(key)
+    if (arr) arr.push(item)
+    else map.set(key, [item])
+  }
+  return Array.from(map.entries()).map(([key, its]) => ({
+    key,
+    label: format(new Date(key + '-15'), 'MMMM yyyy'),
+    items: its,
+  }))
+}
+
 export function GroupExpensesClient({
   group,
   expenses: initialExpenses,
@@ -134,6 +150,11 @@ export function GroupExpensesClient({
     title: string
     splitAmount: number
   } | null>(null)
+
+  // Month-grouped accordion — current month starts open, others collapsed
+  const currentMonthKey = format(new Date(), 'yyyy-MM')
+  const [openExpenseMonths, setOpenExpenseMonths] = useState<Set<string>>(() => new Set([currentMonthKey]))
+  const [openPaymentMonths, setOpenPaymentMonths] = useState<Set<string>>(() => new Set([currentMonthKey]))
 
   const members = group.group_members
   const balances = calcBalances(expenses, initialSettlements, currentUserId, members)
@@ -351,7 +372,7 @@ export function GroupExpensesClient({
         </div>
       </div>
 
-      {/* Expense list */}
+      {/* Expense list - grouped by month, current month auto-expanded */}
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">
           Expenses ({expenses.length})
@@ -364,58 +385,84 @@ export function GroupExpensesClient({
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {expenses.map((exp) => {
-              const paidByMember = members.find((m) => m.user_id === exp.paid_by)
-              const yourSplit = exp.expense_splits?.find((s: any) => s.user_id === currentUserId)
-
+          <div className="space-y-2">
+            {groupByMonth(expenses, (e) => e.expense_date).map(({ key, label, items: monthExpenses }) => {
+              const isOpen = openExpenseMonths.has(key)
+              const monthTotal = monthExpenses.reduce((s: number, e: any) => s + e.amount, 0)
               return (
-                <Card key={exp.id}>
-                  <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{exp.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date), 'MMM d')}
-                        </p>
-                      </div>
+                <div key={key} className="rounded-xl border border-border overflow-hidden">
+                  {/* Month header row */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenExpenseMonths((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(key)) next.delete(key); else next.add(key)
+                      return next
+                    })}
+                    className="flex w-full items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                      <span className="text-sm font-semibold">{label}</span>
+                      <span className="text-xs text-muted-foreground">· {monthExpenses.length} item{monthExpenses.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-2 sm:justify-end">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
-                        {yourSplit && (
-                          <p className="text-xs text-muted-foreground">
-                            Your share: {group.currency} {yourSplit.amount.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                      {/* Show edit/delete to the payer or any group member */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          title="Edit expense"
-                          onClick={() => setEditingExpense(exp)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Delete expense"
-                          onClick={() => setConfirmExpenseId(exp.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                    <span className="text-sm font-semibold tabular-nums shrink-0">{group.currency} {monthTotal.toFixed(2)}</span>
+                  </button>
+                  {/* Month items */}
+                  {isOpen && (
+                    <div className="divide-y divide-border">
+                      {monthExpenses.map((exp: any) => {
+                        const paidByMember = members.find((m) => m.user_id === exp.paid_by)
+                        const yourSplit = exp.expense_splits?.find((s: any) => s.user_id === currentUserId)
+                        return (
+                          <div key={exp.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between hover:bg-muted/20 transition-colors">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                <DollarSign className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{exp.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Paid by {paidByMember?.profiles?.full_name ?? 'Unknown'} · {format(new Date(exp.expense_date + 'T12:00:00'), 'MMM d')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 sm:justify-end">
+                              <div className="text-right">
+                                <p className="text-sm font-semibold">{group.currency} {exp.amount.toFixed(2)}</p>
+                                {yourSplit && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Your share: {group.currency} {yourSplit.amount.toFixed(2)}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  title="Edit expense"
+                                  onClick={() => setEditingExpense(exp)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Delete expense"
+                                  onClick={() => setConfirmExpenseId(exp.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -605,7 +652,7 @@ export function GroupExpensesClient({
         </DialogContent>
       </Dialog>
 
-      {/* Payments Section */}
+      {/* Payments Section - grouped by month, current month auto-expanded */}
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">
           Payments ({initialSettlements.length})
@@ -619,51 +666,78 @@ export function GroupExpensesClient({
           </Card>
         ) : (
           <div className="space-y-2">
-            {initialSettlements.map((settlement: any) => {
-              const payer = members.find((m) => m.user_id === settlement.paid_by)
-              const payee = members.find((m) => m.user_id === settlement.paid_to)
-              const isMe = settlement.paid_by === currentUserId || settlement.paid_to === currentUserId
-              
+            {groupByMonth(initialSettlements, (s) => s.settled_at ?? s.created_at).map(({ key, label, items: monthSettlements }) => {
+              const isOpen = openPaymentMonths.has(key)
+              const monthTotal = monthSettlements.reduce((s: number, p: any) => s + p.amount, 0)
               return (
-                <Card key={settlement.id}>
-                  <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-1 items-start gap-3 min-w-0">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">
-                          <span className={isMe ? 'font-bold' : ''}>{payer?.profiles?.full_name ?? payer?.profiles?.email ?? 'Member'}</span>
-                          {' paid '}
-                          <span className={isMe ? 'font-bold' : ''}>{payee?.profiles?.full_name ?? payee?.profiles?.email ?? 'Member'}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {format(new Date(settlement.created_at), 'MMM d, yyyy')}
-                          {settlement.notes && ` · ${settlement.notes}`}
-                        </p>
-                      </div>
+                <div key={key} className="rounded-xl border border-border overflow-hidden">
+                  {/* Month header row */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenPaymentMonths((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(key)) next.delete(key); else next.add(key)
+                      return next
+                    })}
+                    className="flex w-full items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                      <span className="text-sm font-semibold">{label}</span>
+                      <span className="text-xs text-muted-foreground">· {monthSettlements.length} payment{monthSettlements.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-1 sm:justify-end">
-                      <span className="text-sm font-bold shrink-0">{group.currency} {settlement.amount.toFixed(2)}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEditSettle(settlement)}
-                        className="h-8 w-8 p-0 shrink-0"
-                        title="Edit payment"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setConfirmSettlementId(settlement.id)}
-                        className="h-8 w-8 p-0 shrink-0"
-                        title="Delete payment"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <span className="text-sm font-semibold tabular-nums shrink-0">{group.currency} {monthTotal.toFixed(2)}</span>
+                  </button>
+                  {/* Month items */}
+                  {isOpen && (
+                    <div className="divide-y divide-border">
+                      {monthSettlements.map((settlement: any) => {
+                        const payer = members.find((m) => m.user_id === settlement.paid_by)
+                        const payee = members.find((m) => m.user_id === settlement.paid_to)
+                        const isMe = settlement.paid_by === currentUserId || settlement.paid_to === currentUserId
+                        return (
+                          <div key={settlement.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between hover:bg-muted/20 transition-colors">
+                            <div className="flex flex-1 items-start gap-3 min-w-0">
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium">
+                                  <span className={isMe ? 'font-bold' : ''}>{payer?.profiles?.full_name ?? payer?.profiles?.email ?? 'Member'}</span>
+                                  {' paid '}
+                                  <span className={isMe ? 'font-bold' : ''}>{payee?.profiles?.full_name ?? payee?.profiles?.email ?? 'Member'}</span>
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {format(new Date(settlement.created_at), 'MMM d, yyyy · h:mm a')}
+                                  {settlement.notes && ` · ${settlement.notes}`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-1 sm:justify-end">
+                              <span className="text-sm font-bold shrink-0">{group.currency} {settlement.amount.toFixed(2)}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEditSettle(settlement)}
+                                className="h-8 w-8 p-0 shrink-0"
+                                title="Edit payment"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setConfirmSettlementId(settlement.id)}
+                                className="h-8 w-8 p-0 shrink-0"
+                                title="Delete payment"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </div>
               )
             })}
           </div>

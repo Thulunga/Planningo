@@ -31,7 +31,8 @@ export default async function GroupExpensesPage({ params }: { params: Promise<{ 
       .select('*, expense_splits(*), profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
       .eq('group_id', groupId)
       .is('deleted_at', null)
-      .order('expense_date', { ascending: false }),
+      .order('expense_date', { ascending: false })
+      .order('created_at', { ascending: false }),
     supabase
       .from('settlements')
       .select('*, paid_by_profile:profiles!settlements_paid_by_fkey(id, full_name), paid_to_profile:profiles!settlements_paid_to_fkey(id, full_name)')
