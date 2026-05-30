@@ -403,6 +403,7 @@ export type Database = {
           id: string
           group_id: string
           paid_by: string
+          created_by: string
           title: string
           description: string | null
           amount: number
@@ -419,6 +420,7 @@ export type Database = {
           id?: string
           group_id: string
           paid_by: string
+          created_by: string
           title: string
           description?: string | null
           amount: number
@@ -442,6 +444,7 @@ export type Database = {
           receipt_url?: string | null
           updated_at?: string
           deleted_at?: string | null
+          paid_by?: string
         }
         Relationships: []
       }

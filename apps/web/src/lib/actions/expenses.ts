@@ -185,7 +185,7 @@ export async function createExpense(data: z.infer<typeof expenseSchema>) {
 
   const { data: expense, error } = await supabase
     .from('expenses')
-    .insert({ paid_by: paidBy, ...expenseData })
+    .insert({ paid_by: paidBy, created_by: user.id, ...expenseData })
     .select()
     .single()
 
