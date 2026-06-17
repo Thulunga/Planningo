@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2, Info, ChevronDown } from 'lucide-react'
+import { Plus, ArrowLeft, UserPlus, DollarSign, Trash2, Loader2, CheckCircle2, Pencil, Copy, Check, Share2, Info, ChevronDown, Bell } from 'lucide-react'
 import {
   Avatar,
   AvatarFallback,
@@ -50,7 +50,15 @@ interface BudgetCategory {
 }
 
 interface GroupExpensesClientProps {
-  group: { id: string; name: string; currency: string; category: string; group_members: Member[] }
+  group: {
+    id: string
+    name: string
+    currency: string
+    category: string
+    telegram_is_active?: boolean
+    telegram_invite_link?: string | null
+    group_members: Member[]
+  }
   expenses: any[]
   settlements: any[]
   currentUserId: string
@@ -118,6 +126,7 @@ export function GroupExpensesClient({
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${group.id}` }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_splits' }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${group.id}` }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_groups', filter: `id=eq.${group.id}` }, () => router.refresh())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [group.id, router])
@@ -138,6 +147,7 @@ export function GroupExpensesClient({
   const [editingSettlement, setEditingSettlement] = useState<any | null>(null)
   
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isTelegramSetupOpen, setIsTelegramSetupOpen] = useState(false)
 
   // Confirm delete state
   const [confirmExpenseId, setConfirmExpenseId] = useState<string | null>(null)
@@ -323,6 +333,37 @@ export function GroupExpensesClient({
         </div>
       </div>
 
+
+      {/* Telegram notifications banner */}
+      <Card className={group.telegram_is_active ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-sky-500/30 bg-sky-500/10'}>
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className={group.telegram_is_active ? 'rounded-full bg-emerald-500/15 p-2 text-emerald-400' : 'rounded-full bg-sky-500/15 p-2 text-sky-400'}>
+              <Bell className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">
+                {group.telegram_is_active
+                  ? '✅ Telegram notifications are active for this group.'
+                  : '🔔 Stay updated! Set up Telegram notifications for this group.'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {group.telegram_is_active
+                  ? 'Members can join the shared Telegram notification group using the invite link.'
+                  : 'Any member can connect one Telegram group. The first completed setup wins.'}
+              </p>
+            </div>
+          </div>
+          {group.telegram_is_active && group.telegram_invite_link ? (
+            <Button size="sm" asChild className="shrink-0">
+              <a href={group.telegram_invite_link} target="_blank" rel="noreferrer">Join Telegram Group</a>
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => setIsTelegramSetupOpen(true)} className="shrink-0">Set Up Notifications</Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── Analytics Dashboard ── */}
       <GroupAnalytics
         expenses={expenses}
@@ -495,6 +536,34 @@ export function GroupExpensesClient({
         expense={editingExpense}
         onSuccess={() => { setEditingExpense(null); router.refresh() }}
       />
+
+      <Dialog open={isTelegramSetupOpen} onOpenChange={setIsTelegramSetupOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set up Telegram notifications</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p>Create a Telegram group manually, add the Planningo bot, promote it to admin, then send this command in that Telegram group:</p>
+            <div className="rounded-lg border bg-muted p-3 font-mono text-xs break-all">/connect_group_{group.id}</div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(`/connect_group_${group.id}`)
+                  toast.success('Telegram setup command copied')
+                }}
+              >
+                Copy Command
+              </Button>
+              <Button asChild>
+                <a href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'YourExpenseBot'}?start=group_${group.id}`} target="_blank" rel="noreferrer">Open Bot</a>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">After the bot verifies admin access and creates an invite link, this page will switch to the connected state for every group member.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Member Dialog */}
       <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
