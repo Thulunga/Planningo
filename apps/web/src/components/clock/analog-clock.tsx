@@ -51,6 +51,27 @@ export function AnalogClock({ timezone, size = 160, className }: AnalogClockProp
   const cy = size / 2
   const r = size / 2 - 4 // face radius, 4px inset for border
 
+  // Tick mark positions never change for a given size — memoize to avoid
+  // rebuilding 60 entries on every 1-second state update.
+  const ticks = useMemo(() => {
+    const _r = size / 2 - 4
+    const _cx = size / 2
+    const _cy = size / 2
+    return Array.from({ length: 60 }, (_, i) => {
+      const isHour = i % 5 === 0
+      const tickRad = (i * 6 - 90) * (Math.PI / 180)
+      const outer = _r - 1
+      const inner = isHour ? _r - (_r * 0.14) : _r - (_r * 0.07)
+      return {
+        x1: _cx + outer * Math.cos(tickRad),
+        y1: _cy + outer * Math.sin(tickRad),
+        x2: _cx + inner * Math.cos(tickRad),
+        y2: _cy + inner * Math.sin(tickRad),
+        isHour,
+      }
+    })
+  }, [size])
+
   if (!now) {
     return (
       <div
@@ -97,27 +118,6 @@ export function AnalogClock({ timezone, size = 160, className }: AnalogClockProp
   const minuteTip = handCoords(minuteDeg, minuteLen)
   const secondTip = handCoords(secondDeg, secondLen)
   const secondTail = tailCoords(secondDeg, secondTailLen)
-
-  // Tick mark positions never change for a given size — memoize to avoid
-  // rebuilding 60 entries on every 1-second state update.
-  const ticks = useMemo(() => {
-    const _r = size / 2 - 4
-    const _cx = size / 2
-    const _cy = size / 2
-    return Array.from({ length: 60 }, (_, i) => {
-      const isHour = i % 5 === 0
-      const tickRad = (i * 6 - 90) * (Math.PI / 180)
-      const outer = _r - 1
-      const inner = isHour ? _r - (_r * 0.14) : _r - (_r * 0.07)
-      return {
-        x1: _cx + outer * Math.cos(tickRad),
-        y1: _cy + outer * Math.sin(tickRad),
-        x2: _cx + inner * Math.cos(tickRad),
-        y2: _cy + inner * Math.sin(tickRad),
-        isHour,
-      }
-    })
-  }, [size])
 
   return (
     <div className={className} style={{ width: size, height: size }}>
