@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, CheckSquare, Calendar, Clock3, Bell } from 'lucide-react'
@@ -18,11 +18,12 @@ export function BottomTabBar() {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
-  // Clear pending when navigation completes (pathname changed)
-  const prevPathname = pendingHref
-  if (prevPathname !== null && pathname === pendingHref) {
-    setPendingHref(null)
-  }
+  // Clear pending once navigation lands
+  useEffect(() => {
+    if (pendingHref !== null && pathname === pendingHref) {
+      setPendingHref(null)
+    }
+  }, [pathname, pendingHref])
 
   return (
     <nav

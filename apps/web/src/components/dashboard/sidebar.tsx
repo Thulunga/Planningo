@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -48,19 +48,16 @@ export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
-  // Clear pending state once the navigation lands
-  if (pendingHref !== null && pathname.startsWith(pendingHref === '/' ? pathname : pendingHref)) {
-    // Use a lazy clear to avoid render-during-render warning
-  }
-
   function handleNav(href: string, isActive: boolean) {
     if (!isActive) setPendingHref(href)
   }
 
-  // When pathname changes, clear pending
-  if (pendingHref && pathname.startsWith(pendingHref === '/' ? '/' : pendingHref)) {
-    setTimeout(() => setPendingHref(null), 0)
-  }
+  // Clear pending once the navigation lands
+  useEffect(() => {
+    if (pendingHref && pathname.startsWith(pendingHref === '/' ? '/' : pendingHref)) {
+      setPendingHref(null)
+    }
+  }, [pathname, pendingHref])
 
   const allItems = [
     ...navItems,

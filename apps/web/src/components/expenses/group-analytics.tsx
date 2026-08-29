@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { ArrowRight } from 'lucide-react'
 import { EXPENSE_CATEGORIES, CHART_COLORS, CATEGORY_GROUP_COLORS } from './expense-form-dialog'
@@ -37,6 +37,7 @@ function ChartTooltip({ data }: { data: TipState | null }) {
 
 // ─── Spending Timeline ────────────────────────────────────────────────────────
 function SpendingTimeline({ expenses, currency }: { expenses: any[]; currency: string }) {
+  const chartId = useId().replaceAll(':', '')
   const [tooltip, setTooltip] = useState<TipState | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -67,156 +68,353 @@ function SpendingTimeline({ expenses, currency }: { expenses: any[]; currency: s
   }
 
   const maxAmt = Math.max(...bars.map((b) => b.amount), 0.01)
-  const W = 300; const H = 90; const LABEL_H = 18; const LEFT = 30
+  const minAmt = Math.min(...bars.map((b) => b.amount), maxAmt)
+  const total = bars.reduce((s, b) => s + b.amount, 0)
+  const avg = total / bars.length
+  const firstAmount = bars[0]?.amount ?? 0
+  const lastAmount = bars.at(-1)?.amount ?? 0
+  const trendPct = firstAmount > 0 ? ((lastAmount - firstAmount) / firstAmount) * 100 : 0
+  const volatility = Math.sqrt(
+    bars.reduce((s, b) => s + Math.pow(b.amount - avg, 2), 0) / Math.max(1, bars.length)
+  )
+
+  const W = 360; const H = 145; const LABEL_H = 24; const LEFT = 38; const TOP = 10
   const chartW = W - LEFT
   const n = bars.length
-  const step = Math.floor(chartW / n)
-  const barW = Math.max(4, step - 3)
+  const step = Math.max(1, Math.floor(chartW / n))
+  const barW = Math.max(6, step - 4)
   const yFmt = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0)
   const highestBar = bars.reduce((a, b) => b.amount > a.amount ? b : a, bars[0])
+  const lowestBar = bars.reduce((a, b) => b.amount < a.amount ? b : a, bars[0])
 
-  const areaPoints = bars.map((bar, i) => {
+  const plotY = (amount: number) => {
+    const range = H - TOP - 12
+    return H - (amount / maxAmt) * range
+  }
+
+  const points = bars.map((bar, i) => {
     const x = LEFT + 2 + i * step + barW / 2
-    const barH = Math.max(3, (bar.amount / maxAmt) * (H - 10))
-    return `${x},${H - barH}`
-  }).join(' ')
-  const firstX = LEFT + 2 + barW / 2
-  const lastX = LEFT + 2 + (bars.length - 1) * step + barW / 2
+    const y = plotY(bar.amount)
+    return { x, y, bar, idx: i }
+  })
 
-  const showTip = (e: React.MouseEvent | React.TouchEvent, bar: (typeof bars)[0], color: string) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+  const linePath = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ')
+  const areaPath = `${linePath} L ${points.at(-1)?.x ?? LEFT} ${H} L ${points[0]?.x ?? LEFT} ${H} Z`
+
+  const showTip = (e: React.MouseEvent | React.TouchEvent, point: (typeof points)[0], color: string) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const prev = point.idx > 0 ? bars[point.idx - 1].amount : point.bar.amount
+    const delta = point.bar.amount - prev
+    const deltaPct = prev > 0 ? (delta / prev) * 100 : 0
+    const runningTotal = bars.slice(0, point.idx + 1).reduce((s, b) => s + b.amount, 0)
     if (timerRef.current) clearTimeout(timerRef.current)
-    setTooltip({ x: clientX, y: clientY, lines: [{ label: bar.label }, { label: currency, value: bar.amount.toFixed(2), color }, { label: `${bar.count} expense${bar.count !== 1 ? 's' : ''}` }] })
-    timerRef.current = setTimeout(() => setTooltip(null), 2500)
+    setTooltip({
+      x: clientX,
+      y: clientY,
+      lines: [
+        { label: point.bar.label },
+        { label: 'Spend', value: `${currency} ${point.bar.amount.toFixed(2)}`, color },
+        { label: 'Transactions', value: String(point.bar.count) },
+        { label: 'Change', value: `${delta >= 0 ? '+' : ''}${currency} ${Math.abs(delta).toFixed(2)} (${delta >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%)` },
+        { label: 'Share of total', value: `${((point.bar.amount / total) * 100).toFixed(1)}%` },
+        { label: 'Running total', value: `${currency} ${runningTotal.toFixed(2)}` },
+      ],
+    })
   }
 
   return (
     <div className="relative">
       <svg viewBox={`0 0 ${W} ${H + LABEL_H}`} className="w-full overflow-visible">
         <defs>
-          <linearGradient id="timelineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.02" />
+          <linearGradient id={`timelineArea-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.34" />
+            <stop offset="65%" stopColor="#3b82f6" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.01" />
           </linearGradient>
+          <linearGradient id={`timelineBars-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.5" />
+          </linearGradient>
+          <filter id={`timelineGlow-${chartId}`} x="-20%" y="-20%" width="140%" height="160%">
+            <feGaussianBlur stdDeviation="2.4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
-        {[0.33, 0.66, 1].map((f) => (
-          <line key={f} x1={LEFT} y1={H - f * (H - 10)} x2={W} y2={H - f * (H - 10)} stroke="currentColor" strokeWidth={0.5} strokeOpacity={0.08} strokeDasharray="4 3" />
+        <rect x={LEFT} y={TOP} width={W - LEFT} height={H - TOP} rx={10} fill="currentColor" fillOpacity={0.02} />
+        {[0.25, 0.5, 0.75, 1].map((f) => (
+          <line key={f} x1={LEFT} y1={H - f * (H - TOP - 12)} x2={W} y2={H - f * (H - TOP - 12)} stroke="currentColor" strokeWidth={0.7} strokeOpacity={0.1} strokeDasharray="4 4" />
         ))}
-        {[maxAmt, maxAmt / 2].map((v, i) => (
-          <text key={i} x={LEFT - 3} y={H - (v / maxAmt) * (H - 10) + 3.5} textAnchor="end" fontSize={6} fill="currentColor" fillOpacity={0.4}>{yFmt(v)}</text>
+        {[maxAmt, (maxAmt + minAmt) / 2, minAmt].map((v, i) => (
+          <text key={i} x={LEFT - 4} y={plotY(v) + 3.5} textAnchor="end" fontSize={6} fill="currentColor" fillOpacity={0.48}>{yFmt(v)}</text>
         ))}
-        <polygon points={`${firstX},${H} ${areaPoints} ${lastX},${H}`} fill="url(#timelineGrad)" />
-        {bars.map((bar, i) => {
+        <path d={areaPath} fill={`url(#timelineArea-${chartId})`} />
+        <path d={linePath} stroke="#67e8f9" strokeWidth={2.1} fill="none" strokeLinecap="round" strokeLinejoin="round" filter={`url(#timelineGlow-${chartId})`} />
+        <line x1={LEFT} y1={plotY(avg)} x2={W} y2={plotY(avg)} stroke="#38bdf8" strokeWidth={0.9} strokeOpacity={0.55} strokeDasharray="5 5" />
+        <text x={W - 2} y={plotY(avg) - 2} textAnchor="end" fontSize={5.5} fill="#38bdf8" fillOpacity={0.8}>avg {yFmt(avg)}</text>
+        {points.map((point, i) => {
           const x = LEFT + 2 + i * step
-          const barH = Math.max(3, (bar.amount / maxAmt) * (H - 10))
+          const barH = Math.max(3, (point.bar.amount / maxAmt) * (H - TOP - 12))
           const y = H - barH
-          const isMax = bar.amount === maxAmt
-          const color = isMax ? '#7c3aed' : '#8b5cf6'
+          const isMax = point.bar.amount === maxAmt
+          const color = isMax ? '#06b6d4' : '#60a5fa'
           const showLabel = n <= 10 || i % Math.ceil(n / 8) === 0 || i === n - 1
           return (
-            <g key={bar.key}>
+            <g key={point.bar.key}>
               <rect x={x} y={2} width={barW} height={H - 2} rx={3} fill="transparent"
-                onMouseEnter={(e) => showTip(e, bar, color)}
-                onMouseLeave={() => { if (timerRef.current) clearTimeout(timerRef.current); setTooltip(null) }}
-                onTouchStart={(e) => showTip(e, bar, color)}
+                onMouseEnter={(e) => showTip(e, point, color)}
+                onMouseMove={(e) => showTip(e, point, color)}
+                onMouseLeave={() => {
+                  if (timerRef.current) clearTimeout(timerRef.current)
+                  setTooltip(null)
+                }}
+                onTouchStart={(e) => showTip(e, point, color)}
                 className="cursor-pointer"
               />
-              <rect x={x} y={2} width={barW} height={H - 2} rx={3} fill="currentColor" fillOpacity={0.04} />
-              <rect x={x} y={y} width={barW} height={barH} rx={3} fill={color} fillOpacity={isMax ? 0.88 : 0.55} />
-              {isMax && <circle cx={x + barW / 2} cy={y} r={2.5} fill={color} />}
+              <rect x={x} y={TOP} width={barW} height={H - TOP} rx={4} fill="currentColor" fillOpacity={0.03} />
+              <rect x={x} y={y} width={barW} height={barH} rx={4} fill={`url(#timelineBars-${chartId})`} fillOpacity={isMax ? 1 : 0.78} />
+              <circle cx={point.x} cy={point.y} r={isMax ? 3 : 2.1} fill={color} fillOpacity={0.95} />
               {showLabel && (
-                <text x={x + barW / 2} y={H + 13} textAnchor="middle" fontSize={5.5} fill="currentColor" fillOpacity={0.4}>{bar.label}</text>
+                <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={5.5} fill="currentColor" fillOpacity={0.46}>{point.bar.label}</text>
               )}
             </g>
           )
         })}
       </svg>
-      <p className="mt-1 text-[10px] text-muted-foreground px-1">
-        Peak: <span className="font-semibold text-foreground">{highestBar.label}</span> · {currency} {highestBar.amount.toFixed(2)}
+      <div className="mt-2 grid grid-cols-2 gap-1.5 px-1 sm:grid-cols-4">
+        <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-2 py-1.5">
+          <p className="text-[9px] text-muted-foreground">Peak window</p>
+          <p className="text-[10px] font-semibold text-foreground tabular-nums">{highestBar.label} · {currency} {highestBar.amount.toFixed(2)}</p>
+        </div>
+        <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2 py-1.5">
+          <p className="text-[9px] text-muted-foreground">Average</p>
+          <p className="text-[10px] font-semibold text-foreground tabular-nums">{currency} {avg.toFixed(2)}</p>
+        </div>
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-2 py-1.5">
+          <p className="text-[9px] text-muted-foreground">Trend</p>
+          <p className={`text-[10px] font-semibold tabular-nums ${trendPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{trendPct >= 0 ? '+' : ''}{trendPct.toFixed(1)}%</p>
+        </div>
+        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-2 py-1.5">
+          <p className="text-[9px] text-muted-foreground">Volatility</p>
+          <p className="text-[10px] font-semibold text-foreground tabular-nums">{currency} {volatility.toFixed(2)}</p>
+        </div>
+      </div>
+      <p className="mt-1.5 text-[10px] text-muted-foreground px-1">
+        Quietest: <span className="font-semibold text-foreground">{lowestBar.label}</span> · {currency} {lowestBar.amount.toFixed(2)}
       </p>
       <ChartTooltip data={tooltip} />
     </div>
   )
 }
 
-// ─── Category Donut ───────────────────────────────────────────────────────────
+// ─── Category Donut 3-D ──────────────────────────────────────────────────────
 interface PieSliceData { label: string; value: number; color: string; emoji: string; count: number }
 
 function CategoryDonutChart({ data, currency }: { data: PieSliceData[]; currency: string }) {
+  const chartId = useId().replaceAll(':', '')
   const [hovered, setHovered] = useState<number | null>(null)
   const [tooltip, setTooltip] = useState<TipState | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   if (!data.length) return null
   const total = data.reduce((s, d) => s + d.value, 0)
-  const cx = 80; const cy = 80; const r = 60; const innerR = 37
+
+  // ── 3-D perspective parameters ─────────────────────────────────────────────
+  const cx = 144; const cy = 108
+  const R = 93; const Ri = 51              // outer / inner radii
+  const pf = 0.42                           // Y compression (perspective)
+  const Ry = R * pf; const RiY = Ri * pf   // ellipse Y semi-axes
+  const D = 28                              // extrusion depth
+  const fn = (v: number) => v.toFixed(3)
+  const op = (a: number, dy = 0): [number, number] => [cx + R * Math.cos(a), cy + Ry * Math.sin(a) + dy]
+  const ip = (a: number, dy = 0): [number, number] => [cx + Ri * Math.cos(a), cy + RiY * Math.sin(a) + dy]
+  const aCmd = (rx: number, rry: number, x: number, y: number, lg: 0 | 1, sw: 0 | 1) =>
+    `A ${fn(rx)} ${fn(rry)} 0 ${lg} ${sw} ${fn(x)} ${fn(y)}`
 
   let angle = -Math.PI / 2
   const slices = data.map((d, idx) => {
     const sweep = (d.value / total) * 2 * Math.PI
     const sa = angle; const ea = angle + sweep
     angle += sweep
-    const lg = sweep > Math.PI ? 1 : 0
+    const lg: 0 | 1 = sweep > Math.PI ? 1 : 0
     const midA = sa + sweep / 2
-    const n = (v: number) => v.toFixed(6)
-    const path = [`M ${n(cx + r * Math.cos(sa))} ${n(cy + r * Math.sin(sa))}`, `A ${r} ${r} 0 ${lg} 1 ${n(cx + r * Math.cos(ea))} ${n(cy + r * Math.sin(ea))}`, `L ${n(cx + innerR * Math.cos(ea))} ${n(cy + innerR * Math.sin(ea))}`, `A ${innerR} ${innerR} 0 ${lg} 0 ${n(cx + innerR * Math.cos(sa))} ${n(cy + innerR * Math.sin(sa))}`, 'Z'].join(' ')
-    return { ...d, idx, pct: Math.round((d.value / total) * 100), path, midA }
-  })
-  const h = hovered !== null ? slices[hovered] : null
 
-  const showTip = (e: React.MouseEvent | React.TouchEvent, s: (typeof slices)[0]) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    // Top (elliptical) face
+    const [ox1, oy1] = op(sa); const [ox2, oy2] = op(ea)
+    const [ix1, iy1] = ip(sa); const [ix2, iy2] = ip(ea)
+    const topPath = [
+      `M ${fn(ox1)} ${fn(oy1)}`,
+      aCmd(R, Ry, ox2, oy2, lg, 1),
+      `L ${fn(ix2)} ${fn(iy2)}`,
+      aCmd(Ri, RiY, ix1, iy1, lg, 0),
+      'Z',
+    ].join(' ')
+
+    // Outer wall — only front-facing arc: angles ∈ [0, π]
+    let outerWall = ''
+    const wSa = Math.max(sa, 0)
+    const wEa = Math.min(ea, Math.PI)
+    if (wSa < wEa) {
+      const [wx1, wy1] = op(wSa); const [wx2, wy2] = op(wEa)
+      const wLg: 0 | 1 = (wEa - wSa) > Math.PI ? 1 : 0
+      outerWall = [
+        `M ${fn(wx1)} ${fn(wy1)}`,
+        aCmd(R, Ry, wx2, wy2, wLg, 1),
+        `L ${fn(wx2)} ${fn(wy2 + D)}`,
+        aCmd(R, Ry, wx1, wy1 + D, wLg, 0),
+        'Z',
+      ].join(' ')
+    }
+
+    return { ...d, idx, pct: Math.round((d.value / total) * 100), midA, topPath, outerWall }
+  })
+
+  // Sort back → front (most-negative sin first = drawn behind)
+  const sorted = [...slices].sort((a, b) => Math.sin(a.midA) - Math.sin(b.midA))
+  const hSlice = hovered === null ? null : slices[hovered]
+
+  const showTip = (e: React.MouseEvent | React.TouchEvent, s: typeof slices[0]) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
     if (timerRef.current) clearTimeout(timerRef.current)
-    setTooltip({ x: clientX, y: clientY, lines: [{ label: `${s.emoji} ${s.label}` }, { label: currency, value: s.value.toFixed(2), color: s.color }, { label: 'of total', value: `${s.pct}%` }, { label: 'items', value: String(s.count) }] })
-    timerRef.current = setTimeout(() => setTooltip(null), 2500)
+    setTooltip({
+      x: clientX, y: clientY,
+      lines: [
+        { label: `${s.emoji} ${s.label}` },
+        { label: 'Spent', value: `${currency} ${s.value.toFixed(2)}`, color: s.color },
+        { label: 'Share', value: `${s.pct}%` },
+        { label: 'Transactions', value: String(s.count) },
+        { label: 'Avg / item', value: `${currency} ${(s.value / s.count).toFixed(2)}` },
+      ],
+    })
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      {/* 3-D SVG chart */}
       <div className="relative mx-auto sm:mx-0 shrink-0">
-        <svg viewBox="0 0 160 160" className="w-40 h-40">
-          {slices.map((s) => {
+        <svg viewBox="0 0 304 256" className="h-64 w-auto">
+          <defs>
+            <radialGradient id={`bg3-${chartId}`} cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#000" stopOpacity="0" />
+            </radialGradient>
+            <filter id={`glo-${chartId}`} x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <filter id={`gloSm-${chartId}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="1.8" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            {slices.map((s) => (
+              <linearGradient key={s.idx} id={`wg-${chartId}-${s.idx}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.color} stopOpacity="0.92" />
+                <stop offset="100%" stopColor={s.color} stopOpacity="0.22" />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {/* Ambient glow beneath */}
+          <ellipse cx={cx} cy={cy + D / 2} rx={R + 16} ry={(R + 16) * pf + D / 2}
+            fill={`url(#bg3-${chartId})`} />
+
+          {/* All slices: outer wall then top face, back → front */}
+          {sorted.map((s) => {
             const isH = hovered === s.idx
+            const tx = isH ? (Math.cos(s.midA) * 6).toFixed(1) : '0'
+            const ty = isH ? (Math.sin(s.midA) * pf * 6).toFixed(1) : '0'
+            const opacity = hovered === null || isH ? 1 : 0.22
             return (
-              <path key={s.idx} d={s.path} fill={s.color} fillOpacity={hovered === null ? 1 : isH ? 1 : 0.22}
-                style={{ transform: `translate(${Math.cos(s.midA) * (isH ? 5 : 0)}px, ${Math.sin(s.midA) * (isH ? 5 : 0)}px)`, transition: 'all 0.15s ease', cursor: 'pointer' }}
+              <g
+                key={s.idx}
+                style={{ transform: `translate(${tx}px, ${ty}px)`, transition: 'transform 0.18s ease', cursor: 'pointer' }}
                 onMouseEnter={(e) => { setHovered(s.idx); showTip(e, s) }}
-                onMouseLeave={() => { setHovered(null); setTooltip(null); if (timerRef.current) clearTimeout(timerRef.current) }}
+                onMouseLeave={() => {
+                  setHovered(null)
+                  setTooltip(null)
+                  if (timerRef.current) clearTimeout(timerRef.current)
+                }}
                 onTouchStart={(e) => { setHovered(s.idx); showTip(e, s) }}
-              />
+              >
+                {s.outerWall && (
+                  <path
+                    d={s.outerWall}
+                    fill={`url(#wg-${chartId}-${s.idx})`}
+                    fillOpacity={opacity}
+                    filter={isH ? `url(#gloSm-${chartId})` : undefined}
+                  />
+                )}
+                <path
+                  d={s.topPath}
+                  fill={s.color}
+                  fillOpacity={opacity}
+                  stroke={isH ? s.color : 'none'}
+                  strokeWidth={isH ? 1.2 : 0}
+                  filter={isH ? `url(#glo-${chartId})` : undefined}
+                />
+              </g>
             )
           })}
-          {h ? (
+
+          {/* Inner ring highlight */}
+          <ellipse cx={cx} cy={cy} rx={Ri} ry={RiY}
+            fill="none" stroke="white" strokeWidth={0.7} strokeOpacity={0.12}
+            filter={`url(#gloSm-${chartId})`}
+          />
+
+          {/* Center label */}
+          {hSlice ? (
             <>
-              <text x={cx} y={cy - 10} textAnchor="middle" fontSize={20} fill={h.color}>{h.emoji}</text>
-              <text x={cx} y={cy + 8} textAnchor="middle" fontSize={10} fontWeight="700" fill={h.color}>{h.pct}%</text>
-              <text x={cx} y={cy + 20} textAnchor="middle" fontSize={7} fill="currentColor" fillOpacity={0.5}>{h.label.length > 11 ? h.label.slice(0, 11) + '…' : h.label}</text>
+              <text x={cx} y={cy - 13} textAnchor="middle" fontSize={26} fill={hSlice.color}>{hSlice.emoji}</text>
+              <text x={cx} y={cy + 9} textAnchor="middle" fontSize={14} fontWeight="700" fill={hSlice.color}>{hSlice.pct}%</text>
+              <text x={cx} y={cy + 24} textAnchor="middle" fontSize={8} fill="currentColor" fillOpacity={0.55}>
+                {hSlice.label.length > 12 ? `${hSlice.label.slice(0, 12)}…` : hSlice.label}
+              </text>
             </>
           ) : (
             <>
-              <text x={cx} y={cy - 4} textAnchor="middle" fontSize={8} fontWeight="700" fill="currentColor" fillOpacity={0.7}>Spending</text>
-              <text x={cx} y={cy + 10} textAnchor="middle" fontSize={8} fill="currentColor" fillOpacity={0.45}>{total >= 1000 ? `${(total / 1000).toFixed(1)}k` : total.toFixed(0)}</text>
+              <text x={cx} y={cy - 4} textAnchor="middle" fontSize={10} fontWeight="700" fill="currentColor" fillOpacity={0.7}>Total</text>
+              <text x={cx} y={cy + 14} textAnchor="middle" fontSize={12} fontWeight="600" fill="currentColor" fillOpacity={0.5}>
+                {total >= 1000 ? `${(total / 1000).toFixed(1)}k` : total.toFixed(0)}
+              </text>
             </>
           )}
         </svg>
         <ChartTooltip data={tooltip} />
       </div>
-      <div className="flex-1 min-w-0 max-h-44 overflow-y-auto space-y-0.5">
+
+      {/* Legend with inline percentage bars */}
+      <div className="flex-1 min-w-0 max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
         {slices.map((s) => (
-          <div key={s.idx}
-            className={`flex items-center gap-2 rounded-lg px-2 py-0.5 transition-colors cursor-default ${hovered === s.idx ? 'bg-accent' : 'hover:bg-accent/50'}`}
+          <button
+            key={s.idx}
+            type="button"
+            className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 transition-all text-left ${
+              hovered === s.idx ? 'bg-accent/70' : 'hover:bg-accent/35'
+            }`}
             onMouseEnter={() => setHovered(s.idx)}
             onMouseLeave={() => setHovered(null)}
           >
-            <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+            <div className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-inset ring-white/15" style={{ backgroundColor: s.color }} />
             <span className="text-[11px] truncate flex-1">{s.emoji} {s.label}</span>
-            <div className="text-right shrink-0">
-              <p className="text-[11px] font-semibold tabular-nums">{s.pct}%</p>
-              <p className="text-[9px] text-muted-foreground tabular-nums">{currency} {s.value >= 1000 ? (s.value / 1000).toFixed(1) + 'k' : s.value.toFixed(0)}</p>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="hidden sm:block w-28 h-1.5 rounded-full bg-border/40 overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${s.pct}%`, backgroundColor: s.color, opacity: 0.9 }} />
+              </div>
+              <div className="text-right w-12">
+                <p className="text-[11px] font-semibold tabular-nums" style={{ color: s.color }}>{s.pct}%</p>
+                <p className="text-[9px] text-muted-foreground tabular-nums">
+                  {currency} {s.value >= 1000 ? `${(s.value / 1000).toFixed(1)}k` : s.value.toFixed(0)}
+                </p>
+              </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -391,10 +589,10 @@ export function GroupAnalytics({
         </div>
       </div>
 
-      {/* Two-col on md+: Category | Balance */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Category (wider) + Balance grid */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {/* Category Donut */}
-        <div className="rounded-2xl border border-border/50 bg-card p-4">
+        <div className="md:col-span-3 rounded-2xl border border-border/50 bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-foreground">Spending by Category</h3>
             <span className="text-[10px] text-muted-foreground">{Object.keys(catTotals).length} cat{Object.keys(catTotals).length !== 1 ? 's' : ''}</span>
@@ -403,7 +601,7 @@ export function GroupAnalytics({
         </div>
 
         {/* Balance flow + settle guide */}
-        <div className="rounded-2xl border border-border/50 bg-card p-4">
+        <div className="md:col-span-2 rounded-2xl border border-border/50 bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-xs font-semibold text-foreground">Balance Overview</h3>
             <div className="flex gap-2.5">
