@@ -14,7 +14,6 @@ import {
   Bell,
 } from 'lucide-react'
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -55,39 +54,45 @@ const quickActions = [
   { href: '/expenses', icon: DollarSign, label: 'Expense' },
 ]
 
-export function DashboardOverview({
-  profile,
-  todaysTodos,
-  upcomingEvents,
-  todaysPlanner,
-}: DashboardOverviewProps) {
+// Greeting hero: depends only on the (fast, cached) profile, so it streams in
+// almost immediately while the data-heavy body below is still loading.
+export function DashboardHero({ profile }: Readonly<{ profile: DashboardOverviewProps['profile'] }>) {
   const hour = new Date().getHours()
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  let greeting = 'Good evening'
+  if (hour < 12) greeting = 'Good morning'
+  else if (hour < 18) greeting = 'Good afternoon'
   const firstName = profile.full_name?.split(' ')[0] ?? 'there'
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Greeting hero */}
-      <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
-        {/* Clock - centered on mobile, shrink-0 on desktop */}
-        <div className="flex justify-center sm:justify-start sm:shrink-0">
-          <AnalogClock timezone={profile.timezone ?? undefined} size={110} />
-        </div>
-
-        <div className="hidden sm:block w-px self-stretch bg-border/50" />
-        <div className="block sm:hidden h-px w-full bg-border/50" />
-
-        <div className="text-center sm:text-left">
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            {greeting}, {firstName}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
-          </p>
-        </div>
+    <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-6">
+      {/* Clock - centered on mobile, shrink-0 on desktop */}
+      <div className="flex justify-center sm:justify-start sm:shrink-0">
+        <AnalogClock timezone={profile.timezone ?? undefined} size={110} />
       </div>
 
+      <div className="hidden sm:block w-px self-stretch bg-border/50" />
+      <div className="block sm:hidden h-px w-full bg-border/50" />
+
+      <div className="text-center sm:text-left">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+          {greeting}, {firstName}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {format(new Date(), 'EEEE, MMMM d')} &middot; Here&apos;s what&apos;s on your plate today.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Data-driven body: streams in once the todos/events/planner queries resolve.
+export function DashboardBody({
+  todaysTodos,
+  upcomingEvents,
+  todaysPlanner,
+}: Readonly<Omit<DashboardOverviewProps, 'profile'>>) {
+  return (
+    <div className="space-y-4 md:space-y-6">
       {/* Stats strip - mobile-friendly horizontal scroll */}
       <div className="flex gap-3 overflow-x-auto pb-1 sm:overflow-visible">
         {[

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, DollarSign, Users, ArrowRight, Loader2, BarChart3 } from 'lucide-react'
 import {
   Button,
@@ -23,26 +24,14 @@ import {
   SelectValue,
 } from '@planningo/ui'
 import { createExpenseGroup } from '@/lib/actions/expenses'
+import { expenseGroupsQuery, expenseKeys } from '@/lib/queries/expenses'
 import { useRouter } from 'next/navigation'
 import { FeedbackCta } from '@/components/feedback/feedback-cta'
 
-interface Group {
-  id: string
-  name: string
-  description: string | null
-  currency: string
-  category: string
-  created_by: string
-  group_members: { user_id: string; role: string }[]
-}
-
-interface ExpensesClientProps {
-  groups: Group[]
-  userId: string
-}
-
-export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
+export function ExpensesClient() {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const { data: groups = [], isLoading } = useQuery(expenseGroupsQuery())
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [newGroup, setNewGroup] = useState({
@@ -71,8 +60,75 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
     } else {
       toast.success('Group created!')
       setIsCreateOpen(false)
+      // Refresh the cached list so returning to /expenses shows the new group.
+      queryClient.invalidateQueries({ queryKey: expenseKeys.groups() })
       if (result.group) router.push(`/expenses/${result.group.id}`)
     }
+  }
+
+  let groupsSection: React.ReactNode
+  if (isLoading) {
+    groupsSection = (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="h-full">
+            <CardHeader className="pb-2">
+              <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+              <div className="mt-2 h-3 w-40 animate-pulse rounded bg-muted" />
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  } else if (groups.length === 0) {
+    groupsSection = (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <DollarSign className="mb-3 h-12 w-12 text-muted-foreground/30" />
+          <p className="text-muted-foreground">No expense groups yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a group to start splitting expenses with friends
+          </p>
+          <Button variant="ghost" className="mt-2" onClick={() => setIsCreateOpen(true)}>
+            Create a group
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  } else {
+    groupsSection = (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {groups.map((group) => (
+          <Link key={group.id} href={`/expenses/${group.id}`} className="group block">
+            <Card className="h-full transition-shadow hover:shadow-md hover:border-primary/40">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-base group-hover:text-primary transition-colors truncate">{group.name}</CardTitle>
+                  <span className="text-xs text-muted-foreground capitalize shrink-0">{group.category}</span>
+                </div>
+                {group.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{group.description}</p>
+                )}
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{group.group_members.length} member(s)</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-foreground/80 group-hover:text-primary transition-colors shrink-0">
+                    Open <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -117,49 +173,7 @@ export function ExpensesClient({ groups, userId }: ExpensesClientProps) {
         </Link>
       </div>
 
-      {groups.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <DollarSign className="mb-3 h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">No expense groups yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create a group to start splitting expenses with friends
-            </p>
-            <Button variant="ghost" className="mt-2" onClick={() => setIsCreateOpen(true)}>
-              Create a group
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
-            <Link key={group.id} href={`/expenses/${group.id}`} className="group block">
-              <Card className="h-full transition-shadow hover:shadow-md hover:border-primary/40">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base group-hover:text-primary transition-colors truncate">{group.name}</CardTitle>
-                    <span className="text-xs text-muted-foreground capitalize shrink-0">{group.category}</span>
-                  </div>
-                  {group.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">{group.description}</p>
-                  )}
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <Users className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{group.group_members.length} member(s)</span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-foreground/80 group-hover:text-primary transition-colors shrink-0">
-                      Open <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+      {groupsSection}
 
       {/* Create Group Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -11,6 +11,45 @@ const expenseGroupSchema = z.object({
   category: z.string().default('general'),
 })
 
+export interface ExpenseGroupListItem {
+  id: string
+  name: string
+  description: string | null
+  currency: string
+  category: string
+  created_by: string
+  group_members: { user_id: string; role: string }[]
+}
+
+/**
+ * Groups the current user belongs to. Callable from both the server (prefetch)
+ * and the client (React Query queryFn) so the list can hydrate then cache.
+ */
+export async function getExpenseGroups(): Promise<ExpenseGroupListItem[]> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: memberships } = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('user_id', user.id)
+
+  const groupIds = (memberships ?? []).map((m) => m.group_id)
+  if (!groupIds.length) return []
+
+  const { data: groups } = await supabase
+    .from('expense_groups')
+    .select('*, group_members(user_id, role)')
+    .in('id', groupIds)
+    .eq('is_archived', false)
+    .order('updated_at', { ascending: false })
+
+  return (groups ?? []) as ExpenseGroupListItem[]
+}
+
 export async function createExpenseGroup(data: z.infer<typeof expenseGroupSchema>) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

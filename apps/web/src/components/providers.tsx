@@ -1,25 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TooltipProvider } from '@planningo/ui'
+import { getQueryClient } from '@/lib/query/get-query-client'
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 5 * 60 * 1000,       // 5 minutes
-            gcTime: 10 * 60 * 1000,          // keep cache 10 minutes
-            refetchOnWindowFocus: false,      // don't refetch on tab switch
-            refetchOnReconnect: true,
-            retry: 1,
-          },
-        },
-      })
-  )
+export function Providers({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Browser: a single stable client (getQueryClient memoizes it in the browser).
+  const queryClient = getQueryClient()
 
   return (
     <QueryClientProvider client={queryClient}>
