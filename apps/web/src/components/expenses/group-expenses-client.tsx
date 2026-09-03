@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -118,18 +118,36 @@ export function GroupExpensesClient({
   
   useEffect(() => { setExpenses(initialExpenses) }, [initialExpenses])
 
-  // Realtime: refresh when expenses or settlements change for this group
+  // Keep a stable ref so the realtime effect below doesn't reconnect the
+  // socket whenever the router callback identity changes.
+  const refreshRef = useRef(router.refresh)
+  refreshRef.current = router.refresh
+
+  // Realtime: refresh when expenses or settlements change for this group.
+  // Deferred to an idle callback so the WebSocket handshake doesn't compete
+  // with initial paint/hydration for the main thread and network priority.
   useEffect(() => {
-    const supabase = getSupabaseClient()
-    const channel = supabase
-      .channel(`group-expenses-${group.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${group.id}` }, () => router.refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_splits' }, () => router.refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${group.id}` }, () => router.refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_groups', filter: `id=eq.${group.id}` }, () => router.refresh())
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [group.id, router])
+    const win = window as Window & { requestIdleCallback?: (cb: () => void) => number }
+    const schedule = win.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 200))
+    const cancel = win.requestIdleCallback ? window.cancelIdleCallback : window.clearTimeout
+
+    let channel: ReturnType<ReturnType<typeof getSupabaseClient>['channel']> | null = null
+    const handle = schedule(() => {
+      const supabase = getSupabaseClient()
+      channel = supabase
+        .channel(`group-expenses-${group.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${group.id}` }, () => refreshRef.current())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_splits' }, () => refreshRef.current())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${group.id}` }, () => refreshRef.current())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_groups', filter: `id=eq.${group.id}` }, () => refreshRef.current())
+        .subscribe()
+    })
+
+    return () => {
+      cancel(handle as number)
+      if (channel) getSupabaseClient().removeChannel(channel)
+    }
+  }, [group.id])
 
   // Dialog state
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
