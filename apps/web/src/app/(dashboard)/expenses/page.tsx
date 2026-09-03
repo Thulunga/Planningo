@@ -6,6 +6,9 @@ import { ExpensesClient } from '@/components/expenses/expenses-client'
 
 export const metadata: Metadata = { title: 'Expenses' }
 
+// Per-user, auth-gated data: never statically prerender at build time.
+export const dynamic = 'force-dynamic'
+
 export default function ExpensesPage() {
   const queryClient = getQueryClient()
   // Non-blocking prefetch: the RSC doesn't await the DB, so back/forward nav
